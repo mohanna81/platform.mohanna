@@ -77,6 +77,28 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit }) =>
             </ul>
           </div>
         )}
+        {meeting.links && meeting.links.length > 0 && (
+          <div className="mb-2 text-sm">
+            <span className="font-semibold text-[#0b1320]">Additional Links:</span>
+            <ul className="ml-4 mt-1 space-y-1">
+              {meeting.links.map((link, i) => (
+                <li key={i}>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#3b82f6] hover:underline flex items-center gap-1"
+                  >
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    {link.title || link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-sm mt-2 mb-1">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4V7a4 4 0 10-8 0v3m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="font-semibold text-[#0b1320]">Attendees ({meeting.attendees.length}):</span>

@@ -13,7 +13,6 @@ import { fetchOrganizationsByRole, organizationsService } from '@/lib/api/servic
 import { showToast } from '@/lib/utils/toast';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { getRoleLevel } from '@/lib/utils/roleHierarchy';
-import Loader from '@/components/common/Loader';
 import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import AccessRestricted from '@/components/risk-review/AccessRestricted';
 
@@ -505,7 +504,12 @@ export default function RiskReviewPage() {
                 onClick={() => setActiveTab(tab.label)}
                 type="button"
               >
-                {tab.label} <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">{tab.count}</span>
+                {tab.label}
+                {isFullyLoaded && (
+                  <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
