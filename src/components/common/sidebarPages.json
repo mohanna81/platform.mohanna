@@ -1,0 +1,32 @@
+[
+  {
+    "section": "Main",
+    "pages": [
+      { "name": "Dashboard", "icon": "bar-chart", "path": "/dashboard" },
+      { "name": "My Risks", "icon": "shield", "path": "/my-risks", "excludeRoles": ["Facilitator"] },
+      { "name": "Shared Risks", "icon": "users", "path": "/shared-risks" },
+      { "name": "Consortiums", "icon": "layers", "path": "/consortiums" }
+    ]
+  },
+  {
+    "section": "Facilitator",
+    "pages": [
+      { "name": "Risk Review", "icon": "book-open", "path": "/risk-review" },
+      { "name": "Consortium Management", "icon": "folder", "path": "/consortium-management", "roles": ["Super_user", "Admin"] }
+    ]
+  },
+  {
+    "section": "Collaboration",
+    "pages": [
+      { "name": "Meetings", "icon": "calendar", "path": "/meetings" },
+      { "name": "Action Items", "icon": "check-square", "path": "/action-items" },
+      { "name": "Resources", "icon": "bookmarks", "path": "/resources" }
+    ]
+  },
+  {
+    "section": "Administration",
+    "pages": [
+      { "name": "Settings", "icon": "settings", "path": "/settings", "excludeRoles": ["Organization User", "Facilitator"] }
+    ]
+  }
+] 
