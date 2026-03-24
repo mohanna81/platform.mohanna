@@ -58,13 +58,12 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
     }
   }, [modalOpen]);
 
-  // Overdue logic
+  // Overdue logic: compare against local meeting date+time, not UTC-shifted time
   const now = new Date();
-  // Handle ISO date string and set end time in UTC
-  const baseDate = new Date(meeting.date); // ISO string from API
+  const baseDate = new Date(meeting.date);
   const [endHour, endMinute] = meeting.endTime.split(':').map(Number);
   const meetingEnd = new Date(baseDate);
-  meetingEnd.setUTCHours(endHour, endMinute, 0, 0); // Set time in UTC
+  meetingEnd.setHours(endHour, endMinute, 0, 0);
   const isOverdue = meeting.status === 'Scheduled' && meetingEnd.getTime() < now.getTime();
   // Debug log
   console.log(
@@ -234,18 +233,18 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H7v-3a2 2 0 01.586-1.414z" />
               </svg>
-              Edit
+              {isOverdue ? 'Add Minutes' : 'Edit'}
             </button>
           )}
           {meeting.meetingType === 'Virtual' && meeting.meetingLink ? (
-            meeting.status === 'Completed' ? (
+            meeting.status === 'Completed' || isOverdue ? (
               <Button
                 variant="secondary"
                 size="md"
                 className="w-full max-w-xs sm:max-w-none sm:w-auto text-center cursor-not-allowed opacity-50"
                 disabled={true}
               >
-                Meeting Completed
+                {isOverdue ? 'Meeting Ended' : 'Meeting Completed'}
               </Button>
             ) : (
               <Button

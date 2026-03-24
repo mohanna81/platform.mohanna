@@ -368,12 +368,12 @@ export default function MeetingsPage() {
                         console.error('Invalid endTime format (should be 24-hour HH:mm):', meeting.endTime, 'for meeting', meeting.title);
                         return null; // Skip rendering this meeting
                       }
-                      // Determine if meeting is overdue (handle ISO date string)
+                      // Determine if meeting is overdue using local date/time
                       const now = new Date();
-                      const baseDate = new Date(meeting.date); // ISO string from API
+                      const baseDate = new Date(meeting.date);
                       const [endHour, endMinute] = meeting.endTime.split(':').map(Number);
                       const meetingEnd = new Date(baseDate);
-                      meetingEnd.setUTCHours(endHour, endMinute, 0, 0); // Set time in UTC
+                      meetingEnd.setHours(endHour, endMinute, 0, 0);
                       const isOverdue = meetingEnd.getTime() < now.getTime();
                       return (
                         <MeetingCard
