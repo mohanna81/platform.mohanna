@@ -411,7 +411,7 @@ export default function MeetingsPage() {
                       <PastMeetingCard
                         key={meeting._id}
                         meeting={meeting}
-                        onEdit={undefined}
+                        onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
                       />
                     ))
                   );

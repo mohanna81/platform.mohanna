@@ -110,7 +110,12 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit }) =>
             </span>
           ))}
         </div>
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end mt-4 gap-2">
+          {onEdit && (
+            <Button variant="secondary" size="md" onClick={onEdit}>
+              {meeting.minutes?.trim() ? 'Edit Minutes' : 'Add Minutes'}
+            </Button>
+          )}
           <Button variant="primary" size="md" onClick={() => setModalOpen(true)}>
             View Minutes
           </Button>
