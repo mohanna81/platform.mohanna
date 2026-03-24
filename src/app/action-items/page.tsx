@@ -568,16 +568,26 @@ export default function ActionItemsPage() {
         return;
       }
 
+      const normalizedDate = form.date ? new Date(`${form.date}T00:00:00`).toISOString() : undefined;
+      const existingOrganizationId =
+        editingItem.organization && editingItem.organization.length > 0
+          ? getId(editingItem.organization[0])
+          : '';
+      const organizationId = form.assignTo || existingOrganizationId;
+
       const payload: UpdateActionItemRequest = {
         title: form.title,
         description: form.description,
         consortium: form.consortium,
         assignTo: form.assignToUser,
         assignToModel: 'User',
-        organization: form.assignTo, // Include the selected organization
-        implementationDate: form.date,
+        implementationDate: normalizedDate,
         status: form.status,
       };
+
+      if (organizationId && organizationId !== '[object Object]') {
+        payload.organization = organizationId;
+      }
       
       const res = await actionItemsService.updateActionItem(editingItem._id, payload);
       if (res.success) {
@@ -586,10 +596,10 @@ export default function ActionItemsPage() {
         setEditingItem(null);
         fetchActionItems();
       } else {
-        showToast.error(res.message || 'Failed to update action item');
+        showToast.error(res.error || res.message || 'Failed to update action item');
       }
-    } catch {
-      showToast.error('An error occurred while updating the action item');
+    } catch (error) {
+      showToast.error(error instanceof Error ? error.message : 'An error occurred while updating the action item');
     }
   };
 
@@ -634,6 +644,9 @@ export default function ActionItemsPage() {
   function getId(val: unknown): string {
     if (typeof val === 'object' && val !== null && '_id' in val && typeof (val as { _id: unknown })._id === 'string') {
       return (val as { _id: string })._id;
+    }
+    if (typeof val === 'object' && val !== null && 'id' in val && typeof (val as { id: unknown }).id === 'string') {
+      return (val as { id: string }).id;
     }
     return String(val || '');
   }
