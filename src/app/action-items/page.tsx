@@ -10,12 +10,11 @@ import { showToast } from '@/lib/utils/toast';
 import type { AssignActionFormData } from '@/components/action-items/AssignActionModal';
 import type { CreateActionItemRequest } from '@/lib/api/services/actionitems';
 import type { ActionItem } from '@/lib/api/services/actionitems';
-import { Loader } from "@/components/common";
-import DataLoadingProgress from '@/components/common/DataLoadingProgress';
 import EditActionModal, { EditActionFormData } from '@/components/action-items/EditActionModal';
 import { authStorage, roleHelpers } from '@/lib/utils/authStorage';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
+import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import { USER_ROLES } from '@/lib/utils/authStorage';
 import { userService, User } from '@/lib/api/services/auth';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -704,29 +703,9 @@ export default function ActionItemsPage() {
     return { status: item.status, daysRemaining, isUrgent: false };
   };
 
-  // Show loading state while initial data is being loaded
-  if (authLoading || !isFullyLoaded) {
-    return (
-      <Layout>
-        <div className="p-4 sm:p-8 md:p-12">
-          <DataLoadingProgress
-            title="Loading Action Items"
-            subtitle="Please wait while we load all data..."
-            items={[
-              { key: 'actionItems', label: 'Action Items', isLoading: loadingState.actionItems, count: actionItems.length },
-              { key: 'userConsortia', label: 'User Consortia', isLoading: loadingState.userConsortia, count: userConsortia.length },
-              { key: 'consortia', label: 'Consortia', isLoading: loadingState.consortia, count: consortiumOptions.length },
-              { key: 'organizations', label: 'Organizations', isLoading: loadingState.organizations, count: orgOptions.length }
-            ]}
-          />
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="p-4 sm:p-8 md:p-12">
+      <div className="space-y-6 p-4 sm:p-8 md:p-12">
         <ActionItemsHeader
           consortium={consortium}
           onConsortiumChange={setConsortium}
@@ -745,68 +724,77 @@ export default function ActionItemsPage() {
           </div>
         )}
         <ActionItemsTabs activeTab={activeTab} onTabChange={setActiveTab} />
-        {loadingState.actionItems ? (
-          <div className="text-center py-8 text-gray-500">
-            <Loader />
-            <p className="mt-2">Loading action items...</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No action items found.</div>
-        ) : (
-          filteredItems.map((item, idx) => {
-            const statusInfo = getStatusWithIndicators(item);
-            // For the "In Progress" tab, we show both In Progress and At Risk items
-            // The ActionItemCard will display the appropriate status styling
-            return (
-            <ActionItemCard
-              key={item._id}
-              title={item.title}
-              status={statusInfo.status as 'In Progress' | 'At Risk' | 'Complete'}
-              id={(idx + 1).toString()}
-              actionItemId={item._id}
-              daysRemaining={statusInfo.daysRemaining}
-              assignedTo={
-                [
-                  isNamedObject(item.assignTo) ? item.assignTo.name : String(item.assignTo || ''),
-                  item.assignToUser ? (isNamedObject(item.assignToUser) ? item.assignToUser.name : String(item.assignToUser || '')) : undefined
-                ].filter(Boolean).join(' / ')
-              }
-              consortium={Array.isArray(item.consortium)
-                ? item.consortium.map((c) => {
-                    if (isNamedObject(c)) {
-                      return c.name;
-                    } else if (typeof c === 'object' && c !== null) {
-                      return String(c);
-                    } else {
-                      return String(c);
-                    }
-                  }).join(', ')
-                : isNamedObject(item.consortium)
-                  ? item.consortium.name
-                  : String(item.consortium || '')}
-              description={item.description}
-              implementationDate={formatDate(item.implementationDate)}
-              relatedRisk={(() => {
-                if (typeof item.relatedRisk === 'object' && item.relatedRisk !== null) {
-                  // Check if it has a title property (which is the correct property for risks)
-                  if ('title' in item.relatedRisk && typeof item.relatedRisk.title === 'string') {
-                    return item.relatedRisk.title;
-                  }
-                  // Fallback to name if title doesn't exist
-                  if ('name' in item.relatedRisk && typeof item.relatedRisk.name === 'string') {
-                    return item.relatedRisk.name;
-                  }
-                  // If neither exists, convert to string
-                  return String(item.relatedRisk);
-                }
-                return String(item.relatedRisk || '');
-              })()}
-              onEdit={!authLoading && canAssignOrEdit ? () => handleEdit(item) : undefined}
-              onDelete={!authLoading && isCreatedBy(item, userId) ? () => { setItemToDelete(item); setConfirmDeleteOpen(true); } : undefined}
+        <div className="bg-white rounded-xl border border-gray-200">
+          {!isFullyLoaded || loadingState.actionItems ? (
+            <RotatingMessageLoader
+              title="Loading Action Items"
+              messages={[
+                'Preparing your action dashboard…',
+                'Loading assignments and owners…',
+                'Reviewing due dates and status…',
+                'Collecting consortium action items…',
+                'Syncing organizations and users…',
+                'Finalizing your task view…',
+              ]}
             />
-            );
-          })
-        )}
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No action items found.</div>
+          ) : (
+            filteredItems.map((item, idx) => {
+              const statusInfo = getStatusWithIndicators(item);
+              // For the "In Progress" tab, we show both In Progress and At Risk items
+              // The ActionItemCard will display the appropriate status styling
+              return (
+              <ActionItemCard
+                key={item._id}
+                title={item.title}
+                status={statusInfo.status as 'In Progress' | 'At Risk' | 'Complete'}
+                id={(idx + 1).toString()}
+                actionItemId={item._id}
+                daysRemaining={statusInfo.daysRemaining}
+                assignedTo={
+                  [
+                    isNamedObject(item.assignTo) ? item.assignTo.name : String(item.assignTo || ''),
+                    item.assignToUser ? (isNamedObject(item.assignToUser) ? item.assignToUser.name : String(item.assignToUser || '')) : undefined
+                  ].filter(Boolean).join(' / ')
+                }
+                consortium={Array.isArray(item.consortium)
+                  ? item.consortium.map((c) => {
+                      if (isNamedObject(c)) {
+                        return c.name;
+                      } else if (typeof c === 'object' && c !== null) {
+                        return String(c);
+                      } else {
+                        return String(c);
+                      }
+                    }).join(', ')
+                  : isNamedObject(item.consortium)
+                    ? item.consortium.name
+                    : String(item.consortium || '')}
+                description={item.description}
+                implementationDate={formatDate(item.implementationDate)}
+                relatedRisk={(() => {
+                  if (typeof item.relatedRisk === 'object' && item.relatedRisk !== null) {
+                    // Check if it has a title property (which is the correct property for risks)
+                    if ('title' in item.relatedRisk && typeof item.relatedRisk.title === 'string') {
+                      return item.relatedRisk.title;
+                    }
+                    // Fallback to name if title doesn't exist
+                    if ('name' in item.relatedRisk && typeof item.relatedRisk.name === 'string') {
+                      return item.relatedRisk.name;
+                    }
+                    // If neither exists, convert to string
+                    return String(item.relatedRisk);
+                  }
+                  return String(item.relatedRisk || '');
+                })()}
+                onEdit={!authLoading && canAssignOrEdit ? () => handleEdit(item) : undefined}
+                onDelete={!authLoading && isCreatedBy(item, userId) ? () => { setItemToDelete(item); setConfirmDeleteOpen(true); } : undefined}
+              />
+              );
+            })
+          )}
+        </div>
         <AssignActionModal
           isOpen={showAssignModal}
           onClose={handleCloseAssignModal}
