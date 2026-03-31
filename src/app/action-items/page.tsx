@@ -193,12 +193,10 @@ export default function ActionItemsPage() {
       if (userRole === USER_ROLES.Facilitator) {
         // Check if the action item's consortium is in the user's consortium list
         if (Array.isArray(item.consortium)) {
-          const itemConsortiumIds = item.consortium.map((c) => 
-            typeof c === 'object' && c !== null ? c._id : c
-          );
+          const itemConsortiumIds = item.consortium.map((c) => getId(c)).filter(Boolean);
           return itemConsortiumIds.some(consortiumId => userConsortiaIds.includes(consortiumId));
         } else if (typeof item.consortium === 'object' && item.consortium !== null) {
-          const consortiumId = (item.consortium as { _id: string })._id;
+          const consortiumId = getId(item.consortium);
           return userConsortiaIds.includes(consortiumId);
         } else {
           return userConsortiaIds.includes(item.consortium as string);
@@ -208,7 +206,7 @@ export default function ActionItemsPage() {
       // Check if user is directly assigned to this action item (new structure)
       if (item.assignToModel === 'User') {
         const assignedUserId = typeof item.assignTo === 'object' 
-          ? item.assignTo._id 
+          ? getId(item.assignTo)
           : item.assignTo;
         if (assignedUserId === userId) {
           return true;
@@ -218,7 +216,7 @@ export default function ActionItemsPage() {
       // Check if user's organization is assigned to this action item (new structure)
       if (item.assignToModel === 'Organization') {
         const assignedOrgId = typeof item.assignTo === 'object' 
-          ? item.assignTo._id 
+          ? getId(item.assignTo)
           : item.assignTo;
         if (userOrganizationId && userOrganizationId === assignedOrgId) {
           return true;
@@ -228,7 +226,7 @@ export default function ActionItemsPage() {
       // Legacy check for assignToUser (for backward compatibility)
       if (item.assignToUser) {
         const assignedUserId = typeof item.assignToUser === 'object' 
-          ? item.assignToUser._id 
+          ? getId(item.assignToUser)
           : item.assignToUser;
         if (assignedUserId === userId) {
           return true;
@@ -237,9 +235,7 @@ export default function ActionItemsPage() {
 
       // Check if user is in the organizationUser array
       if (item.organizationUser && Array.isArray(item.organizationUser)) {
-        const orgUserIds = item.organizationUser.map((orgUser: string | { _id: string; name: string }) => 
-          typeof orgUser === 'object' ? orgUser._id : orgUser
-        );
+        const orgUserIds = item.organizationUser.map((orgUser: string | { _id: string; name: string } | null) => getId(orgUser)).filter(Boolean);
         if (orgUserIds.includes(userId)) {
           return true;
         }
@@ -247,9 +243,7 @@ export default function ActionItemsPage() {
 
       // Check if user's organization is in the organization array
       if (item.organization && Array.isArray(item.organization)) {
-        const orgIds = item.organization.map((org: string | { _id: string; name: string }) => 
-          typeof org === 'object' ? org._id : org
-        );
+        const orgIds = item.organization.map((org: string | { _id: string; name: string } | null) => getId(org)).filter(Boolean);
         if (userOrganizationId && orgIds.includes(userOrganizationId)) {
           return true;
         }
@@ -550,8 +544,8 @@ export default function ActionItemsPage() {
     
     // Fetch users for the consortium of the item being edited
     const itemConsortiumId = Array.isArray(item.consortium)
-      ? (typeof item.consortium[0] === 'object' ? item.consortium[0]._id : item.consortium[0])
-      : (typeof item.consortium === 'object' ? item.consortium._id : item.consortium);
+      ? getId(item.consortium[0])
+      : getId(item.consortium);
     
     if (itemConsortiumId) {
       fetchUsersByConsortium(itemConsortiumId);
