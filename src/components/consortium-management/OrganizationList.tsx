@@ -23,6 +23,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
 
   // Check if user is Admin or Super User
   const canDelete = user && (user.role === 'Admin' || user.role === 'Super_user');
+  const canEditOrganizations = user && (user.role === 'Admin' || user.role === 'Super_user');
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -50,6 +51,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
   }, [fetchOrganizations, refreshKey]);
 
   const handleEdit = (organization: Organization) => {
+    if (!canEditOrganizations) return;
     if (onEdit) {
       onEdit(organization);
     }
@@ -152,13 +154,15 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
               <p className="text-xs text-gray-700 mb-3">Users: {organization.users}</p>
             )}
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleEdit(organization)}
-              >
-                Edit
-              </Button>
+              {canEditOrganizations && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleEdit(organization)}
+                >
+                  Edit
+                </Button>
+              )}
               {canDelete && (
                 <Button 
                   variant="danger" 
