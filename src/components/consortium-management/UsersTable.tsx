@@ -35,6 +35,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
 
   // Check if user is Admin or Super User
   const canDelete = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super_user');
+  const canEditUsers = currentUser ? ['Admin', 'Super_user'].includes(normalizeRole(currentUser.role)) : false;
 
   const fetchDropdownData = useCallback(async () => {
     if (!currentUser) return;
@@ -149,6 +150,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   };
 
   const handleEditUser = (user: User) => {
+    if (!canEditUsers) return;
     setEditingUser(user);
     setEditModalOpen(true);
   };
@@ -367,16 +369,18 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center gap-3 justify-end">
-                      <button
-                        className="flex items-center gap-1 text-gray-700 hover:text-black text-sm font-medium cursor-pointer"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 20h9"/>
-                          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5Z"/>
-                        </svg>
-                        Edit
-                      </button>
+                      {canEditUsers && (
+                        <button
+                          className="flex items-center gap-1 text-gray-700 hover:text-black text-sm font-medium cursor-pointer"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 20h9"/>
+                            <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5Z"/>
+                          </svg>
+                          Edit
+                        </button>
+                      )}
                       {canDelete && (
                         <button
                           className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
