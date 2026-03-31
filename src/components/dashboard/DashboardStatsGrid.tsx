@@ -91,6 +91,16 @@ interface AdminDashboardStatsWithAdditional extends AdminDashboardStats {
   additionalData?: AdditionalDashboardData;
 }
 
+const getEntityId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (typeof value._id === 'string') return value._id;
+    if (typeof value.id === 'string') return value.id;
+  }
+  return '';
+};
+
 const DashboardStatsGrid = () => {
   const router = useRouter();
   const { user } = useAuth();
@@ -168,7 +178,7 @@ const DashboardStatsGrid = () => {
             pendingRisks = pendingRisksResponse.data.data.filter((risk: any) => {
               // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
-                ? risk.consortium.map((c: any) => typeof c === 'object' ? c._id : c)
+                ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
               const hasAvailableConsortium = riskConsortiumIds.some((id: string) => 
                 userConsortiaIds.includes(id)
@@ -183,7 +193,7 @@ const DashboardStatsGrid = () => {
             approvedRisks = approvedRisksResponse.data.data.filter((risk: any) => {
               // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
-                ? risk.consortium.map((c: any) => typeof c === 'object' ? c._id : c)
+                ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
               const hasAvailableConsortium = riskConsortiumIds.some((id: string) => 
                 userConsortiaIds.includes(id)
@@ -198,7 +208,7 @@ const DashboardStatsGrid = () => {
             rejectedRisks = rejectedRisksResponse.data.data.filter((risk: any) => {
               // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
-                ? risk.consortium.map((c: any) => typeof c === 'object' ? c._id : c)
+                ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
               const hasAvailableConsortium = riskConsortiumIds.some((id: string) => 
                 userConsortiaIds.includes(id)
@@ -221,12 +231,10 @@ const DashboardStatsGrid = () => {
             // For facilitators, check consortium first (but don't return early - continue to other checks)
             let isInConsortium = false;
             if (Array.isArray(item.consortium)) {
-              const itemConsortiumIds = item.consortium.map((c: any) => 
-                typeof c === 'object' && c !== null ? c._id : c
-              );
+              const itemConsortiumIds = item.consortium.map((c: any) => getEntityId(c)).filter(Boolean);
               isInConsortium = itemConsortiumIds.some((consortiumId: string) => userConsortiaIds.includes(consortiumId));
             } else if (typeof item.consortium === 'object' && item.consortium !== null) {
-              const consortiumId = (item.consortium as { _id: string })._id;
+              const consortiumId = getEntityId(item.consortium);
               isInConsortium = userConsortiaIds.includes(consortiumId);
           } else {
               isInConsortium = userConsortiaIds.includes(item.consortium as string);
@@ -237,7 +245,7 @@ const DashboardStatsGrid = () => {
             // Check if user is directly assigned to this action item (new structure)
             if (item.assignToModel === 'User') {
               const assignedUserId = typeof item.assignTo === 'object' 
-                ? item.assignTo._id 
+                ? getEntityId(item.assignTo)
                 : item.assignTo;
               if (assignedUserId === userId) {
                 return true;
@@ -247,7 +255,7 @@ const DashboardStatsGrid = () => {
             // Check if user's organization is assigned to this action item (new structure)
             if (item.assignToModel === 'Organization') {
               const assignedOrgId = typeof item.assignTo === 'object' 
-                ? item.assignTo._id 
+                ? getEntityId(item.assignTo)
                 : item.assignTo;
               if (userOrganizationId && userOrganizationId === assignedOrgId) {
                 return true;
@@ -257,7 +265,7 @@ const DashboardStatsGrid = () => {
             // Legacy check for assignToUser (for backward compatibility)
             if (item.assignToUser) {
               const assignedUserId = typeof item.assignToUser === 'object' 
-                ? item.assignToUser._id 
+                ? getEntityId(item.assignToUser)
                 : item.assignToUser;
               if (assignedUserId === userId) {
                 return true;
@@ -266,9 +274,7 @@ const DashboardStatsGrid = () => {
 
             // Check if user is in the organizationUser array
             if (item.organizationUser && Array.isArray(item.organizationUser)) {
-              const orgUserIds = item.organizationUser.map((orgUser: any) => 
-                typeof orgUser === 'object' ? orgUser._id : orgUser
-              );
+              const orgUserIds = item.organizationUser.map((orgUser: any) => getEntityId(orgUser)).filter(Boolean);
               if (orgUserIds.includes(userId)) {
                 return true;
               }
@@ -276,9 +282,7 @@ const DashboardStatsGrid = () => {
 
             // Check if user's organization is in the organization array
             if (item.organization && Array.isArray(item.organization)) {
-              const orgIds = item.organization.map((org: any) => 
-                typeof org === 'object' ? org._id : org
-              );
+              const orgIds = item.organization.map((org: any) => getEntityId(org)).filter(Boolean);
               if (userOrganizationId && orgIds.includes(userOrganizationId)) {
                 return true;
               }
@@ -367,8 +371,8 @@ const DashboardStatsGrid = () => {
             _id: apiRisk._id,
             title: apiRisk.title,
             category: apiRisk.category,
-            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [],
-            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
+            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [],
+            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
             statement: apiRisk.statement,
             likelihood: apiRisk.likelihood,
             severity: apiRisk.severity,
@@ -390,10 +394,10 @@ const DashboardStatsGrid = () => {
             _id: apiActionItem._id,
             title: apiActionItem.title,
             description: apiActionItem.description,
-            consortium: Array.isArray(apiActionItem.consortium) ? apiActionItem.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [typeof apiActionItem.consortium === 'string' ? apiActionItem.consortium : apiActionItem.consortium?._id || ''],
-            organization: Array.isArray(apiActionItem.organization) ? apiActionItem.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
-            organizationUser: Array.isArray(apiActionItem.organizationUser) ? apiActionItem.organizationUser.map((u: any) => typeof u === 'string' ? u : u._id) : [],
-            assignTo: typeof apiActionItem.assignTo === 'string' ? apiActionItem.assignTo : apiActionItem.assignTo?._id || '',
+            consortium: Array.isArray(apiActionItem.consortium) ? apiActionItem.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [getEntityId(apiActionItem.consortium)].filter(Boolean),
+            organization: Array.isArray(apiActionItem.organization) ? apiActionItem.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
+            organizationUser: Array.isArray(apiActionItem.organizationUser) ? apiActionItem.organizationUser.map((u: any) => getEntityId(u)).filter(Boolean) : [],
+            assignTo: getEntityId(apiActionItem.assignTo),
             assignToModel: apiActionItem.assignToModel,
             implementationDate: apiActionItem.implementationDate,
             status: apiActionItem.status,
@@ -415,9 +419,9 @@ const DashboardStatsGrid = () => {
             meetingLink: apiMeeting.meetingLink,
             agenda: apiMeeting.agenda || '',
             status: apiMeeting.status,
-            consortium: Array.isArray(apiMeeting.consortium) ? apiMeeting.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [typeof apiMeeting.consortium === 'string' ? apiMeeting.consortium : apiMeeting.consortium?._id || ''],
-            organization: Array.isArray(apiMeeting.organization) ? apiMeeting.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
-            attendees: Array.isArray(apiMeeting.attendees) ? apiMeeting.attendees.map((a: any) => typeof a === 'string' ? a : a._id) : [],
+            consortium: Array.isArray(apiMeeting.consortium) ? apiMeeting.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [getEntityId(apiMeeting.consortium)].filter(Boolean),
+            organization: Array.isArray(apiMeeting.organization) ? apiMeeting.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
+            attendees: Array.isArray(apiMeeting.attendees) ? apiMeeting.attendees.map((a: any) => getEntityId(a)).filter(Boolean) : [],
             actionItems: Array.isArray(apiMeeting.actionItems) ? apiMeeting.actionItems : [],
             createdBy: typeof apiMeeting.createdBy === 'string' ? apiMeeting.createdBy : apiMeeting.createdBy?._id || '',
             createdAt: apiMeeting.createdAt,
@@ -550,16 +554,19 @@ const DashboardStatsGrid = () => {
             
             sharedRisks = approvedRisks.filter((risk: any) => {
               // Filter to show only risks from available consortiums (exact same logic as shared risks page)
-              const availableConsortiumIds = consortiums.map((c: any) => c._id);
+              const availableConsortiumIds = consortiums.map((c: any) => getEntityId(c)).filter(Boolean);
               const hasAvailableConsortium = Array.isArray(risk.consortium) && 
-                risk.consortium.some((c: any) => availableConsortiumIds.includes(c._id));
+                risk.consortium.some((c: any) => {
+                  const riskConsortiumId = getEntityId(c);
+                  return !!riskConsortiumId && availableConsortiumIds.includes(riskConsortiumId);
+                });
               
               // Debug logging for each risk
               if (!hasAvailableConsortium) {
                 console.log('Risk filtered out by consortium filter:', {
                   riskId: risk._id,
                   riskTitle: risk.title,
-                  riskConsortiums: risk.consortium?.map((c: any) => ({ id: c._id, name: c.name })) || [],
+                  riskConsortiums: risk.consortium?.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })) || [],
                   availableConsortiumIds,
                   hasAvailableConsortium
                 });
@@ -578,7 +585,7 @@ const DashboardStatsGrid = () => {
               // Check if user is directly assigned to this action item
               if (item.assignToModel === 'User') {
                 const assignedUserId = typeof item.assignTo === 'object' 
-                  ? item.assignTo._id 
+                  ? getEntityId(item.assignTo)
                   : item.assignTo;
                 if (assignedUserId === user.id) {
                   return true;
@@ -588,9 +595,7 @@ const DashboardStatsGrid = () => {
               // Check if user's organization is assigned to this action item
               if (item.assignToModel === 'Organization') {
                 if (Array.isArray(item.organization)) {
-                  const orgIds = item.organization.map((org: any) => 
-                    typeof org === 'object' && org !== null ? org._id : org
-                  );
+                  const orgIds = item.organization.map((org: any) => getEntityId(org)).filter(Boolean);
                   // Check if user's organization is in the assigned organizations
                   return orgIds.some((orgId: string) => {
                     // We need to check if this organization matches the user's organization
@@ -630,8 +635,8 @@ const DashboardStatsGrid = () => {
               _id: apiRisk._id,
               title: apiRisk.title,
               category: apiRisk.category,
-            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [],
-            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
+            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [],
+            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
               statement: apiRisk.statement,
               likelihood: apiRisk.likelihood,
               severity: apiRisk.severity,
@@ -653,8 +658,8 @@ const DashboardStatsGrid = () => {
               _id: apiRisk._id,
               title: apiRisk.title,
               category: apiRisk.category,
-            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [],
-            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
+            consortium: Array.isArray(apiRisk.consortium) ? apiRisk.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [],
+            organization: Array.isArray(apiRisk.organization) ? apiRisk.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
               statement: apiRisk.statement,
               likelihood: apiRisk.likelihood,
               severity: apiRisk.severity,
@@ -676,10 +681,10 @@ const DashboardStatsGrid = () => {
               _id: apiActionItem._id,
               title: apiActionItem.title,
               description: apiActionItem.description,
-            consortium: Array.isArray(apiActionItem.consortium) ? apiActionItem.consortium.map((c: any) => typeof c === 'string' ? c : c._id) : [typeof apiActionItem.consortium === 'string' ? apiActionItem.consortium : apiActionItem.consortium?._id || ''],
-            organization: Array.isArray(apiActionItem.organization) ? apiActionItem.organization.map((o: any) => typeof o === 'string' ? o : o._id) : [],
-            organizationUser: Array.isArray(apiActionItem.organizationUser) ? apiActionItem.organizationUser.map((u: any) => typeof u === 'string' ? u : u._id) : [],
-            assignTo: typeof apiActionItem.assignTo === 'string' ? apiActionItem.assignTo : apiActionItem.assignTo?._id || '',
+            consortium: Array.isArray(apiActionItem.consortium) ? apiActionItem.consortium.map((c: any) => getEntityId(c)).filter(Boolean) : [getEntityId(apiActionItem.consortium)].filter(Boolean),
+            organization: Array.isArray(apiActionItem.organization) ? apiActionItem.organization.map((o: any) => getEntityId(o)).filter(Boolean) : [],
+            organizationUser: Array.isArray(apiActionItem.organizationUser) ? apiActionItem.organizationUser.map((u: any) => getEntityId(u)).filter(Boolean) : [],
+            assignTo: getEntityId(apiActionItem.assignTo),
               assignToModel: apiActionItem.assignToModel,
               implementationDate: apiActionItem.implementationDate,
               status: apiActionItem.status,
@@ -749,7 +754,7 @@ const DashboardStatsGrid = () => {
           // Debug consortium filtering
           console.log('User consortium info:', {
             userId: user.id,
-            userConsortia: consortiums.map((c: any) => ({ id: c._id, name: c.name })),
+            userConsortia: consortiums.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })),
             hasConsortia: consortiums.length > 0
           });
 
