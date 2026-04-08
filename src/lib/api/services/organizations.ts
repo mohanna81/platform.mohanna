@@ -83,33 +83,25 @@ export const organizationsService = {
 };
 
 export async function fetchOrganizationsByRole(user: AuthUser | null) {
-  console.log('fetchOrganizationsByRole - Called with user:', user);
   if (!user) {
-    console.log('fetchOrganizationsByRole - No user provided, returning empty array');
     return [];
   }
   
-  console.log('fetchOrganizationsByRole - User role:', user.role);
-  console.log('fetchOrganizationsByRole - User ID:', user.id);
   
   if (user.role === 'Facilitator' && user.id) {
-    console.log('fetchOrganizationsByRole - Using facilitator-specific logic with two API calls');
     
     const facilitatorOrganizations: Organization[] = [];
     const seenOrganizationIds = new Set<string>();
     
     // API Call 1: Get all organizations and check createdBy
-    console.log('fetchOrganizationsByRole - API Call 1: Getting all organizations to check createdBy');
     const allOrganizationsResponse = await organizationsService.getOrganizations();
     if (allOrganizationsResponse.success && Array.isArray(allOrganizationsResponse.data?.data)) {
       const allOrganizations = allOrganizationsResponse.data.data;
-      console.log('fetchOrganizationsByRole - All organizations fetched:', allOrganizations);
       
       // Get all consortia to check facilitator assignment
       const consortiaResponse = await consortiaService.getConsortia();
       if (consortiaResponse.success && Array.isArray(consortiaResponse.data?.data)) {
         const allConsortia = consortiaResponse.data.data;
-        console.log('fetchOrganizationsByRole - All consortia fetched for createdBy filtering:', allConsortia);
         
         // Filter organizations based on facilitator being the creator
         allOrganizations.forEach((organization: Organization) => {
@@ -156,22 +148,18 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
             if (!seenOrganizationIds.has(orgId)) {
               facilitatorOrganizations.push(organization);
               seenOrganizationIds.add(orgId);
-              console.log(`fetchOrganizationsByRole - Including organization: ${organization.name} (ID: ${orgId}) - Organization creator: ${isOrganizationCreator}, Consortium creator: ${isConsortiumCreator}`);
             }
           } else {
-            console.log(`fetchOrganizationsByRole - Excluding organization: ${organization.name} (ID: ${organization._id || organization.id}) - Not created by facilitator`);
           }
         });
       }
     }
     
     // API Call 2: Get user-specific organizations using user ID endpoint
-    console.log('fetchOrganizationsByRole - API Call 2: Getting user-specific organizations');
     const userConsortiaResponse = await consortiaService.getUserConsortium(user.id);
     const userData = userConsortiaResponse.data?.data;
     if (userConsortiaResponse.success && userData && typeof userData === 'object' && !Array.isArray(userData) && 'consortia' in userData) {
       const userConsortia = (userData as { consortia: Consortium[] }).consortia || [];
-      console.log('fetchOrganizationsByRole - User consortiums from user endpoint:', userConsortia);
       
       // Extract organizations from user's consortiums
       userConsortia.forEach((consortium: Consortium) => {
@@ -182,7 +170,6 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
               if (!seenOrganizationIds.has(orgId)) {
                 facilitatorOrganizations.push(org);
                 seenOrganizationIds.add(orgId);
-                console.log(`fetchOrganizationsByRole - Including organization (user endpoint): ${org.name} (ID: ${orgId})`);
               }
             }
           });
@@ -190,16 +177,13 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
       });
     }
     
-    console.log('fetchOrganizationsByRole - Final facilitator organizations:', facilitatorOrganizations);
     return facilitatorOrganizations;
   } else if (user.role === 'Organization User' && user.id) {
-    console.log('fetchOrganizationsByRole - Using user-specific consortium endpoint for Organization User');
     // Use the same endpoint as consortiums to get user's consortiums and extract organizations
     const response = await consortiaService.getUserConsortium(user.id);
     const data = response.data?.data;
     if (response.success && data && typeof data === 'object' && !Array.isArray(data) && 'consortia' in data) {
       const userConsortia = (data as { consortia: Consortium[] }).consortia || [];
-      console.log('fetchOrganizationsByRole - User consortiums:', userConsortia);
       
       // Extract organizations from consortiums
       const organizations: Organization[] = [];
@@ -210,7 +194,6 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
             if (typeof org === 'string') {
               // If it's a string ID, we can't add it to the organizations list
               // since we don't have the full organization data
-              console.log('fetchOrganizationsByRole - Organization ID found:', org);
             } else if (typeof org === 'object' && org !== null) {
               // Check if organization is already in the list to avoid duplicates
               const exists = organizations.find(existing => existing._id === org._id || existing.id === org.id);
@@ -222,20 +205,15 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
         }
       });
       
-      console.log('fetchOrganizationsByRole - Extracted organizations:', organizations);
       return organizations;
     }
-    console.log('fetchOrganizationsByRole - No user consortiums found, returning empty array');
     return [];
   } else {
-    console.log('fetchOrganizationsByRole - Using general organizations endpoint for role:', user.role);
     const response = await organizationsService.getOrganizations();
     if (response.success && Array.isArray(response.data?.data)) {
       const organizations = response.data.data;
-      console.log('fetchOrganizationsByRole - All organizations fetched:', organizations);
       return organizations;
     }
-    console.log('fetchOrganizationsByRole - No organizations found, returning empty array');
     return [];
   }
 }
@@ -273,7 +251,6 @@ export async function fetchOrganizationsByConsortia(consortiumIds: string[], use
       }
     });
 
-    console.log('fetchOrganizationsByConsortia - Organizations for consortiums:', consortiumIds, organizations);
     return organizations;
   } catch (error) {
     console.error('Error fetching organizations by consortium:', error);

@@ -78,15 +78,11 @@ export default function MeetingsPage() {
         return;
       }
       
-      console.log('Fetching meetings for user:', user.id);
       const response = await meetingsService.getAttendeeMeetings(user.id);
-      console.log('Meetings response:', response);
       
       if (response.success && response.data) {
         // Handle both possible response structures
         const meetingsData = Array.isArray(response.data) ? response.data : response.data.data;
-        console.log('Meetings data:', meetingsData);
-        console.log('Meeting statuses:', meetingsData.map(m => ({ id: m._id, title: m.title, status: m.status })));
         setMeetings(meetingsData);
       } else {
         console.error('Failed to fetch meetings:', response.error);
@@ -171,7 +167,6 @@ export default function MeetingsPage() {
       const response = await meetingsService.createMeeting(payload);
       if (response.success) {
         // Meeting created successfully
-        console.log('Meeting created:', response.data);
     setModalOpen(false);
         showToast.success('Meeting scheduled successfully!');
         // Refresh the meetings list
@@ -237,8 +232,6 @@ export default function MeetingsPage() {
     if (!completingMeeting) return;
     setIsSubmitting(true);
     try {
-      console.log('Completing meeting:', completingMeeting._id, 'with status: Completed');
-      console.log('Current meeting status before update:', completingMeeting.status);
       
       const updateData = {
         minutes,
@@ -258,12 +251,10 @@ export default function MeetingsPage() {
         status: 'Completed' as const,
       };
       
-      console.log('Update data being sent:', updateData);
       
       // Send actionItems as array of objects
       const response = await meetingsService.updateMeeting(completingMeeting._id, updateData);
       
-      console.log('Meeting completion response:', response);
       
       if (response.success) {
         showToast.success('Meeting completed successfully!');
@@ -281,7 +272,6 @@ export default function MeetingsPage() {
         
         // Also refresh from the server to ensure consistency
         setTimeout(async () => {
-          console.log('Refreshing meetings after completion...');
           await fetchMeetings();
         }, 500);
       } else {
@@ -361,7 +351,6 @@ export default function MeetingsPage() {
                     .filter(meeting => meeting.status === 'Scheduled')
                     .map(meeting => {
                       // Debug: Log date and endTime values
-                      console.log('Meeting:', meeting.title, 'Date:', meeting.date, 'EndTime:', meeting.endTime);
                       // Defensive: check for 24-hour format
                       const time24hRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
                       if (!time24hRegex.test(meeting.endTime)) {
@@ -399,8 +388,6 @@ export default function MeetingsPage() {
               <div>
                 {(() => {
                   const pastMeetings = meetings.filter(meeting => meeting.status === 'Completed' || meeting.status === 'Cancelled');
-                  console.log('Past meetings filter - All meetings:', meetings.map(m => ({ id: m._id, title: m.title, status: m.status })));
-                  console.log('Past meetings filter - Filtered past meetings:', pastMeetings.map(m => ({ id: m._id, title: m.title, status: m.status })));
                   
                   return pastMeetings.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">

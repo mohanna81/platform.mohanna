@@ -46,12 +46,6 @@ async function uploadFileBase64(file: File): Promise<string> {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  console.log('Upload URL:', uploadUrl);
-  console.log('Headers:', headers);
-  console.log('File type:', file.type);
-  console.log('File size:', file.size);
-  console.log('Base64 length:', base64.length);
-  console.log('Is video:', isVideo);
   
   // Prepare request body based on file type
   const requestBody = isVideo 

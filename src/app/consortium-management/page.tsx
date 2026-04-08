@@ -23,13 +23,6 @@ function ConsortiumManagementContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   
-  // Debug: Check localStorage directly
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('localStorage authUserRole:', localStorage.getItem('authUserRole'));
-      console.log('localStorage authUser:', localStorage.getItem('authUser'));
-    }
-  }, []);
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
   const [activeTab, setActiveTab] = useState<ConsortiumTab>(() => {
     const tabParam = searchParams.get('tab');
@@ -53,20 +46,17 @@ function ConsortiumManagementContent() {
         // Fetch organizations first
         if (user) {
           const organizations = await fetchOrganizationsByRole(user);
-          console.log('ConsortiumManagementPage - Organizations fetched for user:', user.role, organizations);
           setRawOrganizations(organizations);
           const orgOptions = organizations.map((organization: { id?: string; _id?: string; name: string }) => ({
             value: organization.id || organization._id || '',
             label: organization.name,
           }));
           setOrganizationOptions(orgOptions);
-          console.log('ConsortiumManagementPage - Organization options set:', orgOptions);
         }
 
         // Fetch consortia based on user role
         if (user) {
           const consortia = await fetchConsortiaByRole(user);
-          console.log('Consortia fetched successfully:', consortia);
           setConsortiumOptions(
             consortia.map((consortium: { id?: string; _id?: string; name: string }) => ({
               value: consortium.id || consortium._id || '',
@@ -114,10 +104,7 @@ function ConsortiumManagementContent() {
   // Only Super_user and Admin can add users (Facilitator now has same view as Organization User)
   const canAddUser = useMemo(() => {
     if (!user) return false;
-    console.log('Current user role:', user.role);
-    console.log('User object:', user);
     const canAdd = user.role === 'Super_user' || user.role === 'Admin';
-    console.log('Can add user:', canAdd);
     return canAdd;
   }, [user]);
 
@@ -125,7 +112,6 @@ function ConsortiumManagementContent() {
   const canAddConsortium = useMemo(() => {
     if (!user) return false;
     const canAdd = user.role === 'Super_user' || user.role === 'Admin';
-    console.log('Can add consortium:', canAdd);
     return canAdd;
   }, [user]);
 
@@ -133,7 +119,6 @@ function ConsortiumManagementContent() {
   const canAddOrganization = useMemo(() => {
     if (!user) return false;
     const canAdd = user.role === 'Super_user' || user.role === 'Admin';
-    console.log('Can add organization:', canAdd);
     return canAdd;
   }, [user]);
 

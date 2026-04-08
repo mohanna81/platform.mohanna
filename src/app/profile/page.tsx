@@ -50,10 +50,8 @@ export default function ProfilePage() {
   }, []);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('Image select triggered', event.target.files);
     const file = event.target.files?.[0];
     if (file) {
-      console.log('File selected:', file.name, file.type, file.size);
       
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -75,7 +73,6 @@ export default function ProfilePage() {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setImagePreview(result);
-        console.log('Preview created, length:', result.length);
       };
       reader.onerror = (error) => {
         console.error('FileReader error:', error);
@@ -83,12 +80,10 @@ export default function ProfilePage() {
       };
       reader.readAsDataURL(file);
     } else {
-      console.log('No file selected');
     }
   };
 
   const handleImageClick = () => {
-    console.log('Image click triggered');
     const fileInput = document.getElementById('profile-image-upload') as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
@@ -113,10 +108,8 @@ export default function ProfilePage() {
       // Include image as base64 if selected
       if (selectedImage && imagePreview) {
         updateData.profilePhoto = imagePreview;
-        console.log('Including image in payload:', selectedImage.name);
       }
       
-      console.log('Sending update payload:', updateData);
       
       const res = await userService.updateProfile(userId, updateData);
       if (res.success) {

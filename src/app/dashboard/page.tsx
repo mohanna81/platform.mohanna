@@ -62,7 +62,6 @@ export default function DashboardPage() {
           await actionItemsService.updateActionItem(item._id, {
             status: 'At Risk'
           });
-          console.log(`Dashboard: Updated action item "${item.title}" to At Risk status`);
         } catch (error) {
           console.error(`Dashboard: Failed to update action item ${item._id} to At Risk:`, error);
         }
@@ -70,7 +69,6 @@ export default function DashboardPage() {
       
       // If any items were updated, show a toast notification
       if (allItemsToUpdate.length > 0) {
-        console.log(`Dashboard: Updated ${allItemsToUpdate.length} action items to At Risk status`);
         // showToast.success(`${allItemsToUpdate.length} action item(s) automatically marked as "At Risk"`);
         return true;
       }
@@ -87,7 +85,6 @@ export default function DashboardPage() {
 
     // Skip this check for facilitators and organization users since the new APIs handle status updates
     if (roleHelpers.isFacilitator() || roleHelpers.isOrganization()) {
-      console.log('Dashboard: Skipping action item status check for facilitators/organization users - handled by dedicated APIs');
       return;
     }
 

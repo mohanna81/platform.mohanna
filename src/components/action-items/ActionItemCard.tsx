@@ -56,7 +56,6 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     setLoading(true);
     try {
       const response = await actionItemsService.getComments(actionItemId);
-      console.log('Comments API response:', response);
       
       if (response.success && response.data) {
         let commentsData: Comment[] = [];
@@ -68,7 +67,6 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
           commentsData = Array.isArray(nestedData) ? nestedData : [];
         }
         
-        console.log('Processed comments data:', commentsData);
         setComments(commentsData);
         setCommentsLoaded(true);
       } else {
@@ -79,12 +77,10 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
       console.error('Error fetching comments:', error);
       
       if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
-        console.log('Comments API endpoint not found - using empty comments array');
         setComments([]);
         setApiAvailable(false);
         setCommentsLoaded(true);
       } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('404')) {
-        console.log('Comments API endpoint not found - using empty comments array');
         setComments([]);
         setApiAvailable(false);
         setCommentsLoaded(true);

@@ -26,9 +26,6 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
     setLoading(true);
     setError(null);
     
-    console.log('Current user:', user);
-    console.log('User role:', user?.role);
-    console.log('User ID:', user?.id);
     
     try {
       if (!user) {
@@ -37,7 +34,6 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
       }
       
       const consortiaData = await fetchConsortiaByRole(user);
-      console.log('Fetched consortiums:', consortiaData);
       setConsortiums(consortiaData);
     } catch (error) {
       console.error('Error fetching consortia:', error);
@@ -49,7 +45,6 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
   }, [user]);
 
   useEffect(() => {
-    console.log('useEffect triggered - user changed:', user);
     if (user) {
     fetchConsortia();
     setCurrentPage(1); // Reset to first page when refreshing

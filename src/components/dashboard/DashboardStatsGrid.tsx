@@ -124,10 +124,6 @@ const DashboardStatsGrid = () => {
       
       // Use facilitator-specific endpoint for facilitators
       if (isFacilitator) {
-        console.log('Fetching facilitator dashboard stats...');
-        console.log('Current user:', user);
-        console.log('Current user ID:', user?.id);
-        console.log('Selected consortium:', selectedConsortium);
         
         if (!user?.id) {
           console.warn('No user ID found for facilitator, showing empty action items');
@@ -135,7 +131,6 @@ const DashboardStatsGrid = () => {
         }
         
         // Use individual page APIs instead of centralized facilitator dashboard API
-        console.log('Fetching facilitator dashboard data from individual page APIs with user ID:', user!.id);
         
         try {
           // Fetch data from individual page APIs in parallel, including user's consortia and meetings
@@ -169,7 +164,6 @@ const DashboardStatsGrid = () => {
           if (userProfileResponse.success && userProfileResponse.data) {
             const userData = userProfileResponse.data as { consortia?: string[]; user?: { consortia?: string[] } };
             userConsortiaIds = userData.consortia || userData.user?.consortia || [];
-            console.log('User consortium IDs extracted:', userConsortiaIds);
           }
 
           // Process Pending Risks (risks requiring review) - filter for facilitator's consortium
@@ -489,7 +483,6 @@ const DashboardStatsGrid = () => {
             data: mappedData
           };
 
-          console.log('Facilitator dashboard from individual APIs:', response);
         } catch (error) {
           console.error('Error fetching facilitator data from individual APIs:', error);
           showToast.error('Failed to load dashboard data');
@@ -514,9 +507,6 @@ const DashboardStatsGrid = () => {
 
       } else if (roleHelpers.isOrganization()) {
         // Use organization user-specific endpoint for organization users
-        console.log('Fetching organization user dashboard stats...');
-        console.log('Current user:', user);
-        console.log('Current user ID:', user?.id);
         
         if (!user?.id) {
           console.warn('No user ID found for organization user, showing empty dashboard');
@@ -524,7 +514,6 @@ const DashboardStatsGrid = () => {
         }
         
         // Use individual page APIs instead of centralized dashboard API
-        console.log('Fetching organization user dashboard data from individual page APIs with user ID:', user!.id);
         
         try {
           // Fetch data from individual page APIs in parallel, including user's consortia and meetings
@@ -536,7 +525,6 @@ const DashboardStatsGrid = () => {
             fetchConsortiaByRole(user) // Get user's consortia for shared risks filtering
           ]);
 
-          console.log('Individual API responses:', { myRisksResponse, sharedRisksResponse, actionItemsResponse, meetingsResponse, userConsortia });
           
           // Process My Risks (filter for user's own risks)
           let myRisks: any[] = [];
@@ -768,7 +756,6 @@ const DashboardStatsGrid = () => {
             note: 'Shared risks includes ALL approved risks from user consortiums (including user own risks)'
           });
 
-          console.log('Organization user dashboard from individual APIs:', response);
         } catch (error) {
           console.error('Error fetching organization user data from individual APIs:', error);
           showToast.error('Failed to load dashboard data');
@@ -785,9 +772,6 @@ const DashboardStatsGrid = () => {
 
       } else if (hasAdminPrivileges) {
         // For admin/super users, use the dedicated admin dashboard API
-        console.log('Fetching admin dashboard stats...');
-        console.log('Current user:', user);
-        console.log('Current user ID:', user?.id);
         
         if (!user?.id) {
           console.warn('No user ID found for admin, showing empty dashboard');
@@ -796,7 +780,6 @@ const DashboardStatsGrid = () => {
         
         try {
           const adminResponse = await dashboardService.getAdminDashboardStats(user.id);
-          console.log('Admin dashboard API response:', adminResponse);
           
           // Map admin dashboard response to a compatible format
           const mappedAdminData: AdminDashboardStatsWithAdditional = {

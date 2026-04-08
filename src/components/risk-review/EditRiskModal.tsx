@@ -108,17 +108,14 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   const fetchOrganizationDetails = useCallback(async (orgId: string): Promise<{ _id: string; name: string } | null> => {
     try {
       const response = await organizationsService.getOrganizationById(orgId);
-      console.log(`Fetching organization details for ID ${orgId}:`, response);
       
       if (response.success && response.data?.data) {
         const org = response.data.data;
-        console.log(`Organization details for ${orgId}:`, org);
         return {
           _id: org._id || org.id,
           name: org.name
         };
       } else {
-        console.log(`No organization data found for ID ${orgId}`);
       }
     } catch (error) {
       console.error(`Error fetching organization details for ID ${orgId}:`, error);
@@ -128,22 +125,17 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
 
   // Helper function to map orgRoles from API format to form format
   const mapOrgRolesFromAPI = useCallback(async (orgRoles: OrgRole[] | undefined, consortium: Consortium[] | undefined) => {
-    console.log('mapOrgRolesFromAPI - Starting with:', { orgRoles, consortium });
     
     // Get organizations from all consortiums that the risk belongs to
     const consortiumOrgs: Array<{ _id?: string; id?: string; name?: string }> = [];
     
     if (consortium && Array.isArray(consortium)) {
-      console.log('mapOrgRolesFromAPI - Processing consortiums:', consortium);
       
       for (const consortiumItem of consortium) {
-        console.log('mapOrgRolesFromAPI - Processing consortium item:', consortiumItem);
         
         if (consortiumItem.organizations && Array.isArray(consortiumItem.organizations)) {
-          console.log('mapOrgRolesFromAPI - Organizations in consortium:', consortiumItem.organizations);
           
           for (const org of consortiumItem.organizations) {
-            console.log('mapOrgRolesFromAPI - Processing organization:', org, 'Type:', typeof org);
             
             // Handle both string IDs and Organization objects
             if (typeof org === 'object' && org !== null) {
@@ -155,7 +147,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
               });
               if (!exists) {
                 consortiumOrgs.push(org);
-                console.log('mapOrgRolesFromAPI - Added object organization:', org);
               }
             } else if (typeof org === 'string') {
               // Handle string IDs - fetch organization details
@@ -164,16 +155,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
                 return existingId === org;
               });
               if (!exists) {
-                console.log('mapOrgRolesFromAPI - Fetching details for string ID:', org);
                 const orgDetails = await fetchOrganizationDetails(org);
                 if (orgDetails) {
                   consortiumOrgs.push(orgDetails);
-                  console.log('mapOrgRolesFromAPI - Added fetched organization:', orgDetails);
                 } else {
                   // Fallback if API call fails
                   const fallbackOrg = { _id: org, id: org, name: `Organization ${org.slice(-4)}` };
                   consortiumOrgs.push(fallbackOrg);
-                  console.log('mapOrgRolesFromAPI - Added fallback organization:', fallbackOrg);
                 }
               }
             }
@@ -182,7 +170,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       }
     }
     
-    console.log('mapOrgRolesFromAPI - Final consortium organizations:', consortiumOrgs);
     
     // Create a map of existing orgRoles for quick lookup
     const existingOrgRolesMap = new Map();
@@ -194,7 +181,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       });
     }
     
-    console.log('mapOrgRolesFromAPI - Existing orgRoles map:', existingOrgRolesMap);
     
     // Create the final orgRoles array
     const mappedOrgRoles: Array<{ orgId: string; orgName: string; value: string }> = [];
@@ -209,7 +195,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
             value: orgRole.role
           };
           mappedOrgRoles.push(mappedRole);
-          console.log('mapOrgRolesFromAPI - Added existing orgRole:', mappedRole);
         }
       });
     }
@@ -229,27 +214,22 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           value: existingOrgRolesMap.get(orgId) || '' // Use existing value if available
         };
         mappedOrgRoles.push(newRole);
-        console.log('mapOrgRolesFromAPI - Added consortium organization:', newRole);
       } else {
-        console.log('mapOrgRolesFromAPI - Skipped duplicate organization:', orgId, orgName);
       }
     });
 
-    console.log('mapOrgRolesFromAPI - Final mapped orgRoles:', mappedOrgRoles);
     return mappedOrgRoles;
   }, [fetchOrganizationDetails]);
 
   // Fetch consortia based on user role
   const fetchConsortia = useCallback(async () => {
     try {
-      console.log('EditRiskModal - Fetching consortia for user:', user);
       const consortiaData = await fetchConsortiaByRole(user);
       const consortiaOptions = consortiaData.map(consortium => ({
         value: consortium._id || consortium.id || '',
         label: consortium.name || 'Unknown Consortium'
       }));
       setConsortia(consortiaOptions);
-      console.log('EditRiskModal - Consortia loaded:', consortiaOptions);
     } catch (error) {
       console.error('Error fetching consortia:', error);
       showToast.error('Failed to load consortia');
@@ -265,7 +245,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
 
     setLoadingOrganizations(true);
     try {
-      console.log('EditRiskModal - Fetching organizations for consortiums:', consortiumIds);
       
       // Get all consortia to find the specific consortiums and their organizations
       const allConsortia = await fetchConsortiaByRole(user);
@@ -276,7 +255,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       );
       
       if (riskConsortia.length === 0) {
-        console.log('EditRiskModal - No consortiums found for IDs:', consortiumIds);
         setConsortiumOrganizations([]);
         return;
       }
@@ -331,7 +309,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       }
 
       setConsortiumOrganizations(consortiumOrgs);
-      console.log('EditRiskModal - Organizations loaded for consortiums:', consortiumOrgs);
     } catch (error) {
       console.error('Error fetching consortium organizations:', error);
       showToast.error('Failed to load consortium organizations');
@@ -356,7 +333,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         // Map orgRoles from API format to form format
         const mappedOrgRoles = await mapOrgRolesFromAPI(risk.orgRoles, risk.consortium as unknown as Consortium[]);
         
-        console.log('fetchRiskData - Setting form with mapped orgRoles:', mappedOrgRoles);
         
         setForm({
           title: risk.title || '',
@@ -424,19 +400,16 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   // This only updates names, doesn't change the structure
   useEffect(() => {
     if (consortiumOrganizations.length > 0 && form.orgRoles.length > 0) {
-      console.log('EditRiskModal - Updating orgRole names with consortiumOrganizations:', consortiumOrganizations);
       setForm(prev => {
         const updatedOrgRoles = prev.orgRoles.map(role => {
           const org = consortiumOrganizations.find(org => org._id === role.orgId);
           if (org && org.name !== role.orgName) {
-            console.log(`EditRiskModal - Updating orgName for ${role.orgId}: ${role.orgName} -> ${org.name}`);
           }
           return {
             ...role,
             orgName: org?.name || role.orgName
           };
         });
-        console.log('EditRiskModal - Updated orgRoles:', updatedOrgRoles);
         return { ...prev, orgRoles: updatedOrgRoles };
       });
     }
@@ -690,9 +663,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
             </p>
             
             {(() => {
-              console.log('EditRiskModal - Rendering orgRoles section. form.orgRoles:', form.orgRoles);
-              console.log('EditRiskModal - form.consortium:', form.consortium);
-              console.log('EditRiskModal - loadingOrganizations:', loadingOrganizations);
               
               if (loadingOrganizations) {
                 return (

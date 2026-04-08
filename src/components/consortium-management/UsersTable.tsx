@@ -84,8 +84,6 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
       return;
     }
 
-    console.log('Current user role:', currentUser.role);
-    console.log('All users roles:', users.map(u => ({ name: u.name, role: u.role })));
 
     const filtered = users.filter(user => {
       // Don't show the current user in the table
@@ -96,7 +94,6 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
       const currentUserRole = normalizeRole(currentUser.role);
       const targetUserRole = normalizeRole(user.role);
       const canView = canViewUser(currentUserRole, targetUserRole);
-      console.log(`${currentUser.name} (${currentUserRole}) can view ${user.name} (${targetUserRole}): ${canView}`);
       
       if (!canView) {
         return false;

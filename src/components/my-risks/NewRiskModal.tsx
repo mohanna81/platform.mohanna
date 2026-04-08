@@ -97,12 +97,8 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
       setSubmitAction('save');
       
       async function fetchConsortia() {
-        console.log('NewRiskModal - Current user:', user);
-        console.log('NewRiskModal - User role:', user?.role);
-        console.log('NewRiskModal - User ID:', user?.id);
         
         const consortia = await fetchConsortiaByRole(user);
-        console.log('NewRiskModal - Fetched consortiums:', consortia);
         setConsortia(consortia);
       }
       fetchConsortia();
@@ -199,7 +195,6 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         } else if (originalRiskStatus === 'Rejected') {
           newStatus = 'Pending'; // Re-submit after rejection
         }
-        console.log('Updating risk with status:', newStatus, 'action:', currentAction, 'originalStatus:', originalRiskStatus);
         await risksService.updateRisk(riskId, {
           title,
           category,
@@ -211,7 +206,6 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           mitigationMeasures: mitigation,
           status: newStatus,
         } as unknown as Partial<Risk>);
-        console.log('Risk updated successfully with status:', newStatus);
         if (onUpdated) onUpdated();
       } else {
         // Create new risk

@@ -107,35 +107,25 @@ export const consortiaService = {
 };
 
 export async function fetchConsortiaByRole(user: AuthUser | null) {
-  console.log('fetchConsortiaByRole - Called with user:', user);
   if (!user) {
-    console.log('fetchConsortiaByRole - No user provided, returning empty array');
     return [];
   }
   
-  console.log('fetchConsortiaByRole - User role:', user.role);
-  console.log('fetchConsortiaByRole - User ID:', user.id);
   
   if ((user.role === 'Facilitator' || user.role === 'Organization User') && user.id) {
-    console.log('fetchConsortiaByRole - Using user-specific endpoint for role:', user.role);
     const response = await consortiaService.getUserConsortium(user.id);
     const data = response.data?.data;
     if (response.success && data && typeof data === 'object' && !Array.isArray(data) && 'consortia' in data) {
       const consortia = (data as { consortia: Consortium[] }).consortia || [];
-      console.log('fetchConsortiaByRole - User consortiums fetched:', consortia);
       return consortia;
     }
-    console.log('fetchConsortiaByRole - No user consortiums found, returning empty array');
     return [];
   } else {
-    console.log('fetchConsortiaByRole - Using general endpoint for role:', user.role);
     const response = await consortiaService.getConsortia();
     if (response.success && Array.isArray(response.data?.data)) {
       const consortia = response.data.data;
-      console.log('fetchConsortiaByRole - All consortiums fetched:', consortia);
       return consortia;
     }
-    console.log('fetchConsortiaByRole - No consortiums found, returning empty array');
     return [];
   }
 } 

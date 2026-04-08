@@ -98,12 +98,10 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
     });
 
     try {
-      console.log('Fetching risks...');
       const res = await risksService.getRisks();
       
       if (res.success && res.data) {
         const risksData = Array.isArray(res.data.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        console.log(`Successfully loaded ${risksData.length} risks`);
         setRisks(risksData);
         setLoadingState({
           isLoading: false,

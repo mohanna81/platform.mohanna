@@ -53,7 +53,6 @@ export default function SharedRisksPage() {
       if (response.data?.success && response.data?.data && Array.isArray(response.data.data)) {
         setRisks(response.data.data);
         const uniqueCategories = [...new Set(response.data.data.map(risk => risk.category).filter(Boolean))];
-        console.log('Available categories in data:', uniqueCategories);
       } else {
         setRisks([]);
         console.warn('No risks data received or invalid format');
@@ -75,13 +74,10 @@ export default function SharedRisksPage() {
     
     setLoadingState(prev => ({ ...prev, consortiums: true }));
     try {
-      console.log('Fetching consortiums for user:', user.role, user.id);
       const consortia = await fetchConsortiaByRole(user);
-      console.log('Consortiums fetched:', consortia);
       
       if (Array.isArray(consortia)) {
         setConsortiums(consortia);
-        console.log('Consortiums set to state:', consortia.length, 'items');
       } else {
         setConsortiums([]);
         console.warn('Consortiums fetch returned non-array:', consortia);
@@ -103,13 +99,10 @@ export default function SharedRisksPage() {
     
     setLoadingState(prev => ({ ...prev, organizations: true }));
     try {
-      console.log('Fetching organizations for user:', user.role, user.id);
       const organizations = await fetchOrganizationsByRole(user);
-      console.log('Organizations fetched:', organizations);
       
       if (Array.isArray(organizations)) {
         setOrganizations(organizations);
-        console.log('Organizations set to state:', organizations.length, 'items');
       } else {
         setOrganizations([]);
         console.warn('Organizations fetch returned non-array:', organizations);

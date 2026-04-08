@@ -82,7 +82,6 @@ export default function ActionItemsPage() {
       actionItemsService.updateActionItem(item._id, {
         status: 'At Risk'
       }).then(() => {
-        console.log(`Updated action item "${item.title}" to At Risk status`);
         return true;
       }).catch(error => {
         console.error(`Failed to update action item ${item._id} to At Risk:`, error);
@@ -92,7 +91,6 @@ export default function ActionItemsPage() {
     
     try {
       await Promise.all(updatePromises);
-      console.log(`Updated ${allItemsToUpdate.length} action items to At Risk status`);
       return true;
     } catch (error) {
       console.error('Error updating at-risk items:', error);
@@ -115,7 +113,6 @@ export default function ActionItemsPage() {
         const userData = userProfile.data as { consortia?: string[]; user?: { consortia?: string[] } };
         const userConsortia = userData.consortia || userData.user?.consortia || [];
         setUserConsortia(userConsortia);
-        console.log('User consortiums fetched:', userConsortia);
       } else {
         console.warn('Failed to fetch user consortiums:', userProfile);
         setUserConsortia([]);
@@ -325,7 +322,6 @@ export default function ActionItemsPage() {
         }));
 
         setUserOptions(filteredUserOptions);
-        console.log('Users filtered by consortium:', consortiumId, filteredUserOptions);
       } else {
         console.warn('Failed to fetch users or invalid response format');
         setUserOptions([]);
@@ -370,26 +366,21 @@ export default function ActionItemsPage() {
               let organizations: Organization[] = [];
               // Try the role-based fetch first
               organizations = await fetchOrganizationsByRole(user);
-              console.log('ActionItemsPage - Organizations fetched for user:', user.role, organizations);
               
               // If no organizations found, try getting all organizations
               if (!organizations || organizations.length === 0) {
-                console.log('ActionItemsPage - No organizations found with role-based fetch, trying all organizations');
                 const allOrgsResponse = await organizationsService.getOrganizations();
                 if (allOrgsResponse.success && Array.isArray(allOrgsResponse.data?.data)) {
                   organizations = allOrgsResponse.data.data;
-                  console.log('ActionItemsPage - All organizations fetched as fallback:', organizations);
                 }
               }
               
-              console.log('ActionItemsPage - Raw organizations data:', organizations);
               
               return organizations.map((o: Organization) => {
                 const option = {
                   value: o._id || o.id,
                   label: o.name,
                 };
-                console.log('Creating org option:', option);
                 return option;
               });
             } catch (error) {
@@ -403,8 +394,6 @@ export default function ActionItemsPage() {
         
         setConsortiumOptions(consortiaData);
         setOrgOptions(organizationsData);
-        console.log('ActionItemsPage - Organization options set for AssignActionModal:', organizationsData);
-        console.log('ActionItemsPage - Organization options values:', organizationsData.map(o => o.value));
         
       } catch (error) {
         console.error('Error fetching dropdown data:', error);
@@ -519,11 +508,6 @@ export default function ActionItemsPage() {
   };
 
   const handleEdit = (item: ActionItem) => {
-    console.log('Editing item:', item);
-    console.log('Item assignTo:', item.assignTo);
-    console.log('Item assignToModel:', item.assignToModel);
-    console.log('Item organization:', item.organization);
-    console.log('Current orgOptions:', orgOptions);
     
     // Calculate the assignTo value
     let assignToValue = '';
@@ -535,9 +519,6 @@ export default function ActionItemsPage() {
       assignToValue = getId(item.organization[0]);
     }
     
-    console.log('Calculated assignTo value:', assignToValue);
-    console.log('Available org option values:', orgOptions.map(o => o.value));
-    console.log('Is assignTo value in org options?', orgOptions.some(o => o.value === assignToValue));
     
     setEditingItem(item);
     setEditModalOpen(true);

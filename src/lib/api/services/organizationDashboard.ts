@@ -232,22 +232,16 @@ export const organizationUserDashboardService = {
    */
   async getFullOrganizationUserDashboard(organizationUserId: string, retryCount = 0): Promise<OrganizationUserDashboardResponse> {
     const endpoint = API_ENDPOINTS.ORGANIZATION_USER_DASHBOARD.FULL.replace(':organizationUserId', organizationUserId);
-    console.log('Calling organization user dashboard API endpoint:', endpoint);
     
     // Check if we have the base URL configured
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:5900';
     const fullUrl = `${baseUrl}/api/v1${endpoint}`;
-    console.log('Full API URL:', fullUrl);
     
     try {
-      console.log('Starting API call with timeout:', API_CONFIG.TIMEOUT, 'ms');
       const startTime = Date.now();
       
       const response = await apiClient.get(endpoint);
       const duration = Date.now() - startTime;
-      console.log(`API call completed in ${duration}ms`);
-      console.log('API client response:', response);
-      console.log('API client response.data:', response.data);
       
       // Check if the API call failed (e.g., timeout, network error)
       if (response.success === false) {
@@ -277,7 +271,6 @@ export const organizationUserDashboardService = {
       // Retry logic for timeout errors (up to 2 retries with exponential backoff)
       if (retryCount < 2 && error instanceof Error && (error as Error & { isTimeout?: boolean }).isTimeout) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
-        console.log(`Retrying API call in ${delay}ms (attempt ${retryCount + 1}/2)`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.getFullOrganizationUserDashboard(organizationUserId, retryCount + 1);
@@ -285,7 +278,6 @@ export const organizationUserDashboardService = {
       
       // If all retries failed, try to return cached data if available and fresh
       if (lastSuccessfulResponse && (Date.now() - lastResponseTime) < CACHE_DURATION) {
-        console.log('Returning cached organization user dashboard data due to API failure');
         return lastSuccessfulResponse;
       }
       
@@ -308,6 +300,5 @@ export const organizationUserDashboardService = {
   clearCache(): void {
     lastSuccessfulResponse = null;
     lastResponseTime = 0;
-    console.log('Organization user dashboard cache cleared');
   }
 };

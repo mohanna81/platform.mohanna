@@ -204,13 +204,9 @@ export default function RiskReviewPage() {
   const fetchFilterData = useCallback(async () => {
     setLoadingState(prev => ({ ...prev, consortia: true, organizations: true }));
     try {
-      console.log('RiskReviewPage - Fetching filter data for user:', user);
-      console.log('RiskReviewPage - Is Admin or Super user:', isAdminOrSuper);
       
       // Fetch organizations
-      console.log('Fetching organizations for user:', user?.role, user?.id);
       const orgsData = await fetchOrganizationsByRole(user);
-      console.log('Organizations fetched:', orgsData);
       const orgOptions = [
         { value: '', label: 'All Organizations' },
         ...orgsData.map(org => ({
@@ -219,13 +215,10 @@ export default function RiskReviewPage() {
         }))
       ];
       setOrganizations(orgOptions);
-      console.log('RiskReviewPage - Organizations loaded:', orgOptions);
       setLoadingState(prev => ({ ...prev, organizations: false }));
 
       // Fetch consortia
-      console.log('Fetching consortia for user:', user?.role, user?.id);
       const consortiaData = await fetchConsortiaByRole(user);
-      console.log('Consortia fetched:', consortiaData);
       const consortiaOptions = [
         { value: '', label: 'All Consortiums' },
         ...consortiaData.map(consortium => ({
@@ -234,7 +227,6 @@ export default function RiskReviewPage() {
         }))
       ];
       setConsortia(consortiaOptions);
-      console.log('RiskReviewPage - Consortia loaded:', consortiaOptions);
       setLoadingState(prev => ({ ...prev, consortia: false }));
     } catch (error) {
       console.error('Error fetching filter data:', error);
@@ -422,11 +414,9 @@ export default function RiskReviewPage() {
   // This shows the organization(s) that the risk creator belongs to
   const renderOrganizationNames = (risk: Risk) => {
     if (!risk.createdBy?.organizations || !Array.isArray(risk.createdBy.organizations) || risk.createdBy.organizations.length === 0) {
-      console.log('renderOrganizationNames: No creator organizations found', risk.createdBy?.organizations);
       return 'No Organization';
     }
     
-    console.log('renderOrganizationNames: Processing creator organizations', risk.createdBy.organizations);
     
     // Get organization IDs from the risk creator
     const organizationIds = risk.createdBy.organizations;

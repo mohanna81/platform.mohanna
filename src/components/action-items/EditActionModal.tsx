@@ -41,8 +41,6 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
   const [form, setForm] = React.useState<EditActionFormData>(initialData);
 
   React.useEffect(() => {
-    console.log('EditActionModal - initialData:', initialData);
-    console.log('EditActionModal - orgOptions:', orgOptions);
     setForm(initialData);
   }, [initialData, isOpen, orgOptions]);
 

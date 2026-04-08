@@ -276,22 +276,16 @@ export const facilitatorDashboardService = {
    */
   async getFullFacilitatorDashboard(facilitatorUserId: string, retryCount = 0): Promise<FacilitatorDashboardResponse> {
     const endpoint = API_ENDPOINTS.FACILITATOR_DASHBOARD.FULL.replace(':facilitatorId', facilitatorUserId);
-    console.log('Calling facilitator dashboard API endpoint:', endpoint);
     
     // Check if we have the base URL configured
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:5900';
     const fullUrl = `${baseUrl}/api/v1${endpoint}`;
-    console.log('Full API URL:', fullUrl);
     
     try {
-      console.log('Starting API call with timeout:', API_CONFIG.TIMEOUT, 'ms');
       const startTime = Date.now();
       
       const response = await apiClient.get(endpoint);
       const duration = Date.now() - startTime;
-      console.log(`API call completed in ${duration}ms`);
-      console.log('API client response:', response);
-      console.log('API client response.data:', response.data);
       
       // Check if the API call failed (e.g., timeout, network error)
       if (response.success === false) {
@@ -321,7 +315,6 @@ export const facilitatorDashboardService = {
       // Retry logic for timeout errors (up to 2 retries with exponential backoff)
       if (retryCount < 2 && error instanceof Error && (error as Error & { isTimeout?: boolean }).isTimeout) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
-        console.log(`Retrying API call in ${delay}ms (attempt ${retryCount + 1}/2)`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.getFullFacilitatorDashboard(facilitatorUserId, retryCount + 1);
@@ -329,7 +322,6 @@ export const facilitatorDashboardService = {
       
       // If all retries failed, try to return cached data if available and fresh
       if (lastSuccessfulResponse && (Date.now() - lastResponseTime) < CACHE_DURATION) {
-        console.log('Returning cached facilitator dashboard data due to API failure');
         return lastSuccessfulResponse;
       }
       
@@ -352,6 +344,5 @@ export const facilitatorDashboardService = {
   clearCache(): void {
     lastSuccessfulResponse = null;
     lastResponseTime = 0;
-    console.log('Facilitator dashboard cache cleared');
   }
 };

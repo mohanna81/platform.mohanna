@@ -79,7 +79,6 @@ const SharedRisksHeader: React.FC<{
           options={categoryOptions}
           value={filters.category}
           onChange={v => {
-            console.log('Category filter changed:', { from: filters.category, to: v, isEmpty: v === '', isWhitespace: v.trim() === '' });
             onFilterChange({ ...filters, category: v });
           }}
           size="md"

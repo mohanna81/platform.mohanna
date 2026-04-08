@@ -57,8 +57,6 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
   // Log organization options for debugging
   React.useEffect(() => {
     if (isOpen) {
-      console.log('AssignActionModal - Organization options received:', orgOptions);
-      console.log('AssignActionModal - Consortium options received:', consortiumOptions);
     } else if (!isOpen) {
       // Reset form when modal closes
       resetForm();
