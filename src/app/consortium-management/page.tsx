@@ -45,6 +45,7 @@ function ConsortiumManagementContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<{ value: string; label: string }[]>([]);
+  const [rawOrganizations, setRawOrganizations] = useState<Organization[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -53,6 +54,7 @@ function ConsortiumManagementContent() {
         if (user) {
           const organizations = await fetchOrganizationsByRole(user);
           console.log('ConsortiumManagementPage - Organizations fetched for user:', user.role, organizations);
+          setRawOrganizations(organizations);
           const orgOptions = organizations.map((organization: { id?: string; _id?: string; name: string }) => ({
             value: organization.id || organization._id || '',
             label: organization.name,
@@ -441,6 +443,7 @@ function ConsortiumManagementContent() {
         roleOptions={roleOptions}
         organizationOptions={organizationOptions}
         consortiumOptions={consortiumOptions}
+        organizationsData={rawOrganizations}
       />
     </div>
     </Layout>

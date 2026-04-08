@@ -54,8 +54,22 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
   }, [isOpen, initialData]);
 
   const handleChange = (field: keyof EditActionFormData, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    
+    setForm((prev) => {
+      const updated = { ...prev, [field]: value };
+
+      // When the date changes on an "At Risk" item, auto-reset status to "In Progress"
+      if (field === 'date' && prev.status === 'At Risk' && value) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const newDate = new Date(value);
+        if (newDate >= today) {
+          updated.status = 'In Progress';
+        }
+      }
+
+      return updated;
+    });
+
     // If consortium changes, notify parent to fetch related users
     if (field === 'consortium' && onConsortiumChange) {
       onConsortiumChange(value);
@@ -69,8 +83,8 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Action Item">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-2">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Action Item" size="xl">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <p className="text-[#7b849b] mb-2 text-sm">Update the details of this action item</p>
         <div className="mb-2">
           <label className="block text-sm font-semibold text-[#0b1320] mb-1">Action Title</label>

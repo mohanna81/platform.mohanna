@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
 import TextArea from '../common/TextArea';
-import { consortiaService } from '@/lib/api';
+import Modal from '../common/Modal';
 import Loader from '../common/Loader';
+import { consortiaService } from '@/lib/api';
 
 interface EditConsortiumModalProps {
   isOpen: boolean;
@@ -21,7 +22,6 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
-  // Reset form to initial state
   const resetForm = () => {
     setName('');
     setStartDate('');
@@ -47,14 +47,9 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
     }
   }, [isOpen, consortiumId]);
 
-  // Reset form when modal closes
   useEffect(() => {
-    if (!isOpen) {
-      resetForm();
-    }
+    if (!isOpen) resetForm();
   }, [isOpen]);
-
-  const today = new Date().toISOString().split('T')[0];
 
   const handleStartDateChange = (value: string) => {
     setStartDate(value);
@@ -65,17 +60,10 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
       setErrors(prev => ({ ...prev, endDate: '' }));
     }
   };
+
   const handleEndDateChange = (value: string) => {
     setEndDate(value);
     if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }));
-  };
-  const handleNameChange = (value: string) => {
-    setName(value);
-    if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
-  };
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    if (errors.description) setErrors(prev => ({ ...prev, description: '' }));
   };
 
   const validateForm = () => {
@@ -101,19 +89,10 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    if (!validateForm()) {
-      const firstErrorField = document.querySelector('.border-red-300');
-      if (firstErrorField) firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
+    if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      await consortiaService.patchConsortiumById(consortiumId, {
-        name,
-        start_date: startDate,
-        end_date: endDate,
-        description,
-      });
+      await consortiaService.patchConsortiumById(consortiumId, { name, start_date: startDate, end_date: endDate, description });
       setErrors({});
       onUpdated();
       onClose();
@@ -124,97 +103,82 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm">
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl p-2 sm:p-8 max-h-[90vh] overflow-y-auto">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 text-2xl focus:outline-none"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Edit Consortium</h2>
-        <p className="text-gray-600 mb-6 text-sm">Update consortium details</p>
-        {loading ? (
-          <div className="py-8">
-            <Loader size="md" variant="default" />
-            <p className="text-center text-gray-500 mt-4">Loading consortium data...</p>
-          </div>
-        ) : (
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Consortium" size="lg">
+      <p className="text-gray-600 mb-6 text-sm">Update consortium details</p>
+      {loading ? (
+        <div className="py-8 flex flex-col items-center">
+          <Loader size="md" variant="default" />
+          <p className="text-center text-gray-500 mt-4">Loading consortium data...</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
             <label className="block text-sm font-semibold text-gray-900 mb-1">Consortium Name</label>
             <InputField
               placeholder="Enter consortium name"
               value={name}
-              onChange={handleNameChange}
+              onChange={v => { setName(v); if (errors.name) setErrors(prev => ({ ...prev, name: '' })); }}
               required
+              fullWidth
               disabled={isSubmitting}
               error={errors.name}
               helperText={`${name.length}/100 characters`}
             />
           </div>
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">Start Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => handleStartDateChange(e.target.value)}
                 className={`w-full border rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.startDate ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200'
+                  errors.startDate ? 'border-red-300' : 'border-gray-200'
                 }`}
                 required
                 disabled={isSubmitting}
               />
-              {errors.startDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
-              )}
+              {errors.startDate && <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>}
             </div>
-            <div className="flex-1">
+            <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">End Date</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => handleEndDateChange(e.target.value)}
                 className={`w-full border rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.endDate ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200'
+                  errors.endDate ? 'border-red-300' : 'border-gray-200'
                 }`}
                 required
                 disabled={isSubmitting}
               />
-              {errors.endDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
-              )}
+              {errors.endDate && <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>}
             </div>
           </div>
-          <div className="mb-8">
+          <div>
             <label className="block text-sm font-semibold text-gray-900 mb-1">Description</label>
             <TextArea
               placeholder="Enter consortium description"
               value={description}
-              onChange={handleDescriptionChange}
+              onChange={v => { setDescription(v); if (errors.description) setErrors(prev => ({ ...prev, description: '' })); }}
               rows={3}
+              fullWidth
               disabled={isSubmitting}
               error={errors.description}
               maxLength={500}
             />
           </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-2">
             <Button variant="outline" size="md" type="button" onClick={onClose} disabled={isSubmitting} className="border-gray-300 text-gray-900 w-full sm:w-auto text-sm md:text-base">Cancel</Button>
             <Button variant="primary" size="md" type="submit" loading={isSubmitting} disabled={isSubmitting} className="font-semibold w-full sm:w-auto text-sm md:text-base">
               Update Consortium
             </Button>
           </div>
         </form>
-        )}
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 };
 
-export default EditConsortiumModal; 
+export default EditConsortiumModal;
