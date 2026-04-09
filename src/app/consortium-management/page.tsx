@@ -38,7 +38,7 @@ function ConsortiumManagementContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<{ value: string; label: string }[]>([]);
-  const [rawOrganizations, setRawOrganizations] = useState<Organization[]>([]);
+  const [rawConsortia, setRawConsortia] = useState<import('@/lib/api/services/consortia').Consortium[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -46,7 +46,6 @@ function ConsortiumManagementContent() {
         // Fetch organizations first
         if (user) {
           const organizations = await fetchOrganizationsByRole(user);
-          setRawOrganizations(organizations);
           const orgOptions = organizations.map((organization: { id?: string; _id?: string; name: string }) => ({
             value: organization.id || organization._id || '',
             label: organization.name,
@@ -57,6 +56,7 @@ function ConsortiumManagementContent() {
         // Fetch consortia based on user role
         if (user) {
           const consortia = await fetchConsortiaByRole(user);
+          setRawConsortia(consortia);
           setConsortiumOptions(
             consortia.map((consortium: { id?: string; _id?: string; name: string }) => ({
               value: consortium.id || consortium._id || '',
@@ -295,36 +295,37 @@ function ConsortiumManagementContent() {
         organizationData
       );
       if (response.success) {
-        // After updating the organization, ensure it's added to all selected consortia
+        // Only add to NEW consortia (ones the org is not already in)
+        const existingConsortiaIds = new Set(
+          (selectedOrganization.consortia || []).map(c => c._id || c.id || '').filter(Boolean)
+        );
+        const newConsortiaIds = data.consortiumIds.filter(id => !existingConsortiaIds.has(id));
+
         let successCount = 0;
         let failureCount = 0;
-        
-        // Add to all selected consortia
-        for (const consortiumId of data.consortiumIds) {
+
+        for (const consortiumId of newConsortiaIds) {
           try {
             const addToConsortiumResponse = await consortiaService.addOrganizationToConsortium({
               organizationId: selectedOrganization._id || selectedOrganization.id,
               consortiumId: consortiumId,
             });
-            
             if (addToConsortiumResponse.success) {
               successCount++;
             } else {
               failureCount++;
-              console.error(`Failed to add organization to consortium ${consortiumId}:`, addToConsortiumResponse.error);
             }
-          } catch (error) {
+          } catch {
             failureCount++;
-            console.error(`Error adding organization to consortium ${consortiumId}:`, error);
           }
         }
-        
-        if (failureCount === 0) {
-          showToast.success(`Organization updated and added to ${successCount} consortium(s) successfully!`);
+
+        if (newConsortiaIds.length === 0 || failureCount === 0) {
+          showToast.success('Organization updated successfully!');
         } else if (successCount > 0) {
-          showToast.success(`Organization updated successfully! Added to ${successCount} consortium(s), failed to add to ${failureCount} consortium(s)`);
+          showToast.success(`Organization updated! Added to ${successCount} new consortium(s), failed for ${failureCount}.`);
         } else {
-          showToast.success('Organization updated successfully, but failed to add to any consortium');
+          showToast.error('Organization details updated, but failed to add to new consortium(s).');
         }
         setShowEditOrgModal(false);
         setSelectedOrganization(null);
@@ -428,7 +429,7 @@ function ConsortiumManagementContent() {
         roleOptions={roleOptions}
         organizationOptions={organizationOptions}
         consortiumOptions={consortiumOptions}
-        organizationsData={rawOrganizations}
+        consortiaData={rawConsortia}
       />
     </div>
     </Layout>
