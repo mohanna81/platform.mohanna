@@ -3,7 +3,7 @@ import Button from '../common/Button';
 import InputField from '../common/InputField';
 import Dropdown from '../common/Dropdown';
 import Modal from '../common/Modal';
-import { Organization } from '@/lib/api/services/organizations';
+import { Consortium } from '@/lib/api/services/consortia';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface AddUserModalProps {
   roleOptions: { value: string; label: string }[];
   organizationOptions: { value: string; label: string }[];
   consortiumOptions: { value: string; label: string }[];
-  organizationsData: Organization[];
+  consortiaData: Consortium[];
 }
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: '', organization: '', consortia: [] as string[] };
@@ -24,7 +24,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
   roleOptions,
   organizationOptions,
   consortiumOptions,
-  organizationsData,
+  consortiaData,
 }) => {
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -48,13 +48,18 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
   }, [isOpen]);
 
   // Derive consortium options filtered to the selected organization
+  // Filter from the consortium side: which consortia contain the selected org
   const filteredConsortiumOptions = React.useMemo(() => {
     if (!organization) return [];
-    const selectedOrg = organizationsData.find(o => (o._id || o.id) === organization);
-    if (!selectedOrg || !selectedOrg.consortia || selectedOrg.consortia.length === 0) return [];
-    const orgConsortiumIds = new Set(selectedOrg.consortia.map(c => c._id || c.id || '').filter(Boolean));
-    return consortiumOptions.filter(opt => orgConsortiumIds.has(opt.value));
-  }, [organization, organizationsData, consortiumOptions]);
+    return consortiumOptions.filter(opt => {
+      const consortium = consortiaData.find(c => (c._id || c.id) === opt.value);
+      if (!consortium?.organizations) return false;
+      return consortium.organizations.some(org => {
+        if (typeof org === 'string') return org === organization;
+        return (org._id || org.id) === organization;
+      });
+    });
+  }, [organization, consortiaData, consortiumOptions]);
 
   const handleOrganizationChange = (value: string) => {
     setOrganization(value);
