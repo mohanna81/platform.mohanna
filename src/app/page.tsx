@@ -10,6 +10,8 @@ import ResetPasswordModal from '@/components/common/ResetPasswordModal';
 import { userService } from '@/lib/api/services/auth';
 import Image from 'next/image';
 
+const HOMEPAGE = 'https://risksharingplatform.com';
+
 export default function LoginPage() {
   const { login, loading, user } = useAuth();
   const router = useRouter();
@@ -88,26 +90,38 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
+
       {/* ── Left panel ── */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #0d1b35 0%, #0f2d4a 60%, #0d3d3a 100%)' }}
+        style={{ background: 'linear-gradient(160deg, #1a6b63 0%, #2a9d8f 55%, #33b5a5 100%)' }}
       >
         {/* Decorative circles */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #2a9d8f, transparent)' }} />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #fff, transparent)' }} />
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #FBBF77, transparent)' }} />
-        <div className="absolute top-1/2 -right-16 w-64 h-64 rounded-full opacity-5" style={{ background: 'radial-gradient(circle, #2a9d8f, transparent)' }} />
+        <div className="absolute top-1/2 -right-16 w-64 h-64 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #fff, transparent)' }} />
 
-        {/* Logo */}
-        <div className="relative z-10">
-          <Image
-            src="/Images/logo.png"
-            alt="Risk Sharing Platform"
-            width={260}
-            height={90}
-            priority
-            className="brightness-0 invert"
-          />
+        {/* Logo + back link */}
+        <div className="relative z-10 flex flex-col gap-3">
+          <a href={HOMEPAGE}>
+            <Image
+              src="/Images/logo.png"
+              alt="Risk Sharing Platform"
+              width={220}
+              height={75}
+              priority
+              className="brightness-0 invert"
+            />
+          </a>
+          <a
+            href={HOMEPAGE}
+            className="flex items-center gap-1.5 text-white/70 hover:text-white text-xs font-medium transition-colors w-fit"
+          >
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to homepage
+          </a>
         </div>
 
         {/* Centre content */}
@@ -115,10 +129,10 @@ export default function LoginPage() {
           <div>
             <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
               Transform<br />
-              <span style={{ color: '#2a9d8f' }}>Humanitarian</span><br />
+              <span style={{ color: '#FBBF77' }}>Humanitarian</span><br />
               Risk Management
             </h1>
-            <p className="text-blue-200 text-lg leading-relaxed max-w-sm">
+            <p className="text-white/75 text-lg leading-relaxed max-w-sm">
               A unified platform for consortiums to collaborate, share, and manage risks effectively.
             </p>
           </div>
@@ -131,17 +145,17 @@ export default function LoginPage() {
               { icon: '📊', text: 'Real-time Risk Analytics' },
             ].map(({ icon, text }) => (
               <div key={text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: 'rgba(42,157,143,0.2)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
                   {icon}
                 </div>
-                <span className="text-blue-100 text-sm font-medium">{text}</span>
+                <span className="text-white/90 text-sm font-medium">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer text */}
-        <p className="relative z-10 text-blue-300 text-xs">
+        {/* Footer */}
+        <p className="relative z-10 text-white/50 text-xs">
           © {new Date().getFullYear()} Risk Sharing Platform. Secure &amp; Trusted.
         </p>
       </div>
@@ -150,9 +164,21 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center bg-white p-6 sm:p-12">
         <div className="w-full max-w-md">
 
-          {/* Mobile logo */}
-          <div className="flex justify-center mb-8 lg:hidden">
-            <Image src="/Images/logo.png" alt="Risk Sharing Platform" width={200} height={70} priority />
+          {/* Mobile: logo + back link */}
+          <div className="flex flex-col items-center gap-2 mb-8 lg:hidden">
+            <a href={HOMEPAGE}>
+              <Image src="/Images/logo.png" alt="Risk Sharing Platform" width={180} height={62} priority />
+            </a>
+            <a
+              href={HOMEPAGE}
+              className="flex items-center gap-1 text-xs font-medium"
+              style={{ color: '#2a9d8f' }}
+            >
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to homepage
+            </a>
           </div>
 
           {/* Heading */}
@@ -163,6 +189,7 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
             {/* Email */}
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: '#0d1b35' }}>
@@ -226,7 +253,7 @@ export default function LoginPage() {
               type="submit"
               disabled={isSubmitting || loading}
               className="w-full py-3 rounded-lg text-white font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-1"
-              style={{ background: isSubmitting || loading ? '#2a9d8f99' : 'linear-gradient(135deg, #2a9d8f 0%, #0f7a6e 100%)' }}
+              style={{ backgroundColor: '#2a9d8f' }}
             >
               {isSubmitting || loading ? (
                 <span className="flex items-center justify-center gap-2">
