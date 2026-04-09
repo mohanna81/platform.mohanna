@@ -34,6 +34,7 @@ function ConsortiumManagementContent() {
   const [showAddConsortiumModal, setShowAddConsortiumModal] = useState(false);
   const [showEditOrgModal, setShowEditOrgModal] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [selectedOrgConsortiaIds, setSelectedOrgConsortiaIds] = useState<string[]>([]);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
@@ -127,10 +128,19 @@ function ConsortiumManagementContent() {
   const handleOpenAddConsortium = () => setShowAddConsortiumModal(true);
   const handleCloseAddConsortium = () => setShowAddConsortiumModal(false);
   const handleOpenEditOrg = async (organization: Organization) => {
-    // Fetch latest organization data
     const response = await organizationsService.getOrganizationById(organization._id || organization.id);
     if (response.success && response.data) {
-      setSelectedOrganization(response.data.data);
+      const org = response.data.data;
+      const orgId = org._id || org.id;
+      // Compute all consortia this org belongs to by checking from the consortium side
+      const linkedIds = rawConsortia
+        .filter(c => c.organizations?.some(o =>
+          typeof o === 'string' ? o === orgId : (o._id || o.id) === orgId
+        ))
+        .map(c => c._id || c.id || '')
+        .filter(Boolean);
+      setSelectedOrganization(org);
+      setSelectedOrgConsortiaIds(linkedIds);
       setShowEditOrgModal(true);
     } else {
       showToast.error('Failed to fetch organization data');
@@ -139,6 +149,7 @@ function ConsortiumManagementContent() {
   const handleCloseEditOrg = () => {
     setShowEditOrgModal(false);
     setSelectedOrganization(null);
+    setSelectedOrgConsortiaIds([]);
   };
   const handleCreateOrg = async (data: { name: string; description: string; contact_email: string; consortiumIds: string[] }) => {
     try {
@@ -295,14 +306,12 @@ function ConsortiumManagementContent() {
         organizationData
       );
       if (response.success) {
-        // Only add to NEW consortia (ones the org is not already in)
-        const existingConsortiaIds = new Set(
-          (selectedOrganization.consortia || []).map(c => c._id || c.id || '').filter(Boolean)
-        );
+        // Only add to NEW consortia (ones the org is not already in, using computed IDs)
+        const existingConsortiaIds = new Set(selectedOrgConsortiaIds);
         const newConsortiaIds = data.consortiumIds.filter(id => !existingConsortiaIds.has(id));
 
         let successCount = 0;
-        let failureCount = 0;
+        const errors: string[] = [];
 
         for (const consortiumId of newConsortiaIds) {
           try {
@@ -313,22 +322,22 @@ function ConsortiumManagementContent() {
             if (addToConsortiumResponse.success) {
               successCount++;
             } else {
-              failureCount++;
+              errors.push(addToConsortiumResponse.error || 'Failed to add to consortium');
             }
           } catch {
-            failureCount++;
+            errors.push('Failed to add to consortium');
           }
         }
 
-        if (newConsortiaIds.length === 0 || failureCount === 0) {
+        if (newConsortiaIds.length === 0 || errors.length === 0) {
           showToast.success('Organization updated successfully!');
         } else if (successCount > 0) {
-          showToast.success(`Organization updated! Added to ${successCount} new consortium(s), failed for ${failureCount}.`);
+          showToast.success(`Organization updated! Added to ${successCount} new consortium(s).`);
+          errors.forEach(e => showToast.error(e));
         } else {
-          showToast.error('Organization details updated, but failed to add to new consortium(s).');
+          errors.forEach(e => showToast.error(e));
         }
-        setShowEditOrgModal(false);
-        setSelectedOrganization(null);
+        handleCloseEditOrg();
         setRefreshKey(prev => prev + 1);
       } else {
         showToast.error(response.error || 'Failed to update organization');
@@ -411,9 +420,7 @@ function ConsortiumManagementContent() {
           name: selectedOrganization.name,
           contact_email: selectedOrganization.contact_email || selectedOrganization.email || '',
           description: selectedOrganization.description || '',
-          consortiumIds: Array.isArray(selectedOrganization.consortia) && selectedOrganization.consortia.length > 0
-            ? selectedOrganization.consortia.map(consortium => consortium._id || consortium.id || '').filter(Boolean)
-            : [],
+          consortiumIds: selectedOrgConsortiaIds,
         } : {
           name: '',
           contact_email: '',
