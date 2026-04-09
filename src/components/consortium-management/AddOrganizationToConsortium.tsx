@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Button from '../common/Button';
 import { consortiaService, Organization, Consortium } from '@/lib/api';
 import { showToast } from '@/lib/utils/toast';
@@ -24,6 +24,18 @@ const AddOrganizationToConsortium: React.FC<AddOrganizationToConsortiumProps> = 
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // IDs of consortia the selected org is already in
+  const alreadyLinkedIds = useMemo(() => {
+    if (!selectedOrganization) return new Set<string>();
+    return new Set(
+      consortia
+        .filter(c => c.organizations?.some(o =>
+          typeof o === 'string' ? o === selectedOrganization : (o._id || o.id) === selectedOrganization
+        ))
+        .map(c => c._id || c.id || '')
+    );
+  }, [selectedOrganization, consortia]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -141,7 +153,7 @@ const AddOrganizationToConsortium: React.FC<AddOrganizationToConsortiumProps> = 
           <select 
             className="w-full border rounded px-3 py-2 text-gray-800 bg-white"
             value={selectedOrganization}
-            onChange={(e) => setSelectedOrganization(e.target.value)}
+            onChange={(e) => { setSelectedOrganization(e.target.value); setSelectedConsortium(''); }}
           >
             <option value="">Select organization</option>
             {organizations.map((org) => (
@@ -153,7 +165,7 @@ const AddOrganizationToConsortium: React.FC<AddOrganizationToConsortiumProps> = 
         </div>
         <div className="flex-1">
           <label className="block text-sm font-medium mb-1 text-gray-700">Select Consortium</label>
-          <select 
+          <select
             className="w-full border rounded px-3 py-2 text-gray-800 bg-white"
             value={selectedConsortium}
             onChange={(e) => setSelectedConsortium(e.target.value)}
@@ -161,11 +173,15 @@ const AddOrganizationToConsortium: React.FC<AddOrganizationToConsortiumProps> = 
             <option value="">Select consortium</option>
             {consortia
               .filter(consortium => consortium.status === 'Active')
-              .map((consortium) => (
-                <option key={consortium._id || consortium.id} value={consortium._id || consortium.id}>
-                  {consortium.name}
-                </option>
-              ))}
+              .map((consortium) => {
+                const id = consortium._id || consortium.id || '';
+                const alreadyLinked = alreadyLinkedIds.has(id);
+                return (
+                  <option key={id} value={id} disabled={alreadyLinked}>
+                    {consortium.name}{alreadyLinked ? ' (Already Added)' : ''}
+                  </option>
+                );
+              })}
           </select>
         </div>
         <Button 

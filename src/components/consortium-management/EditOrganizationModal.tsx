@@ -35,7 +35,7 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, o
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit({ name, description, contact_email: contactEmail, consortiumIds });
+      onSubmit({ name, description, contact_email: contactEmail, consortiumIds });
     } catch {
       // Error handling is done in the parent component
     } finally {
@@ -94,8 +94,8 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, o
             required={consortiumIds.length === 0}
             disabled={isSubmitting}
           >
-            <option value="">Select consortia</option>
-            {consortiumOptions.map(opt => (
+            <option value="">Select consortia to add</option>
+            {consortiumOptions.filter(opt => !consortiumIds.includes(opt.value)).map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
