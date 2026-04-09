@@ -4,6 +4,7 @@ import Button from '@/components/common/Button';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import Modal from '@/components/common/Modal';
 import { showToast } from '@/lib/utils/toast';
+import { exportSingleRiskToExcel } from '@/lib/utils/exportExcel';
 
 interface SharedRisksTableProps {
   risks: Risk[];
@@ -388,6 +389,17 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
       {/* View Risk Modal */}
       {selectedRisk && (
         <Modal isOpen={viewModalOpen} onClose={handleCloseViewModal} title="Risk Details" size="xl" showCloseButton>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => { exportSingleRiskToExcel(selectedRisk); showToast.success('Risk exported to Excel'); }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+              </svg>
+              Download Excel
+            </button>
+          </div>
           <div className="space-y-6 text-black max-h-[70vh] overflow-y-auto pr-2">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -58,13 +58,20 @@ export default function MeetingsPage() {
   // Check if user can delete a specific meeting
   const canDeleteMeeting = (meeting: Meeting) => {
     if (!user?.id) return false;
-    
+
     // Only the creator can delete meetings
-    const isCreator = 
+    const isCreator =
       (typeof meeting.createdBy === 'string' && meeting.createdBy === user.id) ||
       (typeof meeting.createdBy === 'object' && (meeting.createdBy.id === user.id || meeting.createdBy._id === user.id));
-    
+
     return isCreator;
+  };
+
+  // Admins and Facilitators can delete past meetings
+  const canDeletePastMeeting = () => {
+    if (!user?.role) return false;
+    const role = normalizeRole(user.role);
+    return role === 'Admin' || role === 'Facilitator' || role === 'Super_user';
   };
 
   const fetchMeetings = useCallback(async () => {
@@ -399,6 +406,7 @@ export default function MeetingsPage() {
                         key={meeting._id}
                         meeting={meeting}
                         onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
+                        onDelete={canDeletePastMeeting() ? () => handleDeleteMeeting(meeting._id) : undefined}
                       />
                     ))
                   );
