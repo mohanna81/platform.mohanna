@@ -3,8 +3,10 @@ import { Risk, Consortium } from '@/lib/api/services/risks';
 import Button from '@/components/common/Button';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import Modal from '@/components/common/Modal';
+import TextArea from '@/components/common/TextArea';
 import { showToast } from '@/lib/utils/toast';
 import { exportSingleRiskToExcel } from '@/lib/utils/exportExcel';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 interface SharedRisksTableProps {
   risks: Risk[];
@@ -12,9 +14,16 @@ interface SharedRisksTableProps {
 }
 
 const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDeleted }) => {
+  const { user } = useAuth();
+  const canCloseRisk = user?.role === 'Facilitator' || user?.role === 'Admin' || user?.role === 'Super_user';
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [riskToDelete, setRiskToDelete] = useState<Risk | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [riskToClose, setRiskToClose] = useState<Risk | null>(null);
+  const [closingComment, setClosingComment] = useState('');
+  const [closing, setClosing] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -45,6 +54,47 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);
     setRiskToDelete(null);
+  };
+
+  const handleCloseRisk = (risk: Risk) => {
+    setRiskToClose(risk);
+    setClosingComment('');
+    setCloseModalOpen(true);
+  };
+
+  const handleCloseRiskConfirm = async () => {
+    if (!riskToClose) return;
+    if (!closingComment.trim()) {
+      showToast.error('Please enter a closing comment');
+      return;
+    }
+    setClosing(true);
+    try {
+      const { risksService } = await import('@/lib/api/services/risks');
+      const response = await risksService.updateRisk(riskToClose._id, {
+        status: 'Closed',
+        closingComment: closingComment.trim(),
+      });
+      if (response.success) {
+        showToast.success(`Risk "${riskToClose.title}" has been closed`);
+        setCloseModalOpen(false);
+        setRiskToClose(null);
+        setClosingComment('');
+        if (onRiskDeleted) onRiskDeleted();
+      } else {
+        showToast.error(response.error || 'Failed to close risk');
+      }
+    } catch {
+      showToast.error('Failed to close risk');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const handleCloseRiskCancel = () => {
+    setCloseModalOpen(false);
+    setRiskToClose(null);
+    setClosingComment('');
   };
 
   const handleViewRisk = (risk: Risk) => {
@@ -304,14 +354,16 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
                             )}
                           </td>
                           <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewRisk(risk)}
-                              className="text-xs sm:text-sm"
-                            >
-                              View
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleViewRisk(risk)} className="text-xs sm:text-sm">
+                                View
+                              </Button>
+                              {canCloseRisk && (
+                                <Button variant="outline" size="sm" onClick={() => handleCloseRisk(risk)} className="text-xs sm:text-sm border-gray-400 text-gray-600">
+                                  Close Risk
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -371,14 +423,16 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
                     </div>
                   </div>
                   
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewRisk(risk)}
-                    className="w-full"
-                  >
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleViewRisk(risk)} className="flex-1">
+                      View Details
+                    </Button>
+                    {canCloseRisk && (
+                      <Button variant="outline" size="sm" onClick={() => handleCloseRisk(risk)} className="flex-1 border-gray-400 text-gray-600">
+                        Close Risk
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -549,6 +603,31 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
         </Modal>
       )}
       
+      <Modal isOpen={closeModalOpen} onClose={handleCloseRiskCancel} title="Close Risk" size="sm">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600">
+            You are about to close <span className="font-semibold text-gray-900">{riskToClose?.title}</span>. It will be moved to Closed Risks and removed from the active register.
+          </p>
+          <TextArea
+            label={<>Closing Comment <span className="text-red-500">*</span></>}
+            rows={4}
+            value={closingComment}
+            onChange={setClosingComment}
+            placeholder="Explain why this risk is being closed..."
+            fullWidth
+            disabled={closing}
+          />
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" size="sm" onClick={handleCloseRiskCancel} disabled={closing} className="border-gray-300 text-gray-700">
+              Cancel
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleCloseRiskConfirm} disabled={closing || !closingComment.trim()} loading={closing} className="bg-[#2a9d8f] text-white hover:bg-[#238a7e]">
+              Close Risk
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <ConfirmationModal
         isOpen={deleteModalOpen}
         onClose={handleDeleteCancel}

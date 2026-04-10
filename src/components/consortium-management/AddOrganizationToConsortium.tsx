@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Button from '../common/Button';
+import Dropdown from '../common/Dropdown';
 import { consortiaService, Organization, Consortium } from '@/lib/api';
 import { showToast } from '@/lib/utils/toast';
 import Loader from '../common/Loader';
@@ -149,40 +150,30 @@ const AddOrganizationToConsortium: React.FC<AddOrganizationToConsortiumProps> = 
       <h2 className="font-semibold mb-4 text-gray-800">Add Organization to Consortium</h2>
       <div className="flex flex-col md:flex-row gap-4 items-end">
         <div className="flex-1">
-          <label className="block text-sm font-medium mb-1 text-gray-700">Select Organization</label>
-          <select 
-            className="w-full border rounded px-3 py-2 text-gray-800 bg-white"
+          <Dropdown
+            label="Select Organization"
+            placeholder="Select organization"
+            options={organizations.map(org => ({ value: org._id || org.id, label: org.name }))}
             value={selectedOrganization}
-            onChange={(e) => { setSelectedOrganization(e.target.value); setSelectedConsortium(''); }}
-          >
-            <option value="">Select organization</option>
-            {organizations.map((org) => (
-              <option key={org._id || org.id} value={org._id || org.id}>
-                {org.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => { setSelectedOrganization(v); setSelectedConsortium(''); }}
+            fullWidth
+          />
         </div>
         <div className="flex-1">
-          <label className="block text-sm font-medium mb-1 text-gray-700">Select Consortium</label>
-          <select
-            className="w-full border rounded px-3 py-2 text-gray-800 bg-white"
-            value={selectedConsortium}
-            onChange={(e) => setSelectedConsortium(e.target.value)}
-          >
-            <option value="">Select consortium</option>
-            {consortia
-              .filter(consortium => consortium.status === 'Active')
-              .map((consortium) => {
-                const id = consortium._id || consortium.id || '';
+          <Dropdown
+            label="Select Consortium"
+            placeholder="Select consortium"
+            options={consortia
+              .filter(c => c.status === 'Active')
+              .map(c => {
+                const id = c._id || c.id || '';
                 const alreadyLinked = alreadyLinkedIds.has(id);
-                return (
-                  <option key={id} value={id} disabled={alreadyLinked}>
-                    {consortium.name}{alreadyLinked ? ' (Already Added)' : ''}
-                  </option>
-                );
+                return { value: id, label: alreadyLinked ? `${c.name} (Already Added)` : c.name, disabled: alreadyLinked };
               })}
-          </select>
+            value={selectedConsortium}
+            onChange={setSelectedConsortium}
+            fullWidth
+          />
         </div>
         <Button 
           variant="primary" 

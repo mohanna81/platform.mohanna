@@ -45,7 +45,7 @@ const TextArea: React.FC<TextAreaProps> = ({
 
   const stateClasses = error
     ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-    : 'border-gray-200 focus:border-black-500 focus:ring-black';
+    : 'border-gray-200 focus:border-[#2a9d8f] focus:ring-[#2a9d8f]/20';
 
   const widthClass = fullWidth ? 'w-full' : '';
   
