@@ -288,6 +288,7 @@ export default function ActionItemsPage() {
   const [search, setSearch] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
+  const [rawConsortia, setRawConsortia] = useState<Consortium[]>([]);
   const [orgOptions, setOrgOptions] = useState<{ value: string; label: string }[]>([]);
   const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -349,6 +350,7 @@ export default function ActionItemsPage() {
             setLoadingState(prev => ({ ...prev, consortia: true }));
             try {
               const consortia: Consortium[] = await fetchConsortiaByRole(user);
+              setRawConsortia(consortia);
               return consortia.filter(isConsortium).map((c: Consortium) => ({
                 value: c.id || c._id,
                 label: c.name,
@@ -488,10 +490,11 @@ export default function ActionItemsPage() {
         consortium: form.consortium,
         assignTo: form.assignToUser,
         assignToModel: 'User',
-        organization: form.assignTo, // Include the selected organization
+        organization: form.assignTo,
         implementationDate: form.date,
         status: 'In Progress',
         createdBy: authStorage.getUserId() || '',
+        ...(form.relatedRisks && form.relatedRisks.length > 0 && { relatedRisks: form.relatedRisks }),
       };
 
       const res = await actionItemsService.createActionItem(payload);
@@ -776,6 +779,7 @@ export default function ActionItemsPage() {
           onSubmit={handleSubmitAssign}
           consortiumOptions={consortiumOptions}
           orgOptions={orgOptions}
+          rawConsortia={rawConsortia}
           userOptions={userOptions}
           onConsortiumChange={handleConsortiumChange}
         />

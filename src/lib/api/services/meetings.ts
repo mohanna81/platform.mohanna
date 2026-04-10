@@ -17,6 +17,7 @@ export interface CreateMeetingRequest {
   minutes?: string;
   actionItems?: ActionItem[];
   links?: Array<{ title: string; url: string }>; // Optional array of links
+  risks?: string[]; // Related risks (up to 3)
   status?: 'Scheduled' | 'Completed' | 'Cancelled';
   timezone?: string; // Added timezone
 }

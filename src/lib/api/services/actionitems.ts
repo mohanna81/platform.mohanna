@@ -8,6 +8,7 @@ export interface CreateActionItemRequest {
   assignTo: string;
   assignToModel: string;
   relatedRisk?: string;
+  relatedRisks?: string[]; // Multiple related risks (up to 3)
   consortium: string;
   description: string;
   implementationDate: string;

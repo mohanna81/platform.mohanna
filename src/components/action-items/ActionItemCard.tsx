@@ -2,6 +2,9 @@ import React from 'react';
 import { actionItemsService, Comment, Reply, CreateCommentRequest, CreateReplyRequest, UpdateCommentRequest, UpdateReplyRequest } from '@/lib/api/services/actionitems';
 import { showToast } from '@/lib/utils/toast';
 import { useAuth } from '@/lib/auth/AuthContext';
+import Button from '@/components/common/Button';
+import InputField from '@/components/common/InputField';
+import TextArea from '@/components/common/TextArea';
 
 interface ActionItemCardProps {
   title: string;
@@ -292,9 +295,11 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                <span className="text-sm font-normal text-gray-500">({comments.length})</span>
              )}
            </div>
-           <button
+           <Button
+             variant="ghost"
+             size="sm"
              onClick={() => setShowComments(!showComments)}
-             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
            >
              {showComments ? (
                <>
@@ -311,7 +316,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                  Show Comments
                </>
              )}
-           </button>
+           </Button>
          </div>
 
          {showComments && (
@@ -338,29 +343,28 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
               
                              {editingComment === comment._id ? (
                  <div className="mb-3">
-                   <textarea
-                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
-                     rows={3}
+                   <TextArea
                      value={editCommentText}
-                     onChange={(e) => setEditCommentText(e.target.value)}
+                     onChange={setEditCommentText}
+                     rows={3}
                      placeholder="Edit your comment..."
+                     fullWidth
                    />
                    <div className="flex gap-2 mt-2">
-                     <button 
-                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                     <Button
+                       variant="primary"
+                       size="sm"
                        onClick={() => handleEditComment(comment._id)}
                      >
                        Save
-                     </button>
-                     <button 
-                       className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                       onClick={() => {
-                         setEditingComment(null);
-                         setEditCommentText('');
-                       }}
+                     </Button>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => { setEditingComment(null); setEditCommentText(''); }}
                      >
                        Cancel
-                     </button>
+                     </Button>
                    </div>
                  </div>
                ) : (
@@ -369,38 +373,41 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
 
                              {/* Comment Actions */}
                <div className="flex gap-3 mb-3">
-                 <button 
-                   className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center transition-colors"
+                 <Button
+                   variant="ghost"
+                   size="sm"
                    onClick={() => setReplyingTo(commentIndex)}
+                   className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center !p-0"
                  >
                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                    </svg>
                    Reply
-                 </button>
+                 </Button>
                 {canEditComment(comment) && (
                   <React.Fragment key={`actions-${comment._id}`}>
-                    <button 
-                      className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center transition-colors"
-                      onClick={() => {
-                        setEditingComment(comment._id);
-                        setEditCommentText(comment.comment);
-                      }}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setEditingComment(comment._id); setEditCommentText(comment.comment); }}
+                      className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center !p-0"
                     >
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       Edit
-                    </button>
-                    <button 
-                      className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center transition-colors"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDeleteComment(comment._id)}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center !p-0"
                     >
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                       Delete
-                    </button>
+                    </Button>
                   </React.Fragment>
                 )}
                </div>
@@ -408,35 +415,29 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                              {/* Reply Input */}
                {replyingTo === commentIndex && (
                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                   <div className="flex gap-2">
-                     <input
-                       type="text"
-                       className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-900"
-                       placeholder="Write a reply..."
-                       value={replyText}
-                       onChange={(e) => setReplyText(e.target.value)}
-                       onKeyDown={(e) => {
-                         if (e.key === 'Enter' && !e.shiftKey) {
-                           e.preventDefault();
-                           handleAddReply(commentIndex);
-                         }
-                       }}
-                     />
-                     <button 
-                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                   <div className="flex gap-2 items-end">
+                     <div className="flex-1">
+                       <InputField
+                         placeholder="Write a reply..."
+                         value={replyText}
+                         onChange={setReplyText}
+                         fullWidth
+                       />
+                     </div>
+                     <Button
+                       variant="primary"
+                       size="sm"
                        onClick={() => handleAddReply(commentIndex)}
                      >
                        Send
-                     </button>
-                     <button 
-                       className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                       onClick={() => {
-                         setReplyingTo(null);
-                         setReplyText('');
-                       }}
+                     </Button>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => { setReplyingTo(null); setReplyText(''); }}
                      >
                        Cancel
-                     </button>
+                     </Button>
                    </div>
                  </div>
                )}
@@ -456,29 +457,28 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                   
                   {editingReply?.commentIndex === commentIndex && editingReply?.replyIndex === replyIndex ? (
                     <div className="mb-2">
-                      <textarea
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-900"
-                        rows={2}
+                      <TextArea
                         value={editReplyText}
-                        onChange={(e) => setEditReplyText(e.target.value)}
+                        onChange={setEditReplyText}
+                        rows={2}
                         placeholder="Edit your reply..."
+                        fullWidth
                       />
                       <div className="flex gap-2 mt-2">
-                        <button 
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                        <Button
+                          variant="primary"
+                          size="sm"
                           onClick={() => handleEditReply(commentIndex, replyIndex)}
                         >
                           Save
-                        </button>
-                        <button 
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                          onClick={() => {
-                            setEditingReply(null);
-                            setEditReplyText('');
-                          }}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setEditingReply(null); setEditReplyText(''); }}
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -488,27 +488,28 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                   {/* Reply Actions */}
                   {canEditReply(reply) && (
                     <div className="flex gap-3 mt-2">
-                      <button 
-                        className="text-gray-600 hover:text-gray-700 text-xs font-medium flex items-center transition-colors"
-                        onClick={() => {
-                          setEditingReply({ commentIndex, replyIndex });
-                          setEditReplyText(reply.reply);
-                        }}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingReply({ commentIndex, replyIndex }); setEditReplyText(reply.reply); }}
+                        className="text-gray-600 hover:text-gray-700 text-xs font-medium flex items-center !p-0"
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Edit
-                      </button>
-                      <button 
-                        className="text-red-600 hover:text-red-700 text-xs font-medium flex items-center transition-colors"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDeleteReply(commentIndex, replyIndex)}
+                        className="text-red-600 hover:text-red-700 text-xs font-medium flex items-center !p-0"
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -532,33 +533,27 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
          ) : (
            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
              <div className="flex items-center gap-3">
-               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                  <span className="text-blue-600 font-semibold text-sm">
                    {user?.name?.charAt(0).toUpperCase() || 'U'}
                  </span>
                </div>
                <div className="flex-1">
-                 <input
-                   type="text"
-                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors"
+                 <InputField
                    placeholder="Add a comment..."
                    value={commentText}
-                   onChange={(e) => setCommentText(e.target.value)}
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter' && !e.shiftKey) {
-                       e.preventDefault();
-                       handleAddComment();
-                     }
-                   }}
+                   onChange={setCommentText}
+                   fullWidth
                  />
                </div>
-              <button 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleAddComment}
-                disabled={!commentText.trim() || !user?.name}
-              >
-                Comment
-              </button>
+               <Button
+                 variant="primary"
+                 size="sm"
+                 onClick={handleAddComment}
+                 disabled={!commentText.trim() || !user?.name}
+               >
+                 Comment
+               </Button>
              </div>
            </div>
          )}
@@ -572,14 +567,14 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
       </div>
       <div className="flex justify-end mt-4 gap-2">
         {onEdit && (
-          <button className="bg-white border border-[#e5eaf1] text-[#0b1320] font-medium px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow-none hover:bg-[#f5f7fa] focus:ring-0 text-sm sm:text-base w-full max-w-xs sm:max-w-none sm:w-auto cursor-pointer" onClick={onEdit}>
+          <Button variant="outline" size="md" onClick={onEdit} className="border-[#e5eaf1] text-[#0b1320] hover:bg-[#f5f7fa]">
             Edit Action
-          </button>
+          </Button>
         )}
         {onDelete && (
-          <button className="bg-red-50 border border-red-200 text-red-700 font-medium px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow-none hover:bg-red-100 focus:ring-0 text-sm sm:text-base w-full max-w-xs sm:max-w-none sm:w-auto cursor-pointer" onClick={onDelete}>
+          <Button variant="danger" size="md" onClick={onDelete}>
             Delete
-          </button>
+          </Button>
         )}
       </div>
     </div>

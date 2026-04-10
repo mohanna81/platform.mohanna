@@ -5,6 +5,7 @@
       { "name": "Dashboard", "icon": "bar-chart", "path": "/dashboard" },
       { "name": "My Risks", "icon": "shield", "path": "/my-risks", "excludeRoles": ["Facilitator"] },
       { "name": "Shared Risks", "icon": "users", "path": "/shared-risks" },
+      { "name": "Closed Risks", "icon": "bookmarks", "path": "/shared-risks/closed", "roles": ["Super_user", "Admin", "Facilitator"] },
       { "name": "Consortiums", "icon": "layers", "path": "/consortiums" }
     ]
   },

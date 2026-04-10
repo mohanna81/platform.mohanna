@@ -91,6 +91,7 @@ export interface Risk {
   createdBy?: User;
   updatedAt?: string;
   rejectionReason?: string;
+  closingComment?: string;
   __v?: number;
   // ...add other fields as needed
 }

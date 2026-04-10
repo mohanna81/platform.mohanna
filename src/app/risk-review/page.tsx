@@ -48,6 +48,7 @@ const STATUS_OPTIONS = [
   { value: 'Approved', label: 'Approve' },
   { value: 'Rejected', label: 'Reject' },
   { value: 'Pending', label: 'Mark as Pending' },
+  { value: 'Closed', label: 'Close Risk' },
 ];
 
 export default function RiskReviewPage() {
