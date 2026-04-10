@@ -16,27 +16,30 @@ const ChangeRiskStatusModal = ({ isOpen, onClose, onSubmit, riskId, statusOption
 }) => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [reason, setReason] = useState('');
+  const [closingComment, setClosingComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setSelectedStatus('');
     setReason('');
+    setClosingComment('');
   }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStatus || !riskId) return;
     
-    // Validate that reason is provided when rejecting
-    if (selectedStatus === 'Rejected' && !reason.trim()) {
-      return;
-    }
-    
+    if (selectedStatus === 'Rejected' && !reason.trim()) return;
+    if (selectedStatus === 'Closed' && !closingComment.trim()) return;
+
     setSubmitting(true);
-    
-    const updateData: { status: string; rejectionReason?: string } = { status: selectedStatus };
+
+    const updateData: { status: string; rejectionReason?: string; closingComment?: string } = { status: selectedStatus };
     if (selectedStatus === 'Rejected' && reason.trim()) {
       updateData.rejectionReason = reason.trim();
+    }
+    if (selectedStatus === 'Closed' && closingComment.trim()) {
+      updateData.closingComment = closingComment.trim();
     }
     
     try {
@@ -79,13 +82,25 @@ const ChangeRiskStatusModal = ({ isOpen, onClose, onSubmit, riskId, statusOption
               rows={3}
               fullWidth
               required
-              className="border-2 border-black shadow-sm w-full"
+            />
+          </div>
+        )}
+        {selectedStatus === 'Closed' && (
+          <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4">
+            <label className="font-semibold text-black w-24 md:w-28 flex-shrink-0 md:text-right md:pr-2 pt-2">Closing Comment</label>
+            <TextArea
+              placeholder="Enter closing comment"
+              value={closingComment}
+              onChange={setClosingComment}
+              rows={3}
+              fullWidth
+              required
             />
           </div>
         )}
         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-2">
           <Button variant="outline" size="md" type="button" onClick={onClose} className="border-gray-300 text-black w-full sm:w-auto text-sm md:text-base">Cancel</Button>
-          <Button variant="primary" size="md" type="submit" className="font-semibold w-full sm:w-auto text-sm md:text-base" disabled={!selectedStatus || (selectedStatus === 'Rejected' && !reason) || submitting}>
+          <Button variant="primary" size="md" type="submit" className="font-semibold w-full sm:w-auto text-sm md:text-base" disabled={!selectedStatus || (selectedStatus === 'Rejected' && !reason) || (selectedStatus === 'Closed' && !closingComment) || submitting}>
             {submitting ? 'Updating...' : 'Change Status'}
           </Button>
         </div>

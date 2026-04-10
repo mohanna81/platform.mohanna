@@ -443,161 +443,143 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
       {/* View Risk Modal */}
       {selectedRisk && (
         <Modal isOpen={viewModalOpen} onClose={handleCloseViewModal} title="Risk Details" size="xl" showCloseButton>
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={() => { exportSingleRiskToExcel(selectedRisk); showToast.success('Risk exported to Excel'); }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-              </svg>
-              Download Excel
-            </button>
-          </div>
-          <div className="space-y-6 text-black max-h-[70vh] overflow-y-auto pr-2">
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Title</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.title || 'Not specified'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Code</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.code || 'Not specified'}</p>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Risk Statement</h3>
-              <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.statement || 'Not specified'}</p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Category</h3>
-              <span className="bg-white border border-gray-300 text-black px-3 py-1 rounded-full text-sm font-semibold">
-                {selectedRisk.category || 'Not specified'}
-              </span>
-            </div>
-            
-            {/* Risk Assessment */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Likelihood</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLikelihoodColor(selectedRisk.likelihood || '0')}`}>
-                  {getLikelihoodLabel(selectedRisk.likelihood || '')} ({selectedRisk.likelihood || '0'})
-                </span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Severity</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getSeverityColor(selectedRisk.severity || '0')}`}>
-                  {getSeverityLabel(selectedRisk.severity || '')} ({selectedRisk.severity || '0'})
-                </span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Ranking</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskRankingColor(calculateRiskRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0'))}`}>
-                  {calculateRiskRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')}
-                </span>
-              </div>
-            </div>
-            
-            {/* Trigger Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Trigger Indicator</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.triggerIndicator || 'Not specified'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Trigger Status</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  selectedRisk.triggerStatus === 'Triggered' 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-gray-100 text-gray-800'
+          <div className="space-y-0 text-gray-900">
+
+            {/* Top bar: meta + export */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-gray-100">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Status badge */}
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  selectedRisk.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                  selectedRisk.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
+                  selectedRisk.status === 'Closed' ? 'bg-gray-100 text-gray-600' :
+                  'bg-red-100 text-red-700'
                 }`}>
-                  {selectedRisk.triggerStatus || 'Not triggered'}
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    selectedRisk.status === 'Approved' ? 'bg-green-500' :
+                    selectedRisk.status === 'Pending' ? 'bg-amber-500' :
+                    selectedRisk.status === 'Closed' ? 'bg-gray-400' : 'bg-red-500'
+                  }`} />
+                  {selectedRisk.status || 'Unknown'}
                 </span>
-              </div>
-            </div>
-            
-            {/* Risk Status */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Risk Status</h3>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                selectedRisk.status === 'Approved' 
-                  ? 'bg-green-100 text-green-800' 
-                  : selectedRisk.status === 'Pending'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {selectedRisk.status || 'Not specified'}
-              </span>
-            </div>
-            
-            {/* Measures */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Mitigation Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.mitigationMeasures || 'Not specified'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Preventive Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.preventiveMeasures || 'Not specified'}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Reactive Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.reactiveMeasures || 'Not specified'}</p>
-              </div>
-            </div>
-            
-            {/* Consortium Information */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Consortium</h3>
-              <div className="space-y-2">
-                {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0 ? (
-                  selectedRisk.consortium.map((consortium: Consortium, index: number) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p className="text-gray-800">{consortium.name || 'Not specified'}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 italic">No consortium information available</p>
+                {/* Category */}
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#2a9d8f]/10 text-[#2a9d8f] border border-[#2a9d8f]/20 capitalize">
+                  {selectedRisk.category || 'Uncategorized'}
+                </span>
+                {/* Risk Code */}
+                {selectedRisk.code && (
+                  <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-600">
+                    {selectedRisk.code}
+                  </span>
                 )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { exportSingleRiskToExcel(selectedRisk); showToast.success('Risk exported'); }}
+                className="border-green-200 text-green-700 hover:bg-green-50 gap-1.5"
+              >
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                </svg>
+                Export
+              </Button>
             </div>
-            
 
-            
-            {/* Organization Roles */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Organization Roles</h3>
-              <div className="space-y-2">
-                {renderOrganizationRoles(selectedRisk.orgRoles)}
+            {/* Title + statement */}
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-3">{selectedRisk.title}</h2>
+              {selectedRisk.statement && (
+                <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 border-l-4 border-[#2a9d8f] px-4 py-3 rounded-r-lg">
+                  {selectedRisk.statement}
+                </p>
+              )}
+            </div>
+
+            {/* Risk Assessment row */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              {[
+                {
+                  label: 'Likelihood',
+                  badge: `${getLikelihoodLabel(selectedRisk.likelihood || '')} (${selectedRisk.likelihood || '0'})`,
+                  color: getLikelihoodColor(selectedRisk.likelihood || '0'),
+                },
+                {
+                  label: 'Severity',
+                  badge: `${getSeverityLabel(selectedRisk.severity || '')} (${selectedRisk.severity || '0'})`,
+                  color: getSeverityColor(selectedRisk.severity || '0'),
+                },
+                {
+                  label: 'Risk Ranking',
+                  badge: String(calculateRiskRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')),
+                  color: getRiskRankingColor(calculateRiskRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')),
+                },
+              ].map(({ label, badge, color }) => (
+                <div key={label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{label}</p>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${color}`}>{badge}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Trigger row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Indicator</p>
+                <p className="text-sm text-gray-700">{selectedRisk.triggerIndicator || '—'}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex flex-col">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Status</p>
+                <span className={`self-start px-3 py-1 rounded-full text-xs font-semibold ${
+                  selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {selectedRisk.triggerStatus || 'Not Triggered'}
+                </span>
               </div>
             </div>
-            
 
-            
+            {/* Measures */}
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Response Measures</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { label: 'Mitigation', value: selectedRisk.mitigationMeasures, icon: '🛡️' },
+                  { label: 'Preventive', value: selectedRisk.preventiveMeasures, icon: '🔒' },
+                  { label: 'Reactive', value: selectedRisk.reactiveMeasures, icon: '⚡' },
+                ].map(({ label, value, icon }) => (
+                  <div key={label} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">{icon} {label}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{value || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Consortium + Org Roles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Consortium</p>
+                {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedRisk.consortium.map((c: Consortium, i: number) => (
+                      <span key={i} className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
+                        {c.name || '—'}
+                      </span>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-gray-400 italic">No consortium</p>}
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Organization Roles</p>
+                <div className="space-y-1">{renderOrganizationRoles(selectedRisk.orgRoles)}</div>
+              </div>
+            </div>
+
             {/* Timestamps */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Created At</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">
-                  {selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleString() : 'Not specified'}
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Last Updated</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">
-                  {selectedRisk.updatedAt ? new Date(selectedRisk.updatedAt).toLocaleString() : 'Not specified'}
-                </p>
-              </div>
+            <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+              <span>Created: <span className="text-gray-600 font-medium">{selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleString() : '—'}</span></span>
+              <span>Updated: <span className="text-gray-600 font-medium">{selectedRisk.updatedAt ? new Date(selectedRisk.updatedAt).toLocaleString() : '—'}</span></span>
             </div>
-            
 
           </div>
         </Modal>

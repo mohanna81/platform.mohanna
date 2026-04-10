@@ -79,19 +79,13 @@ const Dropdown: React.FC<DropdownProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const handleClose = (e: MouseEvent) => {
-      if (
-        buttonRef.current && !buttonRef.current.contains(e.target as Node) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
+    const handleScroll = (e: Event) => {
+      // Don't close when scrolling inside the dropdown list itself
+      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) return;
+      setIsOpen(false);
     };
-    const handleScroll = () => setIsOpen(false);
-    document.addEventListener('mousedown', handleClose);
     window.addEventListener('scroll', handleScroll, true);
     return () => {
-      document.removeEventListener('mousedown', handleClose);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOpen]);
@@ -117,29 +111,38 @@ const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const menu = mounted && isOpen ? createPortal(
-    <div
-      ref={dropdownRef}
-      style={menuStyle}
-      className={`bg-white shadow-lg border border-gray-200 rounded-lg overflow-y-auto ${optionsMaxHeight}`}
-    >
-      {options.length === 0 ? (
-        <div className="px-4 py-2 text-gray-400 text-sm">No options</div>
-      ) : options.map((option) => (
-        <Button
-          key={option.value}
-          type="button"
-          variant={option.value === value ? 'primary' : 'outline'}
-          size="sm"
-          className={`w-full text-left px-4 py-2 text-sm !rounded-none !border-0 !border-b last:!border-b-0 !shadow-none !bg-transparent hover:!bg-gray-100 focus:!bg-gray-100 focus:!outline-none ${option.value === value ? '!bg-[#FBBF77] !text-[#0b1320]' : '!text-gray-900'} ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={() => !option.disabled && handleOptionClick(option.value)}
-          disabled={option.disabled}
-        >
-          <span className="block truncate" title={option.label}>
-            {option.label}
-          </span>
-        </Button>
-      ))}
-    </div>,
+    <>
+      {/* Invisible backdrop to close on outside click */}
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 9998 }}
+        onMouseDown={() => setIsOpen(false)}
+      />
+      <div
+        ref={dropdownRef}
+        style={menuStyle}
+        className={`bg-white shadow-lg border border-gray-200 rounded-lg overflow-y-auto ${optionsMaxHeight}`}
+        onMouseDown={e => e.stopPropagation()}
+      >
+        {options.length === 0 ? (
+          <div className="px-4 py-2 text-gray-400 text-sm">No options</div>
+        ) : options.map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            variant={option.value === value ? 'primary' : 'outline'}
+            size="sm"
+            className={`w-full text-left px-4 py-2 text-sm !rounded-none !border-0 !border-b last:!border-b-0 !shadow-none !bg-transparent hover:!bg-gray-100 focus:!bg-gray-100 focus:!outline-none ${option.value === value ? '!bg-[#FBBF77] !text-[#0b1320]' : '!text-gray-900'} ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !option.disabled && handleOptionClick(option.value)}
+            disabled={option.disabled}
+          >
+            <span className="block truncate" title={option.label}>
+              {option.label}
+            </span>
+          </Button>
+        ))}
+      </div>
+    </>,
     document.body
   ) : null;
 
