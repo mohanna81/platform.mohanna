@@ -77,6 +77,7 @@ export default function RiskReviewPage() {
   const [organizations, setOrganizations] = useState<Array<{ value: string; label: string }>>([]);
   const [consortia, setConsortia] = useState<Array<{ value: string; label: string }>>([]);
   const [organizationNamesCache, setOrganizationNamesCache] = useState<Record<string, string>>({});
+  const organizationNamesCacheRef = useRef<Record<string, string>>({});
   const isInitialLoad = useRef(true);
   
   const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.consortia && !loadingState.organizations;
@@ -249,35 +250,48 @@ export default function RiskReviewPage() {
     const fetchAllOrganizationNames = async () => {
       const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks];
       const orgIdsToFetch = new Set<string>();
-      
-      // Collect all unique organization IDs from risk creators
+
+      // Use ref to check cache — avoids re-triggering this effect when cache state updates
       allRisks.forEach(risk => {
         if (risk.createdBy?.organizations) {
           risk.createdBy.organizations.forEach(orgId => {
-            if (!organizationNamesCache[orgId]) {
+            if (!organizationNamesCacheRef.current[orgId]) {
               orgIdsToFetch.add(orgId);
             }
           });
         }
       });
-      
-      // Fetch organization names for uncached IDs
-      for (const orgId of orgIdsToFetch) {
-        try {
-          const response = await organizationsService.getOrganizationById(orgId);
-          if (response?.data?.data?.name) {
-            setOrganizationNamesCache(prev => ({ ...prev, [orgId]: response.data!.data!.name }));
+
+      if (orgIdsToFetch.size === 0) return;
+
+      // Fetch all uncached org names in parallel
+      const entries = await Promise.all(
+        Array.from(orgIdsToFetch).map(async orgId => {
+          try {
+            const response = await organizationsService.getOrganizationById(orgId);
+            const name = response?.data?.data?.name;
+            if (name) return [orgId, name] as [string, string];
+          } catch (error) {
+            console.error(`Error fetching organization name for ID ${orgId}:`, error);
           }
-        } catch (error) {
-          console.error(`Error fetching organization name for ID ${orgId}:`, error);
-        }
+          return null;
+        })
+      );
+
+      const newEntries = entries.filter((e): e is [string, string] => e !== null);
+      if (newEntries.length > 0) {
+        const newCache = Object.fromEntries(newEntries);
+        // Update ref first so re-render doesn't re-trigger fetches
+        organizationNamesCacheRef.current = { ...organizationNamesCacheRef.current, ...newCache };
+        setOrganizationNamesCache(prev => ({ ...prev, ...newCache }));
       }
     };
-    
+
     if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0) {
       fetchAllOrganizationNames();
     }
-  }, [allPendingRisks, allApprovedRisks, allRejectedRisks, organizationNamesCache]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPendingRisks, allApprovedRisks, allRejectedRisks]);
 
   // Dynamically set tab counts
   const tabCounts = {
