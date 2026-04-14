@@ -89,6 +89,7 @@ export interface ActionItem {
   assignTo: string | { _id: string; name: string };
   assignToModel: string;
   relatedRisk?: string | { _id: string; name: string };
+  relatedRisks?: Array<{ _id: string; title: string; category?: string }>;
   consortium: string | { _id: string; name: string } | Array<string | { _id: string; name: string }>;
   description: string;
   implementationDate: string;

@@ -179,6 +179,23 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
         <span className="ml-2 text-[#222b3a]">{meeting.agenda || '—'}</span>
       )}
     </div>
+    {/* Related Risks */}
+    {meeting.risks && meeting.risks.length > 0 && (
+      <div className="mb-3">
+        <span className="font-semibold text-[#0b1320] text-sm sm:text-base">Related Risks:</span>
+        <div className="flex flex-wrap gap-2 mt-1.5">
+          {meeting.risks.map((risk, i) => (
+            <span
+              key={risk._id}
+              className="inline-flex items-center gap-1.5 bg-[#2a9d8f]/8 border border-[#2a9d8f]/25 text-[#1a6b61] px-3 py-1 rounded-full text-sm font-medium"
+            >
+              <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{i + 1}</span>
+              {risk.title}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
     {/* Links Section */}
     {meeting.links && meeting.links.length > 0 && (
       <div className="mb-2 text-sm sm:text-base">
@@ -186,10 +203,10 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
         <ul className="ml-4 mt-1 space-y-1">
           {meeting.links.map((link, i) => (
             <li key={i}>
-              <a 
-                href={link.url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-[#3b82f6] hover:underline flex items-center gap-1"
               >
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -316,6 +333,24 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
                     <div className="text-[#222b3a]">{meeting.agenda || '—'}</div>
                   )}
                 </div>
+                {/* Related Risks in Modal */}
+                {meeting.risks && meeting.risks.length > 0 && (
+                  <div className="md:col-span-2">
+                    <div className="font-semibold mb-2">Related Risks</div>
+                    <div className="flex flex-wrap gap-2">
+                      {meeting.risks.map((risk, i) => (
+                        <span
+                          key={risk._id}
+                          className="inline-flex items-center gap-1.5 bg-[#2a9d8f]/8 border border-[#2a9d8f]/25 text-[#1a6b61] px-3 py-1.5 rounded-full text-sm font-medium"
+                        >
+                          <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{i + 1}</span>
+                          {risk.title}
+                          {risk.category && <span className="text-[#2a9d8f]/70 text-xs">· {risk.category}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {/* Links Section in Modal */}
                 {meeting.links && meeting.links.length > 0 && (
                   <div className="md:col-span-2">
@@ -323,10 +358,10 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onEdit, onComplete, 
                     <ul className="space-y-2">
                       {meeting.links.map((link, i) => (
                         <li key={i}>
-                          <a 
-                            href={link.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-[#3b82f6] hover:underline flex items-center gap-2"
                           >
                             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -6,17 +6,24 @@ import Button from '@/components/common/Button';
 import InputField from '@/components/common/InputField';
 import TextArea from '@/components/common/TextArea';
 
+interface RelatedRisk {
+  _id: string;
+  title: string;
+  category?: string;
+}
+
 interface ActionItemCardProps {
   title: string;
   status: 'In Progress' | 'At Risk' | 'Complete';
   id: string;
   assignedTo: string;
   relatedRisk: string;
+  relatedRisks?: RelatedRisk[];
   consortium: string;
   description: string;
   implementationDate: string;
-  actionItemId: string; // Add this prop for API calls
-  daysRemaining?: number; // Add this prop to show urgency
+  actionItemId: string;
+  daysRemaining?: number;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -33,6 +40,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   id,
   assignedTo,
   relatedRisk,
+  relatedRisks,
   consortium,
   description,
   implementationDate,
@@ -285,6 +293,20 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         &bull; Consortium: <span className="font-medium">{consortium}</span>
       </div>
       <div className="mb-2 text-sm sm:text-base text-[#222b3a]">{description}</div>
+
+      {relatedRisks && relatedRisks.length > 0 && (
+        <div className="mb-3">
+          <span className="font-semibold text-[#0b1320] text-sm sm:text-base">Related Risks:</span>
+          <div className="flex flex-wrap gap-2 mt-1.5">
+            {relatedRisks.map((risk, i) => (
+              <span key={risk._id} className="inline-flex items-center gap-1.5 bg-[#2a9d8f]/8 border border-[#2a9d8f]/25 text-[#1a6b61] px-3 py-1 rounded-full text-sm font-medium">
+                <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{i + 1}</span>
+                {risk.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
              {/* Comments Section */}
        <div className="mt-6 border-t border-gray-200 pt-4">

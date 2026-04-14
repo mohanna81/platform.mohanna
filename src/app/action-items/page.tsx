@@ -772,6 +772,7 @@ export default function ActionItemsPage() {
                   }
                   return String(item.relatedRisk || '');
                 })()}
+                relatedRisks={item.relatedRisks}
                 onEdit={!authLoading && canAssignOrEdit ? () => handleEdit(item) : undefined}
                 onDelete={!authLoading && isCreatedBy(item, userId) ? () => { setItemToDelete(item); setConfirmDeleteOpen(true); } : undefined}
               />
