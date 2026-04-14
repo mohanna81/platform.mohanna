@@ -306,35 +306,39 @@ function ConsortiumManagementContent() {
         organizationData
       );
       if (response.success) {
-        // Only add to NEW consortia (ones the org is not already in, using computed IDs)
+        const orgId = selectedOrganization._id || selectedOrganization.id;
         const existingConsortiaIds = new Set(selectedOrgConsortiaIds);
-        const newConsortiaIds = data.consortiumIds.filter(id => !existingConsortiaIds.has(id));
+        const newConsortiaIds = new Set(data.consortiumIds);
 
-        let successCount = 0;
+        // Consortia to add (selected now but not before)
+        const toAdd = data.consortiumIds.filter(id => !existingConsortiaIds.has(id));
+        // Consortia to remove (were linked before but deselected now)
+        const toRemove = selectedOrgConsortiaIds.filter(id => !newConsortiaIds.has(id));
+
         const errors: string[] = [];
 
-        for (const consortiumId of newConsortiaIds) {
+        for (const consortiumId of toAdd) {
           try {
-            const addToConsortiumResponse = await consortiaService.addOrganizationToConsortium({
-              organizationId: selectedOrganization._id || selectedOrganization.id,
-              consortiumId: consortiumId,
-            });
-            if (addToConsortiumResponse.success) {
-              successCount++;
-            } else {
-              errors.push(addToConsortiumResponse.error || 'Failed to add to consortium');
-            }
+            const res = await consortiaService.addOrganizationToConsortium({ organizationId: orgId, consortiumId });
+            if (!res.success) errors.push(`Failed to add to consortium`);
           } catch {
             errors.push('Failed to add to consortium');
           }
         }
 
-        if (newConsortiaIds.length === 0 || errors.length === 0) {
+        for (const consortiumId of toRemove) {
+          try {
+            const res = await consortiaService.removeOrganizationFromConsortium({ organizationId: orgId, consortiumId });
+            if (!res.success) errors.push(`Failed to remove from consortium`);
+          } catch {
+            errors.push('Failed to remove from consortium');
+          }
+        }
+
+        if (errors.length === 0) {
           showToast.success('Organization updated successfully!');
-        } else if (successCount > 0) {
-          showToast.success(`Organization updated! Added to ${successCount} new consortium(s).`);
-          errors.forEach(e => showToast.error(e));
         } else {
+          showToast.success('Organization updated with some errors.');
           errors.forEach(e => showToast.error(e));
         }
         handleCloseEditOrg();

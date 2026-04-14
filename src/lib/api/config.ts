@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
     UPDATE: '/consortia/:id',
     DELETE: '/consortia/:id',
     ADD_ORGANIZATION: '/consortia/add-organization',
+    REMOVE_ORGANIZATION: '/consortia/remove-organization',
   },
 
   // Meetings

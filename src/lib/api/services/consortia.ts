@@ -104,6 +104,14 @@ export const consortiaService = {
       data
     );
   },
+
+  // Remove organization from consortium
+  async removeOrganizationFromConsortium(data: AddOrganizationToConsortiumRequest) {
+    return apiClient.post<{ message: string; success: boolean; data?: Consortium }>(
+      API_ENDPOINTS.CONSORTIA.REMOVE_ORGANIZATION,
+      data
+    );
+  },
 };
 
 export async function fetchConsortiaByRole(user: AuthUser | null) {
