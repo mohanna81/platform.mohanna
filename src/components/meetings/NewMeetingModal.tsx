@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Modal from "@/components/common/Modal";
 import Button from "@/components/common/Button";
 import InputField from "@/components/common/InputField";
@@ -10,6 +10,9 @@ import { showToast } from "@/lib/utils/toast";
 import { useAuth } from "@/lib/auth/AuthContext";
 import type { User } from "@/lib/api/services/auth";
 import { getUserTimezone, getTimezoneDisplayName } from "@/lib/utils/timezone";
+import TimePicker from "@/components/common/TimePicker";
+import { Consortium } from '@/lib/api/services/consortia';
+import { risksService, Risk } from '@/lib/api/services/risks';
 
 export interface MeetingFormData {
   title: string;
@@ -24,6 +27,7 @@ export interface MeetingFormData {
   organization: string[]; // Changed to array for multi-select
   attendees: string[];
   links?: Array<{ title: string; url: string }>; // Optional array of links
+  risks?: string[]; // Related risks (up to 3)
 }
 
 interface NewMeetingModalProps {
@@ -31,13 +35,14 @@ interface NewMeetingModalProps {
   onClose: () => void;
   onSubmit: (data: MeetingFormData) => void;
   consortiums: Array<{ id: string; name: string }>;
+  rawConsortia?: Consortium[];
   organizations: Array<{ id: string; name: string }>;
   isSubmitting?: boolean;
   initialValues?: Partial<MeetingFormData>;
   editMode?: boolean;
 }
 
-const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubmit, consortiums, organizations, isSubmitting = false, initialValues, editMode = false }) => {
+const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubmit, consortiums, rawConsortia = [], organizations, isSubmitting = false, initialValues, editMode = false }) => {
   const { user: currentUser } = useAuth();
   const [form, setForm] = useState<MeetingFormData>({
     title: "",
@@ -55,6 +60,43 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
   });
   const [users, setUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]); // Store all users for filtering
+  const [availableRisks, setAvailableRisks] = useState<Risk[]>([]);
+
+  // Fetch approved risks when consortium changes
+  useEffect(() => {
+    if (!form.consortium) { setAvailableRisks([]); return; }
+    risksService.getRisks().then(res => {
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        const approved = res.data.data.filter((r: Risk) => {
+          const isApproved = r.status === 'Approved';
+          const inConsortium = Array.isArray(r.consortium)
+            ? r.consortium.some((c: unknown) => {
+                if (typeof c === 'string') return c === form.consortium;
+                if (c && typeof c === 'object' && ('_id' in c || 'id' in c)) {
+                  return (c as { _id?: string; id?: string })._id === form.consortium || (c as { _id?: string; id?: string }).id === form.consortium;
+                }
+                return false;
+              })
+            : false;
+          return isApproved && inConsortium;
+        });
+        setAvailableRisks(approved);
+      }
+    }).catch(() => setAvailableRisks([]));
+  }, [form.consortium]);
+
+  // Filter organizations to only those belonging to the selected consortium
+  const filteredOrganizations = useMemo(() => {
+    if (!form.consortium || rawConsortia.length === 0) return organizations;
+    const consortium = rawConsortia.find(c => (c._id || c.id) === form.consortium);
+    if (!consortium?.organizations) return [];
+    const orgIds = new Set(
+      consortium.organizations.map(o =>
+        typeof o === 'string' ? o : (o._id || o.id || '')
+      )
+    );
+    return organizations.filter(o => orgIds.has(o.id));
+  }, [form.consortium, rawConsortia, organizations]);
 
   useEffect(() => {
     userService.getUsers().then((res) => {
@@ -83,7 +125,8 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
           attendees: initialValues.attendees && initialValues.attendees.length > 0
             ? Array.from(new Set([...initialValues.attendees, currentUser?.id])).filter(Boolean) as string[]
             : (currentUser?.id ? [currentUser.id] : []),
-          links: initialValues.links || [], // Initialize links
+          links: initialValues.links || [],
+          risks: initialValues.risks || [],
         });
       } else {
         setForm({
@@ -96,13 +139,13 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
           meetingLink: "",
           agenda: "",
           consortium: "",
-          organization: [], // Initialize as empty array
+          organization: [],
           attendees: currentUser?.id ? [currentUser.id] : [],
-          links: [], // Initialize as empty array
+          links: [],
+          risks: [],
         });
       }
     } else if (!open && !editMode) {
-      // Reset form when modal closes (only for new meetings, not edit mode)
       setForm({
         title: "",
         date: "",
@@ -115,7 +158,8 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         consortium: "",
         organization: [],
         attendees: currentUser?.id ? [currentUser.id] : [],
-        links: [], // Reset links
+        links: [],
+        risks: [],
       });
     }
   }, [open, currentUser?.id, initialValues, editMode]);
@@ -180,6 +224,12 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         }
       }
       
+      // Clear organizations and risks when consortium changes
+      if (name === "consortium") {
+        updatedForm.organization = [];
+        updatedForm.risks = [];
+      }
+
       // Filter users when consortium changes
       if (name === "consortium") {
         if (value) {
@@ -347,27 +397,21 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1 min-w-0">
-            <InputField
+            <TimePicker
               label="Start Time"
-              name="startTime"
-              type="time"
               value={form.startTime}
               onChange={(value) => handleChange("startTime", value)}
               required
-              step="60"
-              placeholder="HH:mm (24-hour)"
+              fullWidth
             />
           </div>
           <div className="flex-1 min-w-0">
-            <InputField
+            <TimePicker
               label="End Time"
-              name="endTime"
-              type="time"
               value={form.endTime}
               onChange={(value) => handleChange("endTime", value)}
               required
-              step="60"
-              placeholder="HH:mm (24-hour)"
+              fullWidth
             />
           </div>
         </div>
@@ -426,44 +470,68 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div>
-              <label className="block text-sm font-semibold text-[#0b1320] mb-1">Organizations (Optional)</label>
-              <select
-                className="w-full border border-gray-200 rounded-md px-3 py-2 text-black bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value && !form.organization.includes(e.target.value)) {
-                    setForm(prev => ({ ...prev, organization: [...prev.organization, e.target.value] }));
-                  }
-                }}
-              >
-                <option value="" className="text-black">Select organizations</option>
-                {organizations.map(org => (
-                  <option key={org.id} value={org.id} className="text-black">{org.name}</option>
-                ))}
-              </select>
-              {form.organization.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {form.organization.map((orgId) => {
-                    const org = organizations.find(o => o.id === orgId);
-                    return (
-                      <div key={orgId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
-                        <span className="text-black font-medium">{org?.name || orgId}</span>
-                        <button
-                          type="button"
-                          onClick={() => setForm(prev => ({ ...prev, organization: prev.organization.filter(id => id !== orgId) }))}
-                          className="text-red-500 hover:text-red-700 text-xs font-bold"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <Dropdown
+              label="Organizations (Optional)"
+              placeholder={!form.consortium ? 'Select a consortium first' : filteredOrganizations.length === 0 ? 'No organizations in this consortium' : 'Select organizations'}
+              options={filteredOrganizations.filter(o => !form.organization.includes(o.id)).map(o => ({ value: o.id, label: o.name }))}
+              value=""
+              onChange={(v) => { if (v && !form.organization.includes(v)) setForm(prev => ({ ...prev, organization: [...prev.organization, v] })); }}
+              fullWidth
+              disabled={!form.consortium || filteredOrganizations.length === 0}
+            />
+            {form.organization.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {form.organization.map((orgId) => {
+                  const org = filteredOrganizations.find(o => o.id === orgId);
+                  return (
+                    <div key={orgId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
+                      <span className="text-black font-medium">{org?.name || orgId}</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setForm(prev => ({ ...prev, organization: prev.organization.filter(id => id !== orgId) }))} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
+        {/* Related Risks */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Related Risks <span className="text-gray-400 font-normal">(Optional — up to 3)</span>
+          </label>
+          <Dropdown
+            placeholder={!form.consortium ? 'Select a consortium first' : availableRisks.length === 0 ? 'No approved risks in this consortium' : (form.risks || []).length >= 3 ? 'Maximum 3 risks selected' : 'Select a risk to add'}
+            options={availableRisks
+              .filter(r => !(form.risks || []).includes(r._id))
+              .map(r => ({ value: r._id, label: r.title }))}
+            value=""
+            onChange={v => {
+              if (!v) return;
+              const current = form.risks || [];
+              if (current.length >= 3) { showToast.error('Maximum 3 risks allowed'); return; }
+              setForm(prev => ({ ...prev, risks: [...(prev.risks || []), v] }));
+            }}
+            fullWidth
+            disabled={!form.consortium || availableRisks.length === 0 || (form.risks || []).length >= 3}
+          />
+          {(form.risks || []).length > 0 && (
+            <div className="mt-2 space-y-1">
+              {(form.risks || []).map((riskId, idx) => {
+                const risk = availableRisks.find(r => r._id === riskId);
+                return (
+                  <div key={riskId} className="flex items-center justify-between bg-[#2a9d8f]/5 border border-[#2a9d8f]/20 px-3 py-1.5 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{idx + 1}</span>
+                      <span className="text-gray-800 font-medium">{risk?.title || riskId}</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm(prev => ({ ...prev, risks: (prev.risks || []).filter(id => id !== riskId) }))} className="text-red-500 hover:text-red-700 !p-0 ml-2">×</Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div>
           <div className="font-semibold mb-2">
             Select Attendees <span className="text-red-500">*</span>

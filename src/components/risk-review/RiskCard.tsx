@@ -30,7 +30,7 @@ interface Risk {
 
 interface RiskCardProps {
   risk: any; // Use any to avoid type conflicts between different Risk definitions
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'closed';
   onToggleTrigger: (riskId: string, isCurrentlyTriggered: boolean) => void;
   onEditRisk: (riskId: string) => void;
   onChangeStatus: (riskId: string) => void;
@@ -98,6 +98,13 @@ const statusConfig = {
     textColor: 'text-red-800',
     borderColor: 'border-red-200',
     iconColor: 'text-red-600'
+  },
+  closed: {
+    label: 'Closed',
+    bgColor: 'bg-gray-50',
+    textColor: 'text-gray-700',
+    borderColor: 'border-gray-300',
+    iconColor: 'text-gray-500'
   }
 };
 
@@ -364,6 +371,46 @@ export default function RiskCard({
                     Reactive Measures
                   </h4>
                   <p className="text-purple-800 text-sm leading-relaxed whitespace-pre-wrap">{risk.reactiveMeasures}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Closing Info (for closed risks) */}
+            {status === 'closed' && (risk.closingComment || risk.mitigationSuccess) && (
+              <div className="mb-6">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Closing Details
+                  </h4>
+                  {risk.mitigationSuccess && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Mitigation Success</p>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star: number) => (
+                          <svg
+                            key={star}
+                            className={`w-5 h-5 ${star <= risk.mitigationSuccess ? 'text-amber-400' : 'text-gray-200'}`}
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        ))}
+                        <span className="ml-2 text-sm text-gray-600 font-medium">
+                          {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][risk.mitigationSuccess]}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {risk.closingComment && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Remarks</p>
+                      <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{risk.closingComment}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

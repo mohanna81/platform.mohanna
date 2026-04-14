@@ -17,6 +17,7 @@ export interface CreateMeetingRequest {
   minutes?: string;
   actionItems?: ActionItem[];
   links?: Array<{ title: string; url: string }>; // Optional array of links
+  risks?: string[]; // Related risks (up to 3)
   status?: 'Scheduled' | 'Completed' | 'Cancelled';
   timezone?: string; // Added timezone
 }
@@ -65,6 +66,13 @@ export interface Organization {
   __v: number;
 }
 
+export interface MeetingRisk {
+  _id: string;
+  title: string;
+  category?: string;
+  status?: string;
+}
+
 export interface Meeting {
   _id: string;
   title: string;
@@ -80,13 +88,14 @@ export interface Meeting {
   attendees: MeetingAttendee[];
   minutes?: string;
   actionItems: ActionItem[];
-  links?: Array<{ title: string; url: string }>; // Optional array of links
+  links?: Array<{ title: string; url: string }>;
+  risks?: MeetingRisk[]; // Related risks (up to 3)
   status: 'Scheduled' | 'Completed' | 'Cancelled';
   createdBy?: MeetingAttendee;
   createdAt: string;
   updatedAt: string;
   __v: number;
-  timezone?: string; // Added timezone
+  timezone?: string;
 }
 
 export interface CreateMeetingResponse {

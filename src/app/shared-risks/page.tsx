@@ -14,6 +14,7 @@ import { showToast } from '@/lib/utils/toast';
 import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { fetchOrganizationsByRole } from '@/lib/api/services/organizations';
+import { exportRisksToExcel } from '@/lib/utils/exportExcel';
 
 const initialFilters: SharedRisksFilters = {
   consortium: "",
@@ -231,17 +232,27 @@ export default function SharedRisksPage() {
 
   const handlePageSizeChange = (size: number) => {
     setItemsPerPage(size);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredRisks.length === 0) {
+      showToast.error('No risks to export');
+      return;
+    }
+    exportRisksToExcel(filteredRisks);
+    showToast.success(`Exported ${filteredRisks.length} risk(s) to Excel`);
   };
 
   return (
     <Layout>
       <div className="space-y-6">
-        <SharedRisksHeader 
-          filters={filters} 
+        <SharedRisksHeader
+          filters={filters}
           onFilterChange={setFilters}
           consortiums={consortiums}
           organizations={organizations}
+          onExportExcel={handleExportExcel}
         />
         
         <div className="bg-white rounded-xl border border-gray-200">

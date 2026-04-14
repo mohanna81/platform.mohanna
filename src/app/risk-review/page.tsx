@@ -48,6 +48,7 @@ const STATUS_OPTIONS = [
   { value: 'Approved', label: 'Approve' },
   { value: 'Rejected', label: 'Reject' },
   { value: 'Pending', label: 'Mark as Pending' },
+  { value: 'Closed', label: 'Close Risk' },
 ];
 
 export default function RiskReviewPage() {
@@ -56,6 +57,7 @@ export default function RiskReviewPage() {
   const [allPendingRisks, setAllPendingRisks] = useState<Risk[]>([]);
   const [allApprovedRisks, setAllApprovedRisks] = useState<Risk[]>([]);
   const [allRejectedRisks, setAllRejectedRisks] = useState<Risk[]>([]);
+  const [allClosedRisks, setAllClosedRisks] = useState<Risk[]>([]);
   const [activeTab, setActiveTab] = useState('Pending Review');
   const [consortium, setConsortium] = useState(CONSORTIUMS[0].value);
   const [status, setStatus] = useState(STATUSES[0].value);
@@ -68,6 +70,7 @@ export default function RiskReviewPage() {
     pendingRisks: true,
     approvedRisks: true,
     rejectedRisks: true,
+    closedRisks: true,
     consortia: true,
     organizations: true,
   });
@@ -79,7 +82,7 @@ export default function RiskReviewPage() {
   const organizationNamesCacheRef = useRef<Record<string, string>>({});
   const isInitialLoad = useRef(true);
   
-  const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.consortia && !loadingState.organizations;
+  const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.closedRisks && !loadingState.consortia && !loadingState.organizations;
   
   // Check if user has access to risk review (Facilitator level or higher)
   const hasRiskReviewAccess = user && getRoleLevel(user.role) >= 2;
@@ -200,6 +203,7 @@ export default function RiskReviewPage() {
   const pendingRisks = useMemo(() => filterRisks(allPendingRisks), [allPendingRisks, filterRisks]);
   const approvedRisks = useMemo(() => filterRisks(allApprovedRisks), [allApprovedRisks, filterRisks]);
   const rejectedRisks = useMemo(() => filterRisks(allRejectedRisks), [allRejectedRisks, filterRisks]);
+  const closedRisks = useMemo(() => filterRisks(allClosedRisks), [allClosedRisks, filterRisks]);
 
   // Fetch organizations and consortia based on user role
   const fetchFilterData = useCallback(async () => {
@@ -247,7 +251,7 @@ export default function RiskReviewPage() {
   // Fetch organization names for all risks when they load
   useEffect(() => {
     const fetchAllOrganizationNames = async () => {
-      const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks];
+      const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks, ...allClosedRisks];
       const orgIdsToFetch = new Set<string>();
 
       // Use ref to check cache — avoids re-triggering this effect when cache state updates
@@ -286,23 +290,25 @@ export default function RiskReviewPage() {
       }
     };
 
-    if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0) {
+    if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0 || allClosedRisks.length > 0) {
       fetchAllOrganizationNames();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allPendingRisks, allApprovedRisks, allRejectedRisks]);
+  }, [allPendingRisks, allApprovedRisks, allRejectedRisks, allClosedRisks]);
 
   // Dynamically set tab counts
   const tabCounts = {
     'Pending Review': pendingRisks.length,
     'Approved': approvedRisks.length,
     'Rejected': rejectedRisks.length,
+    'Closed': closedRisks.length,
   };
 
   const TABS = [
     { label: 'Pending Review', count: tabCounts['Pending Review'] },
     { label: 'Approved', count: tabCounts['Approved'] },
     { label: 'Rejected', count: tabCounts['Rejected'] },
+    { label: 'Closed', count: tabCounts['Closed'] },
   ];
 
   const handleToggleTrigger = async (riskId: string, isCurrentlyTriggered: boolean) => {
@@ -319,73 +325,90 @@ export default function RiskReviewPage() {
 
   // Refetch all risks for all tabs
   const refetchAllRisks = () => {
-    setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true }));
+    setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
     Promise.all([
       risksService.getRisksByStatus('Pending'),
       risksService.getRisksByStatus('Approved'),
       risksService.getRisksByStatus('Rejected'),
-    ]).then(([pendingRes, approvedRes, rejectedRes]) => {
+      risksService.getRisksByStatus('Closed'),
+    ]).then(([pendingRes, approvedRes, rejectedRes, closedRes]) => {
       if (pendingRes.data?.success && pendingRes.data?.data && Array.isArray(pendingRes.data.data)) {
         setAllPendingRisks(pendingRes.data.data);
       } else {
         setAllPendingRisks([]);
       }
       setLoadingState(prev => ({ ...prev, pendingRisks: false }));
-      
+
       if (approvedRes.data?.success && approvedRes.data?.data && Array.isArray(approvedRes.data.data)) {
         setAllApprovedRisks(approvedRes.data.data);
       } else {
         setAllApprovedRisks([]);
       }
       setLoadingState(prev => ({ ...prev, approvedRisks: false }));
-      
+
       if (rejectedRes.data?.success && rejectedRes.data?.data && Array.isArray(rejectedRes.data.data)) {
         setAllRejectedRisks(rejectedRes.data.data);
       } else {
         setAllRejectedRisks([]);
       }
       setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
+
+      if (closedRes.data?.success && closedRes.data?.data && Array.isArray(closedRes.data.data)) {
+        setAllClosedRisks(closedRes.data.data);
+      } else {
+        setAllClosedRisks([]);
+      }
+      setLoadingState(prev => ({ ...prev, closedRisks: false }));
     }).catch((error) => {
       console.error('Error fetching risks:', error);
       setAllPendingRisks([]);
       setAllApprovedRisks([]);
       setAllRejectedRisks([]);
+      setAllClosedRisks([]);
       showToast.error('Failed to refresh risks data');
-      setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false }));
+      setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
     });
   };
 
   useEffect(() => {
     const loadAllData = async () => {
-      setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true }));
-      
+      setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
+
       try {
-        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        const [pendingRes, approvedRes, rejectedRes, closedRes] = await Promise.all([
           risksService.getRisksByStatus('Pending'),
           risksService.getRisksByStatus('Approved'),
           risksService.getRisksByStatus('Rejected'),
+          risksService.getRisksByStatus('Closed'),
         ]);
-        
+
         if (pendingRes.data?.success && pendingRes.data?.data && Array.isArray(pendingRes.data.data)) {
           setAllPendingRisks(pendingRes.data.data);
         } else {
           setAllPendingRisks([]);
         }
         setLoadingState(prev => ({ ...prev, pendingRisks: false }));
-        
+
         if (approvedRes.data?.success && approvedRes.data?.data && Array.isArray(approvedRes.data.data)) {
           setAllApprovedRisks(approvedRes.data.data);
         } else {
           setAllApprovedRisks([]);
         }
         setLoadingState(prev => ({ ...prev, approvedRisks: false }));
-        
+
         if (rejectedRes.data?.success && rejectedRes.data?.data && Array.isArray(rejectedRes.data.data)) {
           setAllRejectedRisks(rejectedRes.data.data);
         } else {
           setAllRejectedRisks([]);
         }
         setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
+
+        if (closedRes.data?.success && closedRes.data?.data && Array.isArray(closedRes.data.data)) {
+          setAllClosedRisks(closedRes.data.data);
+        } else {
+          setAllClosedRisks([]);
+        }
+        setLoadingState(prev => ({ ...prev, closedRisks: false }));
         
         if (isInitialLoad.current) {
           showToast.success('Risk review data loaded successfully');
@@ -396,11 +419,12 @@ export default function RiskReviewPage() {
         setAllPendingRisks([]);
         setAllApprovedRisks([]);
         setAllRejectedRisks([]);
+        setAllClosedRisks([]);
         showToast.error('Failed to load risk review data');
-        setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false }));
+        setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
       }
     };
-    
+
     loadAllData();
   }, []);
 
@@ -608,6 +632,31 @@ export default function RiskReviewPage() {
                 ))
               )
                           )}
+        {activeTab === 'Closed' && (
+              closedRisks.length === 0 ? (
+                <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-gray-500">
+                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-lg font-medium">No closed risks found</p>
+                  <p className="text-sm text-gray-400">No risks have been closed yet</p>
+                </div>
+              ) : (
+                closedRisks.map((risk) => (
+                  <RiskCard
+                    key={risk._id}
+                    risk={risk}
+                    status="closed"
+                    onToggleTrigger={handleToggleTrigger}
+                    onEditRisk={handleEditRisk}
+                    onChangeStatus={handleChangeStatus}
+                    renderConsortiumNames={renderConsortiumNames}
+                    renderOrganizationNames={renderOrganizationNames}
+                    organizationNamesCache={organizationNamesCache}
+                  />
+                ))
+              )
+            )}
                         </div>
         )}
 

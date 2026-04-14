@@ -47,7 +47,7 @@ const InputField: React.FC<InputFieldProps> = ({
 
   const stateClasses = error
     ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-    : 'border-brand-border focus:border-brand-peach focus:ring-brand-peach';
+    : 'border-gray-200 focus:border-[#2a9d8f] focus:ring-[#2a9d8f]/20';
 
   const colorClasses = disabled ? 'bg-gray-50 text-gray-900 placeholder-gray-400' : 'bg-white text-gray-900 placeholder-gray-400';
 

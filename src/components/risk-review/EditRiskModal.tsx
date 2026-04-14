@@ -97,6 +97,10 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   const [consortiumOrganizations, setConsortiumOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const hasFetchedData = useRef(false);
+  // Cache raw consortia so we don't re-fetch them multiple times
+  const rawConsortiaCache = useRef<Consortium[]>([]);
+  // Track whether the initial load has set form.consortium to skip the effect re-trigger
+  const isInitialConsortiumSet = useRef(false);
 
   // Check if user can delete risks (Admin or Super User)
   const canDelete = user?.role === 'Admin' || user?.role === 'Super_user';
@@ -123,121 +127,108 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
     return null;
   }, []);
 
+  // Resolve org IDs to Organization objects in parallel
+  const resolveOrgIds = useCallback(async (orgIds: string[]): Promise<Organization[]> => {
+    const results = await Promise.all(
+      orgIds.map(async (orgId) => {
+        const orgDetails = await fetchOrganizationDetails(orgId);
+        if (orgDetails) {
+          return { _id: orgDetails._id, id: orgDetails._id, name: orgDetails.name, status: 'Active', email: '', createdAt: '', updatedAt: '' } as Organization;
+        }
+        return { _id: orgId, id: orgId, name: `Organization ${orgId.slice(-4)}`, status: 'Active', email: '', createdAt: '', updatedAt: '' } as Organization;
+      })
+    );
+    return results;
+  }, [fetchOrganizationDetails]);
+
   // Helper function to map orgRoles from API format to form format
   const mapOrgRolesFromAPI = useCallback(async (orgRoles: OrgRole[] | undefined, consortium: Consortium[] | undefined) => {
-    
-    // Get organizations from all consortiums that the risk belongs to
-    const consortiumOrgs: Array<{ _id?: string; id?: string; name?: string }> = [];
-    
+    const seenIds = new Set<string>();
+    const objectOrgs: Array<{ _id?: string; id?: string; name?: string }> = [];
+    const stringOrgIds: string[] = [];
+
     if (consortium && Array.isArray(consortium)) {
-      
       for (const consortiumItem of consortium) {
-        
-        if (consortiumItem.organizations && Array.isArray(consortiumItem.organizations)) {
-          
-          for (const org of consortiumItem.organizations) {
-            
-            // Handle both string IDs and Organization objects
-            if (typeof org === 'object' && org !== null) {
-              // Check if organization is already in the list to avoid duplicates
-              const exists = consortiumOrgs.some(existing => {
-                const existingId = existing._id || existing.id;
-                const orgId = org._id || org.id;
-                return existingId === orgId;
-              });
-              if (!exists) {
-                consortiumOrgs.push(org);
-              }
-            } else if (typeof org === 'string') {
-              // Handle string IDs - fetch organization details
-              const exists = consortiumOrgs.some(existing => {
-                const existingId = existing._id || existing.id;
-                return existingId === org;
-              });
-              if (!exists) {
-                const orgDetails = await fetchOrganizationDetails(org);
-                if (orgDetails) {
-                  consortiumOrgs.push(orgDetails);
-                } else {
-                  // Fallback if API call fails
-                  const fallbackOrg = { _id: org, id: org, name: `Organization ${org.slice(-4)}` };
-                  consortiumOrgs.push(fallbackOrg);
-                }
-              }
+        for (const org of (consortiumItem.organizations || [])) {
+          if (typeof org === 'object' && org !== null) {
+            const id = org._id || org.id || '';
+            if (id && !seenIds.has(id)) {
+              seenIds.add(id);
+              objectOrgs.push(org);
             }
+          } else if (typeof org === 'string' && !seenIds.has(org)) {
+            seenIds.add(org);
+            stringOrgIds.push(org);
           }
         }
       }
     }
-    
-    
-    // Create a map of existing orgRoles for quick lookup
-    const existingOrgRolesMap = new Map();
+
+    // Resolve all string IDs in parallel
+    const resolvedOrgs = await resolveOrgIds(stringOrgIds);
+    const consortiumOrgs = [...objectOrgs, ...resolvedOrgs];
+
+    // Build lookup map for existing orgRoles
+    const existingOrgRolesMap = new Map<string, string>();
     if (orgRoles && Array.isArray(orgRoles)) {
       orgRoles.forEach(orgRole => {
-        if (orgRole.organization && orgRole.organization._id) {
+        if (orgRole.organization?._id) {
           existingOrgRolesMap.set(orgRole.organization._id, orgRole.role || '');
         }
       });
     }
-    
-    
-    // Create the final orgRoles array
+
     const mappedOrgRoles: Array<{ orgId: string; orgName: string; value: string }> = [];
-    
-    // First, add existing orgRoles (with data) at the top
+
+    // First, existing orgRoles with non-empty roles
     if (orgRoles && Array.isArray(orgRoles)) {
       orgRoles.forEach(orgRole => {
-        if (orgRole.organization && orgRole.organization._id && orgRole.role && orgRole.role.trim() !== '') {
-          const mappedRole = {
+        if (orgRole.organization?._id && orgRole.role?.trim()) {
+          mappedOrgRoles.push({
             orgId: orgRole.organization._id,
             orgName: orgRole.organization.name || 'Unknown Organization',
             value: orgRole.role
-          };
-          mappedOrgRoles.push(mappedRole);
+          });
         }
       });
     }
-    
-    // Then, add all consortium organizations as empty fields, excluding those already in orgRoles
+
+    // Then, remaining consortium organizations
+    const alreadyMapped = new Set(mappedOrgRoles.map(r => r.orgId));
     consortiumOrgs.forEach((org) => {
       const orgId = org._id || org.id || '';
-      const orgName = org.name || 'Unknown Organization';
-      
-      // Check if this organization is already in the mapped orgRoles (from existing data)
-      const alreadyExists = mappedOrgRoles.some(mappedRole => mappedRole.orgId === orgId);
-      
-      if (!alreadyExists) {
-        const newRole = {
+      if (orgId && !alreadyMapped.has(orgId)) {
+        mappedOrgRoles.push({
           orgId,
-          orgName,
-          value: existingOrgRolesMap.get(orgId) || '' // Use existing value if available
-        };
-        mappedOrgRoles.push(newRole);
-      } else {
+          orgName: org.name || 'Unknown Organization',
+          value: existingOrgRolesMap.get(orgId) || ''
+        });
       }
     });
 
     return mappedOrgRoles;
-  }, [fetchOrganizationDetails]);
+  }, [resolveOrgIds]);
 
-  // Fetch consortia based on user role
+  // Fetch consortia based on user role (cached in ref)
   const fetchConsortia = useCallback(async () => {
     try {
       const consortiaData = await fetchConsortiaByRole(user);
+      rawConsortiaCache.current = consortiaData;
       const consortiaOptions = consortiaData.map(consortium => ({
         value: consortium._id || consortium.id || '',
         label: consortium.name || 'Unknown Consortium'
       }));
       setConsortia(consortiaOptions);
+      return consortiaData;
     } catch (error) {
       console.error('Error fetching consortia:', error);
       showToast.error('Failed to load consortia');
+      return [];
     }
   }, [user]);
 
-  // Fetch organizations for the risk's consortiums
-  const fetchConsortiumOrganizations = useCallback(async (consortiumIds: string[]) => {
+  // Fetch organizations for the risk's consortiums — uses cached consortia, never re-fetches
+  const fetchConsortiumOrganizations = useCallback(async (consortiumIds: string[], preloadedConsortia?: Consortium[]) => {
     if (!consortiumIds || consortiumIds.length === 0) {
       setConsortiumOrganizations([]);
       return;
@@ -245,70 +236,46 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
 
     setLoadingOrganizations(true);
     try {
-      
-      // Get all consortia to find the specific consortiums and their organizations
-      const allConsortia = await fetchConsortiaByRole(user);
-      
-      // Find all consortiums that the risk belongs to
-      const riskConsortia = allConsortia.filter(c => 
+      // Use pre-loaded data, cached data, or fetch as last resort
+      const allConsortia = preloadedConsortia || rawConsortiaCache.current.length > 0
+        ? (preloadedConsortia || rawConsortiaCache.current)
+        : await fetchConsortiaByRole(user);
+
+      if (!preloadedConsortia && rawConsortiaCache.current.length === 0) {
+        rawConsortiaCache.current = allConsortia;
+      }
+
+      const riskConsortia = allConsortia.filter(c =>
         consortiumIds.includes(c._id || c.id || '')
       );
-      
+
       if (riskConsortia.length === 0) {
         setConsortiumOrganizations([]);
         return;
       }
 
-      // Extract organizations from all consortiums that the risk belongs to
-      const consortiumOrgs: Organization[] = [];
-      
+      const seenIds = new Set<string>();
+      const objectOrgs: Organization[] = [];
+      const stringOrgIds: string[] = [];
+
       for (const consortium of riskConsortia) {
-        if (consortium.organizations && Array.isArray(consortium.organizations)) {
-          for (const org of consortium.organizations) {
-            if (typeof org === 'object' && org !== null) {
-              // Check if organization is already in the list to avoid duplicates
-              const exists = consortiumOrgs.find(existing => 
-                existing._id === org._id || existing.id === org.id
-              );
-              if (!exists) {
-                consortiumOrgs.push(org as Organization);
-              }
-            } else if (typeof org === 'string') {
-              // Handle string IDs - fetch organization details
-              const exists = consortiumOrgs.find(existing => 
-                existing._id === org || existing.id === org
-              );
-              if (!exists) {
-                const orgDetails = await fetchOrganizationDetails(org);
-                if (orgDetails) {
-                  consortiumOrgs.push({
-                    _id: orgDetails._id,
-                    id: orgDetails._id,
-                    name: orgDetails.name,
-                    status: 'Active',
-                    email: '',
-                    createdAt: '',
-                    updatedAt: ''
-                  } as Organization);
-                } else {
-                  // Fallback if API call fails
-                  consortiumOrgs.push({
-                    _id: org,
-                    id: org,
-                    name: `Organization ${org.slice(-4)}`,
-                    status: 'Active',
-                    email: '',
-                    createdAt: '',
-                    updatedAt: ''
-                  } as Organization);
-                }
-              }
+        for (const org of (consortium.organizations || [])) {
+          if (typeof org === 'object' && org !== null) {
+            const id = org._id || org.id || '';
+            if (id && !seenIds.has(id)) {
+              seenIds.add(id);
+              objectOrgs.push(org as Organization);
             }
+          } else if (typeof org === 'string' && !seenIds.has(org)) {
+            seenIds.add(org);
+            stringOrgIds.push(org);
           }
         }
       }
 
-      setConsortiumOrganizations(consortiumOrgs);
+      // Resolve string IDs in parallel
+      const resolvedOrgs = await resolveOrgIds(stringOrgIds);
+      setConsortiumOrganizations([...objectOrgs, ...resolvedOrgs]);
     } catch (error) {
       console.error('Error fetching consortium organizations:', error);
       showToast.error('Failed to load consortium organizations');
@@ -316,24 +283,31 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
     } finally {
       setLoadingOrganizations(false);
     }
-  }, [user, fetchOrganizationDetails]);
+  }, [user, resolveOrgIds]);
 
   // Fetch risk data when modal opens
-  const fetchRiskData = useCallback(async () => {
+  const fetchRiskData = useCallback(async (preloadedConsortia?: Consortium[]) => {
     if (!riskId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await risksService.getRiskById(riskId);
       if (response.data?.success && response.data?.data) {
         const risk = response.data.data as ExtendedRisk;
-        
-        // Map orgRoles from API format to form format
-        const mappedOrgRoles = await mapOrgRolesFromAPI(risk.orgRoles, risk.consortium as unknown as Consortium[]);
-        
-        
+        const riskConsortia = risk.consortium as unknown as Consortium[];
+
+        // Run org-role mapping and consortium org fetch in parallel
+        const consortiumIds = risk.consortium ? risk.consortium.map(c => c._id || '').filter(Boolean) : [];
+        const [mappedOrgRoles] = await Promise.all([
+          mapOrgRolesFromAPI(risk.orgRoles, riskConsortia),
+          consortiumIds.length > 0
+            ? fetchConsortiumOrganizations(consortiumIds, preloadedConsortia)
+            : Promise.resolve(),
+        ]);
+
+        isInitialConsortiumSet.current = true;
         setForm({
           title: risk.title || '',
           category: risk.category || '',
@@ -346,14 +320,8 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           orgRoles: mappedOrgRoles,
           likelihood: risk.likelihood || '',
           severity: risk.severity || '',
-          consortium: risk.consortium ? risk.consortium.map(c => c._id || '').filter(id => id) : [],
+          consortium: consortiumIds,
         });
-
-        // Fetch organizations for all consortiums that the risk belongs to
-        if (risk.consortium && risk.consortium.length > 0) {
-          const consortiumIds = risk.consortium.map(c => c._id || '').filter(id => id);
-          await fetchConsortiumOrganizations(consortiumIds);
-        }
       } else {
         setError('Failed to load risk data');
         showToast.error('Failed to load risk data');
@@ -370,8 +338,8 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   useEffect(() => {
     if (isOpen && riskId && user && !hasFetchedData.current) {
       hasFetchedData.current = true;
-      fetchConsortia();
-      fetchRiskData();
+      // Fetch consortia first, then pass cached data into fetchRiskData to avoid redundant API calls
+      fetchConsortia().then(loadedConsortia => fetchRiskData(loadedConsortia));
     }
   }, [isOpen, riskId, user, fetchConsortia, fetchRiskData]);
 
@@ -379,11 +347,18 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   useEffect(() => {
     if (!isOpen) {
       hasFetchedData.current = false;
+      isInitialConsortiumSet.current = false;
+      rawConsortiaCache.current = [];
     }
   }, [isOpen]);
 
-  // Update organizations when consortium changes
+  // Update organizations when user manually changes consortium (not on initial load)
   useEffect(() => {
+    if (isInitialConsortiumSet.current) {
+      // Skip the first time (set during fetchRiskData); only run on subsequent user changes
+      isInitialConsortiumSet.current = false;
+      return;
+    }
     if (form.consortium && form.consortium.length > 0) {
       fetchConsortiumOrganizations(form.consortium);
     } else {

@@ -114,8 +114,8 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">Consortium Name</label>
             <InputField
+              label="Consortium Name"
               placeholder="Enter consortium name"
               value={name}
               onChange={v => { setName(v); if (errors.name) setErrors(prev => ({ ...prev, name: '' })); }}
@@ -128,37 +128,33 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">Start Date</label>
-              <input
+              <InputField
+                label="Start Date"
                 type="date"
                 value={startDate}
-                onChange={e => handleStartDateChange(e.target.value)}
-                className={`w-full border rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.startDate ? 'border-red-300' : 'border-gray-200'
-                }`}
+                onChange={handleStartDateChange}
                 required
+                fullWidth
                 disabled={isSubmitting}
+                error={errors.startDate}
               />
-              {errors.startDate && <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">End Date</label>
-              <input
+              <InputField
+                label="End Date"
                 type="date"
                 value={endDate}
-                onChange={e => handleEndDateChange(e.target.value)}
-                className={`w-full border rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                  errors.endDate ? 'border-red-300' : 'border-gray-200'
-                }`}
+                onChange={handleEndDateChange}
                 required
+                fullWidth
                 disabled={isSubmitting}
+                error={errors.endDate}
               />
-              {errors.endDate && <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">Description</label>
             <TextArea
+              label="Description"
               placeholder="Enter consortium description"
               value={description}
               onChange={v => { setDescription(v); if (errors.description) setErrors(prev => ({ ...prev, description: '' })); }}
