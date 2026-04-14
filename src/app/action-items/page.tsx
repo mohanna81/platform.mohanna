@@ -266,22 +266,28 @@ export default function ActionItemsPage() {
     }
   }, [fetchActionItems, loadingState.userConsortia]);
 
-  // Set up periodic check for action items that need to be marked as "At Risk"
+  // Store latest actionItems in a ref so the interval can read it without being recreated
+  const actionItemsRef = React.useRef<ActionItem[]>([]);
+  React.useEffect(() => {
+    actionItemsRef.current = actionItems;
+  }, [actionItems]);
+
+  // Set up periodic check for action items that need to be marked as "At Risk" (runs once, every hour)
   React.useEffect(() => {
     const checkAtRiskItems = async () => {
-      if (actionItems.length > 0) {
-        const needsRefresh = await updateAtRiskItems(actionItems);
+      const items = actionItemsRef.current;
+      if (items.length > 0) {
+        const needsRefresh = await updateAtRiskItems(items);
         if (needsRefresh) {
           fetchActionItems();
         }
       }
     };
 
-    // Check every hour for items that need status updates
     const interval = setInterval(checkAtRiskItems, 60 * 60 * 1000); // 1 hour
-
     return () => clearInterval(interval);
-  }, [actionItems, updateAtRiskItems, fetchActionItems]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [activeTab, setActiveTab] = useState("All Actions");
   const [consortium, setConsortium] = useState("");

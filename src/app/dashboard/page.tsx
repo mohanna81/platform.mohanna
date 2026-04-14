@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { ProtectedRoute } from '@/components/common';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardStatsGrid from '@/components/dashboard/DashboardStatsGrid';
@@ -13,7 +13,8 @@ import type { ActionItem } from '@/lib/api/services/actionitems';
 
 export default function DashboardPage() {
   const { loading: authLoading } = useAuth();
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  // Use a ref instead of state so the guard doesn't re-create updateAtRiskItems
+  const isUpdatingStatusRef = useRef(false);
 
   // Helper function to check if an item should be marked as "At Risk"
   const shouldBeAtRisk = (item: ActionItem): boolean => {
@@ -45,38 +46,32 @@ export default function DashboardPage() {
 
   // Function to update action items that should be marked as "At Risk"
   const updateAtRiskItems = useCallback(async (items: ActionItem[]) => {
-    if (isUpdatingStatus) return false;
-    
-    setIsUpdatingStatus(true);
-    
+    if (isUpdatingStatusRef.current) return false;
+
+    isUpdatingStatusRef.current = true;
+
     try {
-      // Items that are exactly 2 days before deadline
       const itemsToUpdate = items.filter(shouldBeAtRisk);
-      // Items that are overdue (past implementation date)
       const overdueItems = items.filter(isOverdue);
-      
       const allItemsToUpdate = [...itemsToUpdate, ...overdueItems];
-      
-      for (const item of allItemsToUpdate) {
-        try {
-          await actionItemsService.updateActionItem(item._id, {
-            status: 'At Risk'
-          });
-        } catch (error) {
-          console.error(`Dashboard: Failed to update action item ${item._id} to At Risk:`, error);
-        }
-      }
-      
-      // If any items were updated, show a toast notification
-      if (allItemsToUpdate.length > 0) {
-        // showToast.success(`${allItemsToUpdate.length} action item(s) automatically marked as "At Risk"`);
-        return true;
-      }
-      return false;
+
+      if (allItemsToUpdate.length === 0) return false;
+
+      // Update all at-risk items in parallel
+      await Promise.all(
+        allItemsToUpdate.map(item =>
+          actionItemsService.updateActionItem(item._id, { status: 'At Risk' }).catch(error => {
+            console.error(`Dashboard: Failed to update action item ${item._id} to At Risk:`, error);
+          })
+        )
+      );
+
+      return true;
     } finally {
-      setIsUpdatingStatus(false);
+      isUpdatingStatusRef.current = false;
     }
-  }, [isUpdatingStatus]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Set up periodic check for action items that need to be marked as "At Risk"
   // Note: For facilitators and organization users, this is handled by the dedicated dashboard APIs
