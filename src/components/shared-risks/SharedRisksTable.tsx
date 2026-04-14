@@ -23,6 +23,7 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [riskToClose, setRiskToClose] = useState<Risk | null>(null);
   const [closingComment, setClosingComment] = useState('');
+  const [mitigationSuccess, setMitigationSuccess] = useState(0);
   const [closing, setClosing] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
@@ -59,6 +60,7 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const handleCloseRisk = (risk: Risk) => {
     setRiskToClose(risk);
     setClosingComment('');
+    setMitigationSuccess(0);
     setCloseModalOpen(true);
   };
 
@@ -68,18 +70,24 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
       showToast.error('Please enter a closing comment');
       return;
     }
+    if (mitigationSuccess === 0) {
+      showToast.error('Please select a mitigation success rating');
+      return;
+    }
     setClosing(true);
     try {
       const { risksService } = await import('@/lib/api/services/risks');
       const response = await risksService.updateRisk(riskToClose._id, {
         status: 'Closed',
         closingComment: closingComment.trim(),
+        mitigationSuccess,
       });
       if (response.success) {
         showToast.success(`Risk "${riskToClose.title}" has been closed`);
         setCloseModalOpen(false);
         setRiskToClose(null);
         setClosingComment('');
+        setMitigationSuccess(0);
         if (onRiskDeleted) onRiskDeleted();
       } else {
         showToast.error(response.error || 'Failed to close risk');
@@ -95,6 +103,7 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
     setCloseModalOpen(false);
     setRiskToClose(null);
     setClosingComment('');
+    setMitigationSuccess(0);
   };
 
   const handleViewRisk = (risk: Risk) => {
@@ -599,11 +608,41 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
             fullWidth
             disabled={closing}
           />
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Mitigation Success <span className="text-red-500">*</span>
+            </p>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => !closing && setMitigationSuccess(star)}
+                  className="focus:outline-none transition-transform hover:scale-110 disabled:cursor-not-allowed"
+                  disabled={closing}
+                  title={['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][star]}
+                >
+                  <svg
+                    className={`w-8 h-8 ${star <= mitigationSuccess ? 'text-amber-400' : 'text-gray-300'}`}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </button>
+              ))}
+              {mitigationSuccess > 0 && (
+                <span className="ml-2 text-sm text-gray-500">
+                  {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][mitigationSuccess]}
+                </span>
+              )}
+            </div>
+          </div>
           <div className="flex justify-end gap-3">
             <Button variant="outline" size="sm" onClick={handleCloseRiskCancel} disabled={closing} className="border-gray-300 text-gray-700">
               Cancel
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleCloseRiskConfirm} disabled={closing || !closingComment.trim()} loading={closing} className="bg-[#2a9d8f] text-white hover:bg-[#238a7e]">
+            <Button variant="secondary" size="sm" onClick={handleCloseRiskConfirm} disabled={closing || !closingComment.trim() || mitigationSuccess === 0} loading={closing} className="bg-[#2a9d8f] text-white hover:bg-[#238a7e]">
               Close Risk
             </Button>
           </div>

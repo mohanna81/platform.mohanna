@@ -265,13 +265,33 @@ export default function ClosedRisksPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">Status</h3>
                 <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">Closed</span>
               </div>
-              {selectedRisk.closingComment && (
+              {(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess !== undefined && (selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess !== null && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Closing Comment</h3>
-                  <p className="text-gray-800 bg-amber-50 border border-amber-100 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.closingComment}</p>
+                  <h3 className="font-semibold text-gray-900 mb-2">Mitigation Success</h3>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <svg
+                        key={star}
+                        className={`w-6 h-6 ${star <= ((selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0) ? 'text-amber-400' : 'text-gray-200'}`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600 font-medium">
+                      {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0]}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
+            {selectedRisk.closingComment && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Closing Remarks</h3>
+                <p className="text-gray-800 bg-amber-50 border border-amber-100 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.closingComment}</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Mitigation Measures</h3>
