@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="apple-touch-icon" href={`/favicon.png?v=${faviconVersion}`} />
         <meta name="msapplication-TileImage" content={`/favicon.png?v=${faviconVersion}`} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <ConsortiumProvider>
             {children}

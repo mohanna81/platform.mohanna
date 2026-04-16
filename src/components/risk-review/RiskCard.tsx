@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
+import MitigationTracker from '@/components/risk-review/MitigationTracker';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 // Extended Risk type to include additional fields
 interface Risk {
@@ -117,10 +119,24 @@ export default function RiskCard({
   renderConsortiumNames,
   renderOrganizationNames,
 }: RiskCardProps) {
+  const { user } = useAuth();
   const isTriggered = risk.triggerStatus === 'Triggered';
   const statusInfo = statusConfig[status];
   const [showDetails, setShowDetails] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+
+  // Derive the first consortium ID for tracking
+  const firstConsortiumId: string | undefined = Array.isArray(risk.consortium) && risk.consortium.length > 0
+    ? (typeof risk.consortium[0] === 'object' ? risk.consortium[0]._id : risk.consortium[0])
+    : undefined;
+
+  // Organisation users can update their own org's tracking
+  const isOrgUser = user?.role === 'Organization User';
+  const canUpdateTracking = isOrgUser && !!user?.organizationId && !!firstConsortiumId;
+
+  // Show tracking for approved risks only — all roles can view, org users can update
+  const showTracking = status === 'approved' &&
+    (risk.mitigationMeasures || risk.preventiveMeasures || risk.reactiveMeasures);
   const detailsContainerRef = useRef<HTMLDivElement>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
   const actionButtonsContainerRef = useRef<HTMLDivElement>(null);
@@ -372,6 +388,22 @@ export default function RiskCard({
                   </h4>
                   <p className="text-purple-800 text-sm leading-relaxed whitespace-pre-wrap">{risk.reactiveMeasures}</p>
                 </div>
+              </div>
+            )}
+
+            {/* Mitigation Tracking (approved risks only) */}
+            {showTracking && (
+              <div className="mb-6">
+                <MitigationTracker
+                  riskId={risk._id}
+                  riskTitle={risk.title}
+                  mitigationMeasures={risk.mitigationMeasures}
+                  preventiveMeasures={risk.preventiveMeasures}
+                  reactiveMeasures={risk.reactiveMeasures}
+                  organizationId={user?.organizationId}
+                  consortiumId={firstConsortiumId}
+                  canUpdate={canUpdateTracking}
+                />
               </div>
             )}
 

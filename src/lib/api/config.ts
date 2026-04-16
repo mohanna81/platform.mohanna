@@ -76,10 +76,28 @@ export const API_ENDPOINTS = {
     SUMMARY: '/facilitator-dashboard/facilitator/:facilitatorId/summary',
   },
 
+  // Mitigation Tracking
+  MITIGATION_TRACKING: {
+    UPSERT: '/mitigation-tracking/upsert',
+    BY_RISK: '/mitigation-tracking/risk/:riskId',
+    BY_ORGANIZATION: '/mitigation-tracking/organization/:organizationId',
+    STATS_CONSORTIUM: '/mitigation-tracking/stats/consortium/:consortiumId',
+    STATS_CONSORTIA: '/mitigation-tracking/stats/consortia',
+    ALL: '/mitigation-tracking',
+  },
+
   // Organization User Dashboard
   ORGANIZATION_USER_DASHBOARD: {
     FULL: '/dashboard/organization-user/:organizationUserId',
     SUMMARY: '/dashboard/organization-user/:organizationUserId/summary',
+  },
+
+  // In-App Notifications
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    MARK_READ: '/notifications/:id/read',
+    MARK_ALL_READ: '/notifications/read-all',
+    DELETE: '/notifications/:id',
   },
 };
 

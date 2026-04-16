@@ -263,7 +263,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
       <p className="text-gray-700 mb-6 text-sm sm:text-base">
         {editMode ? "Update the details of the risk and re-submit for review." : "Enter the details of the risk your organization is facing."}
       </p>
-      <form onSubmit={handleSubmit} className="space-y-4 text-black max-h-[70vh] overflow-y-auto pr-2">
+      <form onSubmit={handleSubmit} className="space-y-4 text-black">
         <InputField
           label="Risk Title"
           placeholder="Eg. Payment Delay Risk"
@@ -272,8 +272,8 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           required
           error={errors.title}
         />
-        <div className="flex gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 min-w-0">
             <Dropdown
               label="Risk Category"
               options={riskCategories}
@@ -285,7 +285,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
               error={errors.category}
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Dropdown
               label="Consortium"
               options={consortiumOptions}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, Users, Calendar, CheckSquare, AlertTriangle, Clock, BarChart3, Activity, Target, Eye, RefreshCw, Plus, Settings, MoreHorizontal } from 'lucide-react';
+import MitigationProgressCard from '@/components/dashboard/MitigationProgressCard';
 import { useRouter } from 'next/navigation';
 import { dashboardService, DashboardStats, FacilitatorDashboardStats, Risk, ActionItem, adminDashboardService, AdminDashboardStats } from '@/lib/api';
 import { risksService } from '@/lib/api/services/risks';
@@ -1157,6 +1158,31 @@ const DashboardStatsGrid = () => {
 // Admin Dashboard Content
 const AdminDashboardContent = ({ stats }: { stats: any }) => {
   const router = useRouter();
+  const [adminMitigationStats, setAdminMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [adminMitigationLoading, setAdminMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchAdminMitigationStats = async () => {
+      try {
+        // Fetch every consortium in the system — Admin has full visibility
+        const { consortiaService } = await import('@/lib/api/services/consortia');
+        const consortiaRes = await consortiaService.getConsortia();
+        const allConsortia = consortiaRes.data?.data ?? [];
+        const consortiumIds = allConsortia.map((c) => c._id).filter(Boolean);
+
+        if (consortiumIds.length > 0) {
+          const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+          const res = await mitigationTrackingService.getStatsByConsortia(consortiumIds);
+          if (res.data?.success) setAdminMitigationStats(res.data.data);
+        }
+      } catch {
+        // Non-critical — card will render with empty state
+      } finally {
+        setAdminMitigationLoading(false);
+      }
+    };
+    fetchAdminMitigationStats();
+  }, []);
 
   // Calculate analytics for admin dashboard
   const totalRisks = stats.systemOverview?.totalRisks || 0;
@@ -1201,6 +1227,9 @@ const AdminDashboardContent = ({ stats }: { stats: any }) => {
           <span className="font-medium text-gray-900">Manage Consortiums</span>
         </button>
       </div>
+
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={adminMitigationStats} loading={adminMitigationLoading} />
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1399,6 +1428,28 @@ const AdminDashboardContent = ({ stats }: { stats: any }) => {
 // Facilitator Dashboard Content
 const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardStats }) => {
   const router = useRouter();
+  const { user: fUser } = useAuth();
+  const [mitigationStats, setMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [mitigationLoading, setMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchMitigationStats = async () => {
+      if (!fUser?.consortia || fUser.consortia.length === 0) {
+        setMitigationLoading(false);
+        return;
+      }
+      try {
+        const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+        const res = await mitigationTrackingService.getStatsByConsortia(fUser.consortia as string[]);
+        if (res.data?.success) setMitigationStats(res.data.data);
+      } catch {
+        // Non-critical — dashboard still works without this
+      } finally {
+        setMitigationLoading(false);
+      }
+    };
+    fetchMitigationStats();
+  }, [fUser?.consortia]);
 
   return (
     <div className="space-y-6">
@@ -1427,12 +1478,15 @@ const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardSta
         </button>
       </div>
 
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={mitigationStats} loading={mitigationLoading} />
+
       {/* Facilitator Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Risk Overview */}
 
         {/* Action Items Overview */}
-      
+
 
         {/* Meeting Overview section hidden per user request */}
       </div>
@@ -1619,6 +1673,28 @@ const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardSta
 // Organization Dashboard Content
 const OrganizationDashboardContent = ({ stats }: { stats: DashboardStats }) => {
   const router = useRouter();
+  const { user: orgUser } = useAuth();
+  const [orgMitigationStats, setOrgMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [orgMitigationLoading, setOrgMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchOrgMitigationStats = async () => {
+      if (!orgUser?.consortia || orgUser.consortia.length === 0) {
+        setOrgMitigationLoading(false);
+        return;
+      }
+      try {
+        const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+        const res = await mitigationTrackingService.getStatsByConsortia(orgUser.consortia as string[]);
+        if (res.data?.success) setOrgMitigationStats(res.data.data);
+      } catch {
+        // Non-critical
+      } finally {
+        setOrgMitigationLoading(false);
+      }
+    };
+    fetchOrgMitigationStats();
+  }, [orgUser?.consortia]);
 
   return (
     <div className="space-y-6">
@@ -1653,6 +1729,9 @@ const OrganizationDashboardContent = ({ stats }: { stats: DashboardStats }) => {
           <span className="font-medium text-gray-900">View Action Items</span>
         </button>
       </div>
+
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={orgMitigationStats} loading={orgMitigationLoading} />
 
       {/* Basic Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -44,17 +44,17 @@ const Modal: React.FC<ModalProps> = ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    full: 'max-w-full mx-2 sm:mx-4',
+    xl: 'max-w-xl w-full',
+    full: 'max-w-full',
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 md:p-6">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity" />
 
       {/* Modal */}
-      <div className={`relative flex flex-col w-full max-h-[92vh] sm:max-h-[88vh] rounded-lg bg-white text-left shadow-xl transition-all ${sizeClasses[size]} ${className}`}>
+      <div className={`relative flex flex-col w-full max-h-[92vh] sm:max-h-[88vh] rounded-xl bg-white text-left shadow-xl transition-all mx-0 sm:mx-4 md:mx-0 ${sizeClasses[size]} ${className}`}>
         {/* Header — never scrolls */}
         {(title || showCloseButton) && (
           <div className="flex flex-shrink-0 items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
