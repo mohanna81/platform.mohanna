@@ -161,7 +161,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel ── */}
-      <div className="flex-1 flex items-center justify-center bg-white p-6 sm:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12" style={{ backgroundColor: '#FFF9E5' }}>
         <div className="w-full max-w-md">
 
           {/* Mobile: logo + back link */}
