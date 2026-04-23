@@ -20,8 +20,7 @@
     "section": "Collaboration",
     "pages": [
       { "name": "Meetings", "icon": "calendar", "path": "/meetings" },
-      { "name": "Action Items", "icon": "check-square", "path": "/action-items" },
-      { "name": "Resources", "icon": "bookmarks", "path": "/resources" }
+      { "name": "Action Items", "icon": "check-square", "path": "/action-items" }
     ]
   },
   {

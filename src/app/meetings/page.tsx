@@ -17,6 +17,7 @@ import { getUserTimezone } from "@/lib/utils/timezone";
 import { fetchConsortiaByRole, Consortium } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organizations';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
+import { actionItemsService } from '@/lib/api/services/actionitems';
 
 export default function MeetingsPage() {
   const { user } = useAuth();
@@ -232,8 +233,10 @@ export default function MeetingsPage() {
   // Define ActionItem type based on Meeting type
   type AssignedToType = string | { id?: string; _id?: string };
   type ActionItem = {
+    title: string;
     description: string;
     assignedTo: AssignedToType;
+    deadline: string;
   };
 
   // Complete meeting submit
@@ -241,45 +244,73 @@ export default function MeetingsPage() {
     if (!completingMeeting) return;
     setIsSubmitting(true);
     try {
-      
+      const resolveId = (v: AssignedToType): string =>
+        typeof v === 'string' ? v : (v?.id || v?._id || '');
+
       const updateData = {
         minutes,
-        actionItems: actionItems.map(ai => {
-          let assignedToId = '';
-          if (typeof ai.assignedTo === 'string') {
-            assignedToId = ai.assignedTo;
-          } else if (ai.assignedTo && typeof ai.assignedTo === 'object') {
-            assignedToId = ai.assignedTo.id || ai.assignedTo._id || '';
-          }
-          return {
-            description: ai.description,
-            assignedTo: assignedToId,
-          };
-        }),
+        actionItems: actionItems.map(ai => ({
+          description: ai.description,
+          assignedTo: resolveId(ai.assignedTo),
+        })),
         links: links || [],
         status: 'Completed' as const,
       };
-      
-      
-      // Send actionItems as array of objects
+
       const response = await meetingsService.updateMeeting(completingMeeting._id, updateData);
-      
-      
+
       if (response.success) {
-        showToast.success('Meeting completed successfully!');
+        // Create real ActionItem records from the minutes action items
+        const consortiumId: string =
+          Array.isArray(completingMeeting.consortium) && completingMeeting.consortium.length > 0
+            ? (typeof completingMeeting.consortium[0] === 'object'
+                ? (completingMeeting.consortium[0] as any)._id || (completingMeeting.consortium[0] as any).id || ''
+                : String(completingMeeting.consortium[0]))
+            : '';
+
+        const organizationId: string =
+          Array.isArray(completingMeeting.organization) && completingMeeting.organization.length > 0
+            ? (typeof completingMeeting.organization[0] === 'object'
+                ? (completingMeeting.organization[0] as any)._id || (completingMeeting.organization[0] as any).id || ''
+                : String(completingMeeting.organization[0]))
+            : '';
+
+        const createdById: string = user?.id || '';
+
+        const creationResults = await Promise.allSettled(
+          actionItems.map(ai => {
+            const assignedToId = resolveId(ai.assignedTo);
+            return actionItemsService.createActionItem({
+              title: ai.title,
+              description: ai.description,
+              assignTo: assignedToId,
+              assignToModel: 'User',
+              consortium: consortiumId,
+              organization: organizationId || undefined,
+              implementationDate: ai.deadline,
+              status: 'Draft',
+              createdBy: createdById,
+            } as any);
+          })
+        );
+
+        const failed = creationResults.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+          showToast.error(`${failed} action item(s) could not be saved to the system.`);
+        }
+
+        showToast.success('Meeting completed and action items created!');
         setCompleteModalOpen(false);
         setCompletingMeeting(null);
-        
-        // Immediately update the local state to reflect the change
-        setMeetings(prevMeetings => 
-          prevMeetings.map(meeting => 
-            meeting._id === completingMeeting._id 
+
+        setMeetings(prevMeetings =>
+          prevMeetings.map(meeting =>
+            meeting._id === completingMeeting._id
               ? { ...meeting, status: 'Completed' as const, minutes, actionItems: updateData.actionItems, links: updateData.links }
               : meeting
           )
         );
-        
-        // Also refresh from the server to ensure consistency
+
         setTimeout(async () => {
           await fetchMeetings();
         }, 500);
@@ -463,14 +494,22 @@ export default function MeetingsPage() {
             attendees={completingMeeting.attendees.map(a => ({ id: String(a.id || a._id), name: a.name }))}
             isSubmitting={isSubmitting}
             initialMinutes={completingMeeting.minutes || ''}
-            initialActionItems={completingMeeting.actionItems.map((ai: ActionItem) => {
-              if (typeof ai.assignedTo === 'string') {
-                return { description: ai.description, assignedTo: ai.assignedTo };
-              } else if (ai.assignedTo && typeof ai.assignedTo === 'object') {
-                return { description: ai.description, assignedTo: ai.assignedTo.id || ai.assignedTo._id || '' };
-              } else {
-                return { description: ai.description, assignedTo: '' };
-              }
+            initialActionItems={completingMeeting.actionItems.map((ai) => {
+              const raw = ai as any;
+              const assignedTo: string =
+                typeof raw.assignedTo === 'string'
+                  ? raw.assignedTo
+                  : raw.assignedTo && typeof raw.assignedTo === 'object'
+                  ? (raw.assignedTo.id || raw.assignedTo._id || '')
+                  : '';
+              return {
+                title: raw.title || '',
+                description: raw.description || '',
+                assignedTo,
+                deadline: raw.deadline
+                  ? new Date(raw.deadline).toISOString().split('T')[0]
+                  : new Date().toISOString().split('T')[0],
+              };
             })}
             initialLinks={completingMeeting.links || []}
           />

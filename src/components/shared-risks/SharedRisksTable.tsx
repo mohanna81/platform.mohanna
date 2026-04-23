@@ -451,13 +451,12 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
       
       {/* View Risk Modal */}
       {selectedRisk && (
-        <Modal isOpen={viewModalOpen} onClose={handleCloseViewModal} title="Risk Details" size="xl" showCloseButton>
-          <div className="space-y-0 text-gray-900">
+        <Modal isOpen={viewModalOpen} onClose={handleCloseViewModal} title="Risk Details" size="2xl" showCloseButton>
+          <div className="space-y-4 text-gray-900">
 
-            {/* Top bar: meta + export */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-gray-100">
+            {/* Top bar: badges + export */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
               <div className="flex flex-wrap items-center gap-2">
-                {/* Status badge */}
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                   selectedRisk.status === 'Approved' ? 'bg-green-100 text-green-700' :
                   selectedRisk.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
@@ -471,11 +470,9 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
                   }`} />
                   {selectedRisk.status || 'Unknown'}
                 </span>
-                {/* Category */}
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#2a9d8f]/10 text-[#2a9d8f] border border-[#2a9d8f]/20 capitalize">
                   {selectedRisk.category || 'Uncategorized'}
                 </span>
-                {/* Risk Code */}
                 {selectedRisk.code && (
                   <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-600">
                     {selectedRisk.code}
@@ -495,18 +492,19 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
               </Button>
             </div>
 
-            {/* Title + statement */}
-            <div className="mb-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">{selectedRisk.title}</h2>
-              {selectedRisk.statement && (
-                <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 border-l-4 border-[#2a9d8f] px-4 py-3 rounded-r-lg">
-                  {selectedRisk.statement}
-                </p>
-              )}
-            </div>
+            {/* Title */}
+            <h2 className="text-lg font-bold text-gray-900">{selectedRisk.title}</h2>
 
-            {/* Risk Assessment row */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            {/* Risk Statement */}
+            {selectedRisk.statement && (
+              <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Risk Statement</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{selectedRisk.statement}</p>
+              </div>
+            )}
+
+            {/* Risk Assessment — 3 equal columns */}
+            <div className="grid grid-cols-3 gap-3">
               {[
                 {
                   label: 'Likelihood',
@@ -531,61 +529,62 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
               ))}
             </div>
 
-            {/* Trigger row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Indicator</p>
-                <p className="text-sm text-gray-700">{selectedRisk.triggerIndicator || '—'}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex flex-col">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Status</p>
-                <span className={`self-start px-3 py-1 rounded-full text-xs font-semibold ${
-                  selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {selectedRisk.triggerStatus || 'Not Triggered'}
-                </span>
-              </div>
+            {/* Trigger Indicator — full width */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Indicator</p>
+              <p className="text-sm text-gray-700">{selectedRisk.triggerIndicator || '—'}</p>
             </div>
 
-            {/* Measures */}
-            <div className="mb-5">
+            {/* Trigger Status — full width */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Trigger Status</p>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-500' : 'bg-gray-400'}`} />
+                {selectedRisk.triggerStatus || 'Not Triggered'}
+              </span>
+            </div>
+
+            {/* Response Measures — each full width */}
+            <div className="w-full">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Response Measures</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-3">
                 {[
-                  { label: 'Mitigation', value: selectedRisk.mitigationMeasures, icon: '🛡️' },
-                  { label: 'Preventive', value: selectedRisk.preventiveMeasures, icon: '🔒' },
-                  { label: 'Reactive', value: selectedRisk.reactiveMeasures, icon: '⚡' },
-                ].map(({ label, value, icon }) => (
-                  <div key={label} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <p className="text-xs font-semibold text-gray-500 mb-2">{icon} {label}</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{value || '—'}</p>
+                  { label: 'Mitigation', value: selectedRisk.mitigationMeasures, icon: '🛡️', accent: 'border-l-green-400' },
+                  { label: 'Preventive', value: selectedRisk.preventiveMeasures, icon: '🔒', accent: 'border-l-blue-400' },
+                  { label: 'Reactive',  value: selectedRisk.reactiveMeasures,  icon: '⚡', accent: 'border-l-purple-400' },
+                ].map(({ label, value, icon, accent }) => (
+                  <div key={label} className={`w-full bg-gray-50 border border-gray-100 border-l-4 ${accent} rounded-xl p-4`}>
+                    <p className="text-xs font-semibold text-gray-500 mb-1.5">{icon} {label}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{value || '—'}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Consortium + Org Roles */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Consortium</p>
-                {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedRisk.consortium.map((c: Consortium, i: number) => (
-                      <span key={i} className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
-                        {c.name || '—'}
-                      </span>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-gray-400 italic">No consortium</p>}
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Organization Roles</p>
-                <div className="space-y-1">{renderOrganizationRoles(selectedRisk.orgRoles)}</div>
-              </div>
+            {/* Consortium — full width */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Consortium</p>
+              {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedRisk.consortium.map((c: Consortium, i: number) => (
+                    <span key={i} className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
+                      {c.name || '—'}
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">No consortium assigned</p>}
+            </div>
+
+            {/* Organization Roles — full width */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Organization Roles</p>
+              <div className="space-y-2">{renderOrganizationRoles(selectedRisk.orgRoles)}</div>
             </div>
 
             {/* Timestamps */}
-            <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+            <div className="flex flex-wrap gap-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
               <span>Created: <span className="text-gray-600 font-medium">{selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleString() : '—'}</span></span>
               <span>Updated: <span className="text-gray-600 font-medium">{selectedRisk.updatedAt ? new Date(selectedRisk.updatedAt).toLocaleString() : '—'}</span></span>
             </div>
@@ -594,7 +593,7 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
         </Modal>
       )}
       
-      <Modal isOpen={closeModalOpen} onClose={handleCloseRiskCancel} title="Close Risk" size="sm">
+      <Modal isOpen={closeModalOpen} onClose={handleCloseRiskCancel} title="Close Risk" size="lg">
         <div className="flex flex-col gap-4">
           <p className="text-sm text-gray-600">
             You are about to close <span className="font-semibold text-gray-900">{riskToClose?.title}</span>. It will be moved to Closed Risks and removed from the active register.

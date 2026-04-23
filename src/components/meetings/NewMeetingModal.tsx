@@ -233,17 +233,27 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
       // Filter users when consortium changes
       if (name === "consortium") {
         if (value) {
-          const filteredUsers = allUsers.filter(user => 
+          const filteredUsers = allUsers.filter(user =>
             user.consortia.includes(value)
           );
           setUsers(filteredUsers);
+
+          // Remove any selected attendees who don't belong to the new consortium,
+          // but always keep the current logged-in user
+          const validIds = new Set(filteredUsers.map(u => u.id));
+          updatedForm.attendees = prev.attendees.filter(
+            id => id === currentUser?.id || validIds.has(id)
+          );
         } else {
           // If no consortium selected, show users from all available consortiums in dropdown
           const availableConsortiumIds = consortiums.map(c => c.id);
-          const filteredUsers = allUsers.filter(user => 
+          const filteredUsers = allUsers.filter(user =>
             user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
           );
           setUsers(filteredUsers);
+
+          // Keep only current user when consortium is cleared
+          updatedForm.attendees = prev.attendees.filter(id => id === currentUser?.id);
         }
       }
       
@@ -458,41 +468,38 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
           rows={3}
           required
         />
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="flex-1 min-w-0">
-            <Dropdown
-              label="Consortium"
-              name="consortium"
-              options={consortiums.map((c) => ({ value: c.id, label: c.name }))}
-              value={form.consortium}
-              onChange={(value) => handleChange("consortium", value)}
-              required
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <Dropdown
-              label="Organizations (Optional)"
-              placeholder={!form.consortium ? 'Select a consortium first' : filteredOrganizations.length === 0 ? 'No organizations in this consortium' : 'Select organizations'}
-              options={filteredOrganizations.filter(o => !form.organization.includes(o.id)).map(o => ({ value: o.id, label: o.name }))}
-              value=""
-              onChange={(v) => { if (v && !form.organization.includes(v)) setForm(prev => ({ ...prev, organization: [...prev.organization, v] })); }}
-              fullWidth
-              disabled={!form.consortium || filteredOrganizations.length === 0}
-            />
-            {form.organization.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {form.organization.map((orgId) => {
-                  const org = filteredOrganizations.find(o => o.id === orgId);
-                  return (
-                    <div key={orgId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
-                      <span className="text-black font-medium">{org?.name || orgId}</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setForm(prev => ({ ...prev, organization: prev.organization.filter(id => id !== orgId) }))} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        <Dropdown
+          label="Consortium"
+          name="consortium"
+          options={consortiums.map((c) => ({ value: c.id, label: c.name }))}
+          value={form.consortium}
+          onChange={(value) => handleChange("consortium", value)}
+          fullWidth
+          required
+        />
+        <div>
+          <Dropdown
+            label="Organizations (Optional)"
+            placeholder={!form.consortium ? 'Select a consortium first' : filteredOrganizations.length === 0 ? 'No organizations in this consortium' : 'Select organizations'}
+            options={filteredOrganizations.filter(o => !form.organization.includes(o.id)).map(o => ({ value: o.id, label: o.name }))}
+            value=""
+            onChange={(v) => { if (v && !form.organization.includes(v)) setForm(prev => ({ ...prev, organization: [...prev.organization, v] })); }}
+            fullWidth
+            disabled={!form.consortium || filteredOrganizations.length === 0}
+          />
+          {form.organization.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {form.organization.map((orgId) => {
+                const org = filteredOrganizations.find(o => o.id === orgId);
+                return (
+                  <div key={orgId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
+                    <span className="text-black font-medium">{org?.name || orgId}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm(prev => ({ ...prev, organization: prev.organization.filter(id => id !== orgId) }))} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         {/* Related Risks */}
         <div>

@@ -11,8 +11,10 @@ interface AttendeeOption {
 }
 
 interface ActionItem {
+  title: string;
   description: string;
   assignedTo: string;
+  deadline: string;
 }
 
 interface MeetingLink {
@@ -31,6 +33,8 @@ interface CompleteMeetingModalProps {
   initialLinks?: MeetingLink[];
 }
 
+const todayStr = () => new Date().toISOString().split('T')[0];
+
 const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   open,
   onClose,
@@ -38,7 +42,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   attendees,
   isSubmitting = false,
   initialMinutes = '',
-  initialActionItems = [{ description: '', assignedTo: attendees[0]?.id || '' }],
+  initialActionItems = [{ title: '', description: '', assignedTo: attendees[0]?.id || '', deadline: todayStr() }],
   initialLinks = [],
 }) => {
   const [minutes, setMinutes] = useState(initialMinutes);
@@ -49,7 +53,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   useEffect(() => {
     if (open) {
       setMinutes(initialMinutes || '');
-      setActionItems(initialActionItems.length > 0 ? initialActionItems : [{ description: '', assignedTo: attendees[0]?.id || '' }]);
+      setActionItems(initialActionItems.length > 0 ? initialActionItems : [{ title: '', description: '', assignedTo: attendees[0]?.id || '', deadline: todayStr() }]);
       setLinks(initialLinks || []);
       setErrors(null);
     }
@@ -61,7 +65,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   };
 
   const handleAddActionItem = () => {
-    setActionItems(items => [...items, { description: '', assignedTo: attendees[0]?.id || '' }]);
+    setActionItems(items => [...items, { title: '', description: '', assignedTo: attendees[0]?.id || '', deadline: todayStr() }]);
   };
 
   const handleRemoveActionItem = (idx: number) => {
@@ -84,7 +88,9 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
     if (!minutes.trim()) return setErrors({ minutes: 'Minutes are required.' });
     if (actionItems.length === 0) return setErrors({ actionItems: 'At least one action item is required.' });
     for (const item of actionItems) {
+      if (!item.title.trim()) return setErrors({ actionItems: 'All action items must have a title.' });
       if (!item.description.trim() || !item.assignedTo) return setErrors({ actionItems: 'All action items must have a description and assignee.' });
+      if (!item.deadline) return setErrors({ actionItems: 'All action items must have a deadline.' });
     }
     setErrors(null);
     return true;
@@ -122,31 +128,62 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
             </Button>
           </div>
           {actionItems.map((item, idx) => (
-            <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2 items-start md:items-end">
-              <div className="flex-1">
-                <InputField
-                  placeholder="Description"
-                  value={item.description}
-                  onChange={v => handleActionItemChange(idx, 'description', v)}
-                  fullWidth
-                  required
-                  disabled={isSubmitting}
-                />
+            <div key={idx} className="flex flex-col gap-2 mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex flex-col md:flex-row gap-2 items-start md:items-end">
+                <div className="flex-1">
+                  <InputField
+                    label="Task Title"
+                    placeholder="Brief task title"
+                    value={item.title}
+                    onChange={v => handleActionItemChange(idx, 'title', v)}
+                    fullWidth
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="flex-1">
+                  <InputField
+                    label="Description"
+                    placeholder="Task description"
+                    value={item.description}
+                    onChange={v => handleActionItemChange(idx, 'description', v)}
+                    fullWidth
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
-              <select
-                className={selectClass}
-                value={item.assignedTo}
-                onChange={e => handleActionItemChange(idx, 'assignedTo', e.target.value)}
-                required
-                disabled={isSubmitting}
-              >
-                {attendees.map(a => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
-              <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveActionItem(idx)} disabled={isSubmitting || actionItems.length === 1}>
-                Remove
-              </Button>
+              <div className="flex flex-col md:flex-row gap-2 items-end">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-medium text-gray-700">Assignee <span className="text-red-500">*</span></label>
+                  <select
+                    className={selectClass}
+                    value={item.assignedTo}
+                    onChange={e => handleActionItemChange(idx, 'assignedTo', e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                  >
+                    {attendees.map(a => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-xs font-medium text-gray-700">Deadline <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    className={selectClass + ' w-full'}
+                    value={item.deadline}
+                    min={todayStr()}
+                    onChange={e => handleActionItemChange(idx, 'deadline', e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveActionItem(idx)} disabled={isSubmitting || actionItems.length === 1}>
+                  Remove
+                </Button>
+              </div>
             </div>
           ))}
           {errors?.actionItems && <div className="text-red-500 text-sm mt-1">{errors.actionItems}</div>}

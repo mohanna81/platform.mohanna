@@ -214,121 +214,159 @@ export default function ClosedRisksPage() {
 
       {/* View Modal */}
       {selectedRisk && (
-        <Modal isOpen={viewModalOpen} onClose={() => { setViewModalOpen(false); setSelectedRisk(null); }} title="Risk Details" size="xl" showCloseButton>
-          <div className="flex justify-end mb-4">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => { exportSingleRiskToExcel(selectedRisk); showToast.success('Risk exported to Excel'); }}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Download Excel
-            </Button>
-          </div>
-          <div className="space-y-6 text-black">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Title</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.title}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Code</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.code || '—'}</p>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Risk Statement</h3>
-              <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.statement || '—'}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Category</h3>
-              <span className="border border-gray-300 text-black px-3 py-1 rounded-full text-sm font-semibold">{selectedRisk.category}</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Likelihood</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{getLikelihoodLabel(selectedRisk.likelihood || '')} ({selectedRisk.likelihood || '0'})</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Severity</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{getSeverityLabel(selectedRisk.severity || '')} ({selectedRisk.severity || '0'})</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Risk Ranking</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${rankColor(calcRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0'))}`}>
-                  {calcRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')}
+        <Modal isOpen={viewModalOpen} onClose={() => { setViewModalOpen(false); setSelectedRisk(null); }} title="Risk Details" size="2xl" showCloseButton>
+          <div className="space-y-4 text-gray-900">
+
+            {/* Top bar: badges + export */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                  Closed
                 </span>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#2a9d8f]/10 text-[#2a9d8f] border border-[#2a9d8f]/20 capitalize">
+                  {selectedRisk.category || 'Uncategorized'}
+                </span>
+                {selectedRisk.code && (
+                  <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-600">
+                    {selectedRisk.code}
+                  </span>
+                )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { exportSingleRiskToExcel(selectedRisk); showToast.success('Risk exported to Excel'); }}
+                className="border-green-200 text-green-700 hover:bg-green-50 gap-1.5"
+              >
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                </svg>
+                Export
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Status</h3>
-                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">Closed</span>
-              </div>
-              {(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess !== undefined && (selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess !== null && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Mitigation Success</h3>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <svg
-                        key={star}
-                        className={`w-6 h-6 ${star <= ((selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0) ? 'text-amber-400' : 'text-gray-200'}`}
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                    ))}
-                    <span className="ml-2 text-sm text-gray-600 font-medium">
-                      {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0]}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-            {selectedRisk.closingComment && (
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Closing Remarks</h3>
-                <p className="text-gray-800 bg-amber-50 border border-amber-100 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.closingComment}</p>
+
+            {/* Title */}
+            <h2 className="text-lg font-bold text-gray-900">{selectedRisk.title}</h2>
+
+            {/* Risk Statement */}
+            {selectedRisk.statement && (
+              <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Risk Statement</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedRisk.statement}</p>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Mitigation Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.mitigationMeasures || '—'}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Preventive Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.preventiveMeasures || '—'}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Reactive Measures</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{selectedRisk.reactiveMeasures || '—'}</p>
+
+            {/* Risk Assessment */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                {
+                  label: 'Likelihood',
+                  badge: `${getLikelihoodLabel(selectedRisk.likelihood || '')} (${selectedRisk.likelihood || '0'})`,
+                  color: selectedRisk.likelihood && parseInt(selectedRisk.likelihood) >= 4 ? 'bg-red-100 text-red-800' : parseInt(selectedRisk.likelihood || '0') >= 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800',
+                },
+                {
+                  label: 'Severity',
+                  badge: `${getSeverityLabel(selectedRisk.severity || '')} (${selectedRisk.severity || '0'})`,
+                  color: selectedRisk.severity && parseInt(selectedRisk.severity) >= 4 ? 'bg-red-100 text-red-800' : parseInt(selectedRisk.severity || '0') >= 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800',
+                },
+                {
+                  label: 'Risk Ranking',
+                  badge: String(calcRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')),
+                  color: rankColor(calcRanking(selectedRisk.likelihood || '0', selectedRisk.severity || '0')),
+                },
+              ].map(({ label, badge, color }) => (
+                <div key={label} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{label}</p>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${color}`}>{badge}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Trigger Indicator */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Trigger Indicator</p>
+              <p className="text-sm text-gray-700">{selectedRisk.triggerIndicator || '—'}</p>
+            </div>
+
+            {/* Trigger Status */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Trigger Status</p>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${selectedRisk.triggerStatus === 'Triggered' ? 'bg-red-500' : 'bg-gray-400'}`} />
+                {selectedRisk.triggerStatus || 'Not Triggered'}
+              </span>
+            </div>
+
+            {/* Response Measures — each full width */}
+            <div className="w-full">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Response Measures</p>
+              <div className="space-y-3">
+                {[
+                  { label: 'Mitigation', value: selectedRisk.mitigationMeasures, icon: '🛡️', accent: 'border-l-green-400' },
+                  { label: 'Preventive', value: selectedRisk.preventiveMeasures, icon: '🔒', accent: 'border-l-blue-400' },
+                  { label: 'Reactive',  value: selectedRisk.reactiveMeasures,  icon: '⚡', accent: 'border-l-purple-400' },
+                ].map(({ label, value, icon, accent }) => (
+                  <div key={label} className={`w-full bg-gray-50 border border-gray-100 border-l-4 ${accent} rounded-xl p-4`}>
+                    <p className="text-xs font-semibold text-gray-500 mb-1.5">{icon} {label}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{value || '—'}</p>
+                  </div>
+                ))}
               </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Consortium</h3>
-              <div className="space-y-2">
-                {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0
-                  ? selectedRisk.consortium.map((c: Consortium, i: number) => (
-                      <div key={i} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                        <p className="text-gray-800">{c.name || '—'}</p>
-                      </div>
-                    ))
-                  : <p className="text-gray-500 italic">No consortium information</p>
-                }
-              </div>
+
+            {/* Consortium */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Consortium</p>
+              {Array.isArray(selectedRisk.consortium) && selectedRisk.consortium.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedRisk.consortium.map((c: Consortium, i: number) => (
+                    <span key={i} className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
+                      {c.name || '—'}
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">No consortium assigned</p>}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Created At</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleString() : '—'}</p>
+
+            {/* Mitigation Success */}
+            {(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess != null && (
+              <div className="w-full bg-amber-50 border border-amber-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Mitigation Success</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg
+                      key={star}
+                      className={`w-6 h-6 ${star <= ((selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0) ? 'text-amber-400' : 'text-gray-200'}`}
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  ))}
+                  <span className="ml-2 text-sm text-gray-700 font-medium">
+                    {['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'][(selectedRisk as Risk & { mitigationSuccess?: number }).mitigationSuccess ?? 0]}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Last Updated</h3>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{selectedRisk.updatedAt ? new Date(selectedRisk.updatedAt).toLocaleString() : '—'}</p>
+            )}
+
+            {/* Closing Remarks */}
+            {selectedRisk.closingComment && (
+              <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Closing Remarks</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedRisk.closingComment}</p>
               </div>
+            )}
+
+            {/* Timestamps */}
+            <div className="flex flex-wrap gap-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
+              <span>Created: <span className="text-gray-600 font-medium">{selectedRisk.createdAt ? new Date(selectedRisk.createdAt).toLocaleString() : '—'}</span></span>
+              <span>Updated: <span className="text-gray-600 font-medium">{selectedRisk.updatedAt ? new Date(selectedRisk.updatedAt).toLocaleString() : '—'}</span></span>
             </div>
+
           </div>
         </Modal>
       )}

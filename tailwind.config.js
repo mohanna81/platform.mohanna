@@ -6,7 +6,7 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'media', // Enable automatic dark mode based on system preference
+  darkMode: 'class', // Only activate dark mode with an explicit .dark class (never applied)
   theme: {
     extend: {
       colors: {

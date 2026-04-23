@@ -125,14 +125,28 @@ export default function RiskCard({
   const [showDetails, setShowDetails] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
 
-  // Derive the first consortium ID for tracking
-  const firstConsortiumId: string | undefined = Array.isArray(risk.consortium) && risk.consortium.length > 0
-    ? (typeof risk.consortium[0] === 'object' ? risk.consortium[0]._id : risk.consortium[0])
-    : undefined;
+  // Derive consortium IDs from risk
+  const riskConsortiumIds: string[] = Array.isArray(risk.consortium)
+    ? risk.consortium.map((c: any) => (typeof c === 'object' ? c._id : c)).filter(Boolean)
+    : [];
+  const firstConsortiumId: string | undefined = riskConsortiumIds[0];
 
-  // Organisation users can update their own org's tracking
+  // Derive organization IDs from risk
+  const riskOrgIds: string[] = Array.isArray(risk.organization)
+    ? risk.organization.map((o: any) => (typeof o === 'object' ? o._id : o)).filter(Boolean)
+    : [];
+
   const isOrgUser = user?.role === 'Organization User';
-  const canUpdateTracking = isOrgUser && !!user?.organizationId && !!firstConsortiumId;
+  const isFacilitator = user?.role === 'Facilitator';
+
+  // Org user can edit if they're in the risk's consortium AND their org is assigned to the risk
+  const userInRiskConsortium = (user?.consortia ?? []).some((cId: string) => riskConsortiumIds.includes(cId));
+  const orgUserCanEdit = isOrgUser && !!user?.organizationId && riskOrgIds.includes(user.organizationId) && userInRiskConsortium;
+
+  // Facilitator can edit all tracking for risks in their consortium
+  const facilitatorCanEdit = isFacilitator && userInRiskConsortium;
+
+  const canUpdateTracking = orgUserCanEdit || facilitatorCanEdit;
 
   // Show tracking for approved risks only — all roles can view, org users can update
   const showTracking = status === 'approved' &&
@@ -179,10 +193,10 @@ export default function RiskCard({
       shadow="sm"
       border
       className={`w-full transition-all duration-200 hover:shadow-md ${
-        isTriggered 
-          ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-red-100' 
+        isTriggered
+          ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-red-100'
           : 'bg-white border-gray-200 hover:border-gray-300'
-      }`}
+      } ${canUpdateTracking && status === 'approved' ? 'ring-2 ring-teal-400 ring-offset-1' : ''}`}
     >
       <div className="p-6">
         {/* Header Section */}
@@ -199,6 +213,14 @@ export default function RiskCard({
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   TRIGGERED
+                </div>
+              )}
+              {canUpdateTracking && status === 'approved' && (
+                <div className="flex items-center gap-1.5 bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full text-xs font-semibold border border-teal-200">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Can edit mitigation
                 </div>
               )}
             </div>
@@ -403,6 +425,7 @@ export default function RiskCard({
                   organizationId={user?.organizationId}
                   consortiumId={firstConsortiumId}
                   canUpdate={canUpdateTracking}
+                  isFacilitator={facilitatorCanEdit}
                 />
               </div>
             )}

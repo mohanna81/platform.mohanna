@@ -15,8 +15,10 @@ interface MitigationTrackerProps {
   organizationId?: string;
   /** The consortium the risk belongs to */
   consortiumId?: string;
-  /** If false, render read-only (e.g. for Facilitator viewing) */
+  /** If false, render read-only */
   canUpdate?: boolean;
+  /** When true, shows all orgs' statuses with per-org editing (Facilitator view) */
+  isFacilitator?: boolean;
 }
 
 const STATUS_OPTIONS: { value: TrackingStatus; label: string; color: string; dot: string }[] = [
@@ -90,6 +92,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
   organizationId,
   consortiumId,
   canUpdate = false,
+  isFacilitator = false,
 }) => {
   const { user } = useAuth();
   // Organisation users have role 'Organization User' in this system
@@ -156,6 +159,41 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
     }
   };
 
+  const handleStatusChangeForOrg = async (type: MeasureType, status: TrackingStatus, orgId: string) => {
+    if (!orgId || !consortiumId) {
+      showToast.error('Consortium information is missing.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await mitigationTrackingService.upsertTracking({
+        riskId,
+        organizationId: orgId,
+        consortiumId,
+        measureType: type,
+        status,
+      });
+      showToast.success(`${MEASURE_LABELS[type]} for org marked as "${status}"`);
+      await fetchTracking();
+    } catch {
+      showToast.error('Failed to update tracking status. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // For facilitator view: group tracking data by organization
+  const orgGroups: Map<string, { name: string; records: MitigationTracking[] }> = new Map();
+  if (isFacilitator) {
+    for (const record of trackingData) {
+      const orgId = record.organization?._id ?? '';
+      const orgName = record.organization?.name ?? 'Unknown Organization';
+      if (!orgId) continue;
+      if (!orgGroups.has(orgId)) orgGroups.set(orgId, { name: orgName, records: [] });
+      orgGroups.get(orgId)!.records.push(record);
+    }
+  }
+
   if (measures.length === 0) return null;
 
   return (
@@ -190,20 +228,76 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
         )}
       </div>
 
-      {/* Measure rows */}
-      <div className="p-4 space-y-3">
-        {measures.map(({ type, text }) => (
-          <MeasureRow
-            key={type}
-            type={type}
-            text={text}
-            currentStatus={getStatus(type)}
-            onStatusChange={handleStatusChange}
-            saving={saving}
-            canUpdate={canUpdate}
-          />
-        ))}
-      </div>
+      {/* Measure rows — org user view */}
+      {!isFacilitator && (
+        <div className="p-4 space-y-3">
+          {measures.map(({ type, text }) => (
+            <MeasureRow
+              key={type}
+              type={type}
+              text={text}
+              currentStatus={getStatus(type)}
+              onStatusChange={handleStatusChange}
+              saving={saving}
+              canUpdate={canUpdate}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Facilitator view — per-org breakdown */}
+      {isFacilitator && (
+        <div className="p-4 space-y-4">
+          {orgGroups.size === 0 && !loading && (
+            <p className="text-sm text-gray-500 text-center py-2">No tracking records found for this risk yet.</p>
+          )}
+          {Array.from(orgGroups.entries()).map(([orgId, { name, records }]) => (
+            <div key={orgId} className="rounded-xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
+                <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l7-3 7 3z" />
+                </svg>
+                <span className="text-xs font-semibold text-gray-700">{name}</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {measures.map(({ type, text }) => {
+                  const record = records.find(r => r.measureType === type);
+                  const currentStatus: TrackingStatus = record?.status ?? 'Not Started';
+                  const current = STATUS_OPTIONS.find(s => s.value === currentStatus) ?? STATUS_OPTIONS[0];
+                  return (
+                    <div key={type} className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-medium text-gray-600 w-28 flex-shrink-0">{MEASURE_LABELS[type]}</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${current.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${current.dot}`} />
+                          {current.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {STATUS_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            disabled={saving || currentStatus === opt.value}
+                            onClick={() => handleStatusChangeForOrg(type, opt.value, orgId)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-all
+                              ${currentStatus === opt.value
+                                ? `${opt.color} cursor-default`
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                              }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
