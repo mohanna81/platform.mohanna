@@ -14,6 +14,7 @@ import {
   Book,
   Folder,
   Calendar,
+  CalendarDays,
   CheckSquare,
   Bookmark,
   Settings,
@@ -43,6 +44,7 @@ const iconMap: { [key: string]: (color: string) => JSX.Element } = {
   "book": (color: string) => <Book className="w-5 h-5" style={{ stroke: color }} />,
   "folder": (color: string) => <Folder className="w-5 h-5" style={{ stroke: color }} />,
   "calendar": (color: string) => <Calendar className="w-5 h-5" style={{ stroke: color }} />,
+  "calendar-days": (color: string) => <CalendarDays className="w-5 h-5" style={{ stroke: color }} />,
   "check-square": (color: string) => <CheckSquare className="w-5 h-5" style={{ stroke: color }} />,
   "bookmarks": (color: string) => <Bookmark className="w-5 h-5" style={{ stroke: color }} />,
   "settings": (color: string) => <Settings className="w-5 h-5" style={{ stroke: color }} />,
@@ -181,14 +183,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
               href="https://risksharinghub.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition text-[#2D2D2D] hover:bg-[#F5F5F5] whitespace-nowrap"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-[#2D2D2D] hover:bg-[#F5F5F5] whitespace-nowrap"
               onClick={onClose}
             >
               <Image
                 src="/Images/Risk Sharing Hub icon cropped.png"
                 alt="Risk Sharing Hub"
-                width={20}
-                height={20}
+                width={30}
+                height={30}
                 className="object-contain flex-shrink-0"
               />
               <span>

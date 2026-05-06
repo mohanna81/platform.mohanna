@@ -5,6 +5,7 @@ import TextArea from '../common/TextArea';
 import Modal from '../common/Modal';
 import Loader from '../common/Loader';
 import { consortiaService } from '@/lib/api';
+import { showToast } from '@/lib/utils/toast';
 
 interface EditConsortiumModalProps {
   isOpen: boolean;
@@ -18,7 +19,10 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<'Active' | 'Closed'>('Active');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +31,10 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
     setStartDate('');
     setEndDate('');
     setDescription('');
+    setStatus('Active');
     setIsSubmitting(false);
+    setIsClosing(false);
+    setShowCloseConfirm(false);
     setErrors({});
     setLoading(false);
   };
@@ -42,6 +49,7 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
           setStartDate(c.start_date ? c.start_date.substring(0, 10) : '');
           setEndDate(c.end_date ? c.end_date.substring(0, 10) : '');
           setDescription(c.description || '');
+          setStatus((c.status === 'Closed' ? 'Closed' : 'Active') as 'Active' | 'Closed');
         }
       }).finally(() => setLoading(false));
     }
@@ -84,6 +92,22 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleToggleStatus = async () => {
+    const newStatus = status === 'Active' ? 'Closed' : 'Active';
+    setIsClosing(true);
+    try {
+      await consortiaService.updateConsortiumStatus(consortiumId, newStatus);
+      setStatus(newStatus);
+      setShowCloseConfirm(false);
+      showToast.success(`Consortium ${newStatus === 'Closed' ? 'closed' : 'reopened'} successfully`);
+      onUpdated();
+    } catch {
+      showToast.error('Failed to update consortium status');
+    } finally {
+      setIsClosing(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,6 +189,68 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
               maxLength={500}
             />
           </div>
+          {/* Status section */}
+          <div className="border-t pt-4 mt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Consortium Status</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {status === 'Active'
+                    ? 'Closing this consortium will mark it as inactive.'
+                    : 'This consortium is currently closed.'}
+                </p>
+              </div>
+              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {status}
+              </span>
+            </div>
+
+            {showCloseConfirm ? (
+              <div className={`mt-3 rounded-lg p-3 text-sm ${status === 'Active' ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
+                <p className={`font-medium mb-2 ${status === 'Active' ? 'text-red-800' : 'text-blue-800'}`}>
+                  {status === 'Active'
+                    ? 'Are you sure you want to close this consortium?'
+                    : 'Reopen this consortium?'}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleStatus}
+                    disabled={isClosing}
+                    className={`px-3 py-1.5 rounded text-white text-xs font-semibold transition ${
+                      status === 'Active'
+                        ? 'bg-red-600 hover:bg-red-700 disabled:opacity-50'
+                        : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-50'
+                    }`}
+                  >
+                    {isClosing ? 'Updating...' : status === 'Active' ? 'Yes, Close' : 'Yes, Reopen'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCloseConfirm(false)}
+                    className="px-3 py-1.5 rounded border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(true)}
+                className={`mt-3 text-xs font-semibold px-3 py-1.5 rounded border transition ${
+                  status === 'Active'
+                    ? 'border-red-300 text-red-600 hover:bg-red-50'
+                    : 'border-blue-300 text-blue-600 hover:bg-blue-50'
+                }`}
+              >
+                {status === 'Active' ? 'Close Consortium' : 'Reopen Consortium'}
+              </button>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-2">
             <Button variant="outline" size="md" type="button" onClick={onClose} disabled={isSubmitting} className="border-gray-300 text-gray-900 w-full sm:w-auto text-sm md:text-base">Cancel</Button>
             <Button variant="primary" size="md" type="submit" loading={isSubmitting} disabled={isSubmitting} className="font-semibold w-full sm:w-auto text-sm md:text-base">

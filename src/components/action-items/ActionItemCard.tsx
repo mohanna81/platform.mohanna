@@ -24,6 +24,7 @@ interface ActionItemCardProps {
   implementationDate: string;
   actionItemId: string;
   daysRemaining?: number;
+  commentCount?: number;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -46,6 +47,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   implementationDate,
   actionItemId,
   daysRemaining,
+  commentCount: initialCommentCount = 0,
   onEdit,
   onDelete,
 }) => {
@@ -313,9 +315,9 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
          <div className="flex items-center justify-between mb-4">
            <div className="font-semibold text-gray-800 text-lg flex items-center gap-2">
              Comments
-             {comments.length > 0 && (
-               <span className="text-sm font-normal text-gray-500">({comments.length})</span>
-             )}
+             <span className="text-sm font-normal text-gray-500">
+               ({commentsLoaded ? comments.length : initialCommentCount})
+             </span>
            </div>
            <Button
              variant="ghost"

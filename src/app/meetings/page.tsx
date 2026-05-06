@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import MeetingsTabs from "@/components/meetings/MeetingsTabs";
 import MeetingCard from "@/components/meetings/MeetingCard";
 import PastMeetingCard from "@/components/meetings/PastMeetingCard";
-import CalendarViewCard from "@/components/meetings/CalendarViewCard";
 import Layout from '@/components/common/Layout';
 import NewMeetingModal from "@/components/meetings/NewMeetingModal";
 import Button from "@/components/common/Button";
@@ -446,7 +445,6 @@ export default function MeetingsPage() {
                 })()}
               </div>
             )}
-            {activeTab === "Calendar View" && <CalendarViewCard meetings={meetings} />}
           </>
         )}
         <NewMeetingModal

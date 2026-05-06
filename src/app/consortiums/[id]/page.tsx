@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import EditConsortiumModal from '@/components/consortium-management/EditConsortiumModal';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
+import Modal from '@/components/common/Modal';
 import Loader from '@/components/common/Loader';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
@@ -32,6 +33,9 @@ export default function ConsortiumDetailPage() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [facilitators, setFacilitators] = useState<User[]>([]);
   const [organizationUsers, setOrganizationUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [viewUsersOrg, setViewUsersOrg] = useState<Organization | null>(null);
+  const [orgModalUsers, setOrgModalUsers] = useState<User[]>([]);
 
   // Check if user can edit/delete consortium
   const canEditConsortium = user && (normalizeRole(user.role) === 'Super_user' || normalizeRole(user.role) === 'Admin');
@@ -79,15 +83,16 @@ export default function ConsortiumDetailPage() {
     userService.getUsers()
       .then((response) => {
         if (response.success && response.data) {
+          setAllUsers(response.data);
           const consortiumId = consortium._id || consortium.id;
-          
+
           if (!consortiumId) {
             console.error('Consortium ID not found');
             return;
           }
-          
+
           // Filter users who have this consortium in their consortia array
-          const consortiumUsers = response.data.filter((user: User) => 
+          const consortiumUsers = response.data.filter((user: User) =>
             (user.consortia || []).includes(consortiumId)
           );
           
@@ -197,7 +202,15 @@ export default function ConsortiumDetailPage() {
                         </div>
                         <button
                           className="flex items-center gap-1 border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-100"
-                          onClick={() => router.push('/consortium-management?tab=Users')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const orgId = org._id || org.id;
+                            const filtered = allUsers.filter(u =>
+                              u.organizations && u.organizations.includes(orgId)
+                            );
+                            setOrgModalUsers(filtered);
+                            setViewUsersOrg(org);
+                          }}
                         >
                           <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
                           View Users
@@ -257,6 +270,59 @@ export default function ConsortiumDetailPage() {
               View Shared Risks
             </button>
           </div>
+          {/* Org Users Modal */}
+          <Modal
+            isOpen={!!viewUsersOrg}
+            onClose={() => setViewUsersOrg(null)}
+            title={viewUsersOrg ? `${viewUsersOrg.name} — Members` : ''}
+            size="2xl"
+          >
+            {usersLoading ? (
+              <div className="py-8 text-center">
+                <Loader size="md" />
+                <p className="text-gray-500 mt-3 text-sm">Loading users...</p>
+              </div>
+            ) : orgModalUsers.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 text-sm">No users found for this organization.</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {orgModalUsers.map(u => (
+                    <tr key={u._id} className="hover:bg-gray-50">
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium text-blue-600">{u.name.charAt(0).toUpperCase()}</span>
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 text-sm text-gray-600">{u.email}</td>
+                      <td className="py-3 pr-4 text-sm text-gray-600">{u.role}</td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          u.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-800'
+                          : u.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                        }`}>
+                          {u.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Modal>
+
           <EditConsortiumModal
             isOpen={showEditModal}
             onClose={() => setShowEditModal(false)}

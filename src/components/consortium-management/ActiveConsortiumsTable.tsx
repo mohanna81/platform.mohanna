@@ -34,7 +34,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
       }
       
       const consortiaData = await fetchConsortiaByRole(user);
-      setConsortiums(consortiaData);
+      setConsortiums(consortiaData.filter((c: Consortium) => c.status !== 'Closed'));
     } catch (error) {
       console.error('Error fetching consortia:', error);
       setError('An unexpected error occurred');

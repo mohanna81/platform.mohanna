@@ -13,9 +13,9 @@ export type AssignActionFormData = {
   description: string;
   consortium: string;
   assignTo: string; // Organization (required)
-  assignToUser: string; // User (required)
+  assignToUsers: string[]; // Users (one or more required)
   date: string;
-  relatedRisks: string[]; // Multiple related risks (up to 3)
+  relatedRisks: string[];
 };
 
 interface AssignActionModalProps {
@@ -44,7 +44,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
     description: '',
     consortium: '',
     assignTo: '',
-    assignToUser: '',
+    assignToUsers: [],
     date: '',
     relatedRisks: [],
   });
@@ -91,7 +91,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
       description: '',
       consortium: '',
       assignTo: '',
-      assignToUser: '',
+      assignToUsers: [],
       date: '',
       relatedRisks: [],
     });
@@ -110,9 +110,9 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
   const handleChange = (field: keyof AssignActionFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     
-    // If consortium changes, clear org, risks and notify parent
+    // If consortium changes, clear org, users, risks and notify parent
     if (field === 'consortium') {
-      setForm(prev => ({ ...prev, assignTo: '', relatedRisks: [] }));
+      setForm(prev => ({ ...prev, assignTo: '', assignToUsers: [], relatedRisks: [] }));
       if (onConsortiumChange) onConsortiumChange(value);
     }
   };
@@ -124,7 +124,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Assign New Action Item">
+    <Modal isOpen={isOpen} onClose={onClose} title="Assign New Action Item" size="xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-2">
         <p className="text-[#7b849b] mb-2 text-sm">Create a new action item to be assigned to a consortium member</p>
         <div className="mb-2">
@@ -209,28 +209,53 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
-          <div>
-            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To User</label>
-            <Dropdown
-              options={userOptions}
-              value={form.assignToUser || ''}
-              onChange={(v) => handleChange('assignToUser', v)}
-              required
-              fullWidth
-              placeholder="Select a user"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Implementation Date</label>
-            <InputField
-              type="date"
-              value={form.date}
-              onChange={(v) => handleChange('date', v)}
-              placeholder="dd/mm/yyyy"
-              fullWidth
-            />
-          </div>
+        {/* Assign To Users — multi-select */}
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-[#0b1320] mb-1">
+            Assign To User(s) <span className="text-red-500">*</span>
+          </label>
+          <Dropdown
+            placeholder={userOptions.length === 0 ? 'No users available' : 'Select a user to add'}
+            options={userOptions.filter(u => !form.assignToUsers.includes(u.value))}
+            value=""
+            onChange={v => {
+              if (!v) return;
+              setForm(prev => ({ ...prev, assignToUsers: [...prev.assignToUsers, v] }));
+            }}
+            fullWidth
+            disabled={userOptions.length === 0}
+          />
+          {form.assignToUsers.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {form.assignToUsers.map((userId, idx) => {
+                const u = userOptions.find(o => o.value === userId);
+                return (
+                  <div key={userId} className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-500 text-white rounded-full text-[10px] font-bold flex-shrink-0">{idx + 1}</span>
+                      <span className="text-gray-800 font-medium">{u?.label || userId}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, assignToUsers: prev.assignToUsers.filter(id => id !== userId) }))}
+                      className="text-red-500 hover:text-red-700 font-bold ml-2 text-base leading-none"
+                    >×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-[#0b1320] mb-1">Implementation Date</label>
+          <InputField
+            type="date"
+            value={form.date}
+            onChange={(v) => handleChange('date', v)}
+            placeholder="dd/mm/yyyy"
+            fullWidth
+          />
         </div>
         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4">
           <Button variant="outline" size="md" type="button" onClick={onClose} className="border-gray-300 text-[#0b1320] w-full sm:w-auto text-sm md:text-base">Cancel</Button>

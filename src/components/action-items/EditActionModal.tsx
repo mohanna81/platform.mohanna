@@ -10,7 +10,7 @@ export type EditActionFormData = {
   description: string;
   consortium: string;
   assignTo: string;
-  assignToUser: string; // User assignment field (required)
+  assignToUsers: string[]; // One or more users (required)
   date: string;
   status: string;
 };
@@ -51,7 +51,7 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
     }
   }, [isOpen, initialData]);
 
-  const handleChange = (field: keyof EditActionFormData, value: string) => {
+  const handleChange = (field: Exclude<keyof EditActionFormData, 'assignToUsers'>, value: string) => {
     setForm((prev) => {
       const updated = { ...prev, [field]: value };
 
@@ -127,18 +127,44 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
             />
           </div>
         </div>
+        {/* Assign To Users — multi-select */}
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-[#0b1320] mb-1">
+            Assign To User(s) <span className="text-red-500">*</span>
+          </label>
+          <Dropdown
+            placeholder={userOptions.length === 0 ? 'No users available' : 'Select a user to add'}
+            options={userOptions.filter(u => !form.assignToUsers.includes(u.value))}
+            value=""
+            onChange={v => {
+              if (!v) return;
+              setForm(prev => ({ ...prev, assignToUsers: [...prev.assignToUsers, v] }));
+            }}
+            fullWidth
+            disabled={userOptions.length === 0}
+          />
+          {form.assignToUsers.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {form.assignToUsers.map((userId, idx) => {
+                const u = userOptions.find(o => o.value === userId);
+                return (
+                  <div key={userId} className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-500 text-white rounded-full text-[10px] font-bold flex-shrink-0">{idx + 1}</span>
+                      <span className="text-gray-800 font-medium">{u?.label || userId}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, assignToUsers: prev.assignToUsers.filter(id => id !== userId) }))}
+                      className="text-red-500 hover:text-red-700 font-bold ml-2 text-base leading-none"
+                    >×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
-          <div>
-            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To User</label>
-            <Dropdown
-              options={userOptions}
-              value={form.assignToUser || ''}
-              onChange={(v) => handleChange('assignToUser', v)}
-              required
-              fullWidth
-              placeholder="Select a user"
-            />
-          </div>
           <div>
             <label className="block text-sm font-semibold text-[#0b1320] mb-1">Implementation Date</label>
             <InputField

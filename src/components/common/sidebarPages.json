@@ -3,7 +3,7 @@
     "section": "Main",
     "pages": [
       { "name": "Dashboard", "icon": "bar-chart", "path": "/dashboard" },
-      { "name": "My Risks", "icon": "shield", "path": "/my-risks", "excludeRoles": ["Facilitator"] },
+      { "name": "My Risks", "icon": "shield", "path": "/my-risks" },
       { "name": "Shared Risks", "icon": "users", "path": "/shared-risks" },
       { "name": "Closed Risks", "icon": "bookmarks", "path": "/shared-risks/closed", "roles": ["Super_user", "Admin", "Facilitator"] },
       { "name": "Consortiums", "icon": "layers", "path": "/consortiums" }
@@ -20,13 +20,14 @@
     "section": "Collaboration",
     "pages": [
       { "name": "Meetings", "icon": "calendar", "path": "/meetings" },
-      { "name": "Action Items", "icon": "check-square", "path": "/action-items" }
+      { "name": "Action Items", "icon": "check-square", "path": "/action-items" },
+      { "name": "Calendar", "icon": "calendar-days", "path": "/calendar" }
     ]
   },
   {
     "section": "Administration",
     "pages": [
-      { "name": "Settings", "icon": "settings", "path": "/settings", "excludeRoles": ["Organization User", "Facilitator"] }
+      { "name": "Settings", "icon": "settings", "path": "/settings" }
     ]
   }
 ] 

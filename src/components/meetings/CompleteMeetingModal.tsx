@@ -128,30 +128,27 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
             </Button>
           </div>
           {actionItems.map((item, idx) => (
-            <div key={idx} className="flex flex-col gap-2 mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <div className="flex flex-col md:flex-row gap-2 items-start md:items-end">
-                <div className="flex-1">
-                  <InputField
-                    label="Task Title"
-                    placeholder="Brief task title"
-                    value={item.title}
-                    onChange={v => handleActionItemChange(idx, 'title', v)}
-                    fullWidth
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="flex-1">
-                  <InputField
-                    label="Description"
-                    placeholder="Task description"
-                    value={item.description}
-                    onChange={v => handleActionItemChange(idx, 'description', v)}
-                    fullWidth
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
+            <div key={idx} className="flex flex-col gap-3 mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <InputField
+                label="Task Title"
+                placeholder="Brief task title"
+                value={item.title}
+                onChange={v => handleActionItemChange(idx, 'title', v)}
+                fullWidth
+                required
+                disabled={isSubmitting}
+              />
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
+                <textarea
+                  placeholder="Describe the task in detail…"
+                  value={item.description}
+                  onChange={e => handleActionItemChange(idx, 'description', e.target.value)}
+                  rows={3}
+                  required
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/20 focus:border-[#2a9d8f] resize-vertical disabled:opacity-50 disabled:cursor-not-allowed"
+                />
               </div>
               <div className="flex flex-col md:flex-row gap-2 items-end">
                 <div className="flex flex-col gap-1 flex-1">
