@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotUserId, setForgotUserId] = useState('');
 
   // Redirect to dashboard if user is already logged in
   useEffect(() => {
@@ -62,6 +63,9 @@ export default function LoginPage() {
     if (res.success) {
       showToast.success(res.message || 'OTP sent to your email');
       setForgotEmail(email);
+      // Capture userId returned by backend so update-password can use it directly
+      const userId = (res as unknown as { data?: { data?: { _id?: string } } })?.data?.data?._id;
+      if (userId) setForgotUserId(userId);
       setForgotOpen(false);
       setOtpOpen(true);
     } else {
@@ -87,13 +91,14 @@ export default function LoginPage() {
 
   // Handler for reset password modal submit
   const handleResetSubmit = async (password: string) => {
-    if (!forgotEmail || !forgotOtp) return;
-    const res = await userService.updatePassword({ email: forgotEmail, otp: forgotOtp, newPassword: password });
+    if (!forgotUserId || !forgotOtp) return;
+    const res = await userService.updatePassword({ userId: forgotUserId, otp: forgotOtp, newPassword: password });
     if (res.success) {
       showToast.success(res.message || 'Password reset successfully');
       setResetOpen(false);
       setForgotEmail('');
       setForgotOtp('');
+      setForgotUserId('');
     } else {
       showToast.error(res.message || 'Failed to reset password');
       throw new Error(res.message || 'Failed to reset password');
