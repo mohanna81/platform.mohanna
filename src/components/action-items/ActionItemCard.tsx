@@ -316,7 +316,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
            <div className="font-semibold text-gray-800 text-lg flex items-center gap-2">
              Comments
              <span className="text-sm font-normal text-gray-500">
-               ({commentsLoaded ? comments.length : initialCommentCount})
+               ({commentsLoaded ? comments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0) : initialCommentCount})
              </span>
            </div>
            <Button

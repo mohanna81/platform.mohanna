@@ -131,26 +131,28 @@ export default function RiskCard({
     : [];
   const firstConsortiumId: string | undefined = riskConsortiumIds[0];
 
-  // Derive organization IDs from risk
-  const riskOrgIds: string[] = Array.isArray(risk.organization)
-    ? risk.organization.map((o: any) => (typeof o === 'object' ? o._id : o)).filter(Boolean)
+  // Derive organization IDs from risk — orgs are stored in orgRoles, not a top-level organization field
+  const riskOrgIds: string[] = Array.isArray(risk.orgRoles)
+    ? risk.orgRoles
+        .map((r: any) => r?.organization?._id || r?.organization)
+        .filter(Boolean)
     : [];
 
   const isOrgUser = user?.role === 'Organization User';
   const isFacilitator = user?.role === 'Facilitator';
+  const isAdminRole = user?.role === 'Admin' || user?.role === 'Super_user';
 
-  // Org user can edit if they're in the risk's consortium AND their org is assigned to the risk
-  const userInRiskConsortium = (user?.consortia ?? []).some((cId: string) => riskConsortiumIds.includes(cId));
-  const orgUserCanEdit = isOrgUser && !!user?.organizationId && riskOrgIds.includes(user.organizationId) && userInRiskConsortium;
+  // Org user: check they belong to this risk's consortium
+  const riskConsortiumIdStrings = riskConsortiumIds.map(String);
+  const userConsortiaStrings = (user?.consortia ?? []).map(String);
+  const userInRiskConsortium = userConsortiaStrings.some(cId => riskConsortiumIdStrings.includes(cId));
+  const orgUserCanEdit = isOrgUser && !!user?.organizationId && userInRiskConsortium;
 
-  // Facilitator can edit all tracking for risks in their consortium
-  const facilitatorCanEdit = isFacilitator && userInRiskConsortium;
-
-  const canUpdateTracking = orgUserCanEdit || facilitatorCanEdit;
+  // Facilitators and admins can always update — no restrictions
+  const canUpdateTracking = orgUserCanEdit || isFacilitator || isAdminRole;
 
   // Show tracking for approved risks only — all roles can view, org users can update
-  const showTracking = status === 'approved' &&
-    (risk.mitigationMeasures || risk.preventiveMeasures || risk.reactiveMeasures);
+  const showTracking = status === 'approved' && !!risk.mitigationMeasures?.trim();
   const detailsContainerRef = useRef<HTMLDivElement>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
   const actionButtonsContainerRef = useRef<HTMLDivElement>(null);
@@ -202,28 +204,10 @@ export default function RiskCard({
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
           <div className="flex-1 min-w-0">
-            {/* Title and Trigger Badge */}
-            <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-3">
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-                {risk.title}
-              </h2>
-              {isTriggered && (
-                <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-semibold border border-red-200">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  TRIGGERED
-                </div>
-              )}
-              {canUpdateTracking && status === 'approved' && (
-                <div className="flex items-center gap-1.5 bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full text-xs font-semibold border border-teal-200">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Can edit mitigation
-                </div>
-              )}
-            </div>
+            {/* Title */}
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight mb-3">
+              {risk.title}
+            </h2>
 
             {/* Meta Information */}
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-4">
@@ -284,48 +268,60 @@ export default function RiskCard({
           </div>
 
           {/* Status and Action Section */}
-          <div className="flex flex-col items-start lg:items-end gap-3 lg:min-w-[200px]">
-            {/* Status Badges */}
-            <div className="flex flex-wrap gap-2">
-              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor}`}>
-                <span className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${statusInfo.iconColor.replace('text-', 'bg-')}`}></div>
-                  {statusInfo.label}
+          <div className="flex flex-col items-start lg:items-end gap-3 lg:min-w-[220px] flex-shrink-0">
+            {/* All badges in one row */}
+            <div className="flex flex-wrap justify-end gap-2">
+              {isTriggered && (
+                <span className="flex items-center gap-1.5 bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-red-200">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  TRIGGERED
                 </span>
+              )}
+              <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${statusInfo.bgColor} ${statusInfo.textColor} ${statusInfo.borderColor}`}>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusInfo.iconColor.replace('text-', 'bg-')}`}></div>
+                {statusInfo.label}
               </span>
               <span className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-gray-200">
                 {risk.category}
               </span>
+              {canUpdateTracking && status === 'approved' && (
+                <span className="flex items-center gap-1.5 bg-teal-50 text-teal-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-teal-200">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Can edit mitigation
+                </span>
+              )}
             </div>
 
             {/* Trigger Action Button */}
-            <div className="w-full lg:w-auto">
-              {isTriggered ? (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  className="w-full lg:w-auto justify-center bg-red-600 hover:bg-red-700 text-white border-none"
-                  onClick={() => onToggleTrigger(risk._id, isTriggered)}
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-                  </svg>
-                  Deactivate
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full lg:w-auto justify-center border-blue-200 text-blue-700 hover:bg-blue-50"
-                  onClick={() => onToggleTrigger(risk._id, isTriggered)}
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Activate
-                </Button>
-              )}
-            </div>
+            {isTriggered ? (
+              <Button
+                variant="danger"
+                size="sm"
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-none"
+                onClick={() => onToggleTrigger(risk._id, isTriggered)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                </svg>
+                Deactivate
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                onClick={() => onToggleTrigger(risk._id, isTriggered)}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Activate
+              </Button>
+            )}
           </div>
         </div>
 
@@ -369,7 +365,7 @@ export default function RiskCard({
         {showDetails && (
           <div ref={detailsContainerRef} className="mt-6 border-t border-gray-200 pt-6">
             {/* Mitigation Measures */}
-            {risk.mitigationMeasures && (
+            {risk.mitigationMeasures?.trim() && (
               <div className="mb-6">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
@@ -420,12 +416,11 @@ export default function RiskCard({
                   riskId={risk._id}
                   riskTitle={risk.title}
                   mitigationMeasures={risk.mitigationMeasures}
-                  preventiveMeasures={risk.preventiveMeasures}
-                  reactiveMeasures={risk.reactiveMeasures}
+                  orgRoles={Array.isArray(risk.orgRoles) ? risk.orgRoles.filter((r: { role?: string }) => r.role?.trim()) : []}
                   organizationId={user?.organizationId}
                   consortiumId={firstConsortiumId}
                   canUpdate={canUpdateTracking}
-                  isFacilitator={facilitatorCanEdit}
+                  isFacilitator={isFacilitator || isAdminRole}
                 />
               </div>
             )}

@@ -8,7 +8,8 @@ export type NotificationType =
   | 'new_meeting'
   | 'new_action_item'
   | 'action_item_comment'
-  | 'meeting_minutes';
+  | 'meeting_minutes'
+  | 'mitigation_status_change';
 
 export interface AppNotification {
   _id: string;
@@ -41,4 +42,9 @@ export const notificationsService = {
 
   deleteNotification: (notificationId: string, userId: string) =>
     apiClient.delete(`/notifications/${notificationId}?userId=${userId}`),
+
+  getMitigationNotifications: (userId: string) =>
+    apiClient.get<{ success: boolean; data: NotificationsResult }>(
+      `/notifications?userId=${userId}&type=mitigation_status_change`
+    ),
 };

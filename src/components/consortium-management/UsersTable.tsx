@@ -20,6 +20,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -237,11 +238,18 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
     }
   };
 
+  const searchedUsers = search.trim()
+    ? filteredUsers.filter(u =>
+        u.name?.toLowerCase().includes(search.toLowerCase()) ||
+        u.email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : filteredUsers;
+
   // Calculate pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.ceil(searchedUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+  const currentUsers = searchedUsers.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -303,6 +311,15 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
 
   return (
     <>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+        />
+      </div>
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {/* Summary section */}
         <div className="overflow-x-auto">
@@ -399,7 +416,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         </div>
         
         {/* Pagination */}
-        {filteredUsers.length > 0 && (
+        {searchedUsers.length > 0 && (
           <div className="px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <PageSizeSelector
@@ -409,7 +426,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                totalItems={filteredUsers.length}
+                totalItems={searchedUsers.length}
                 itemsPerPage={itemsPerPage}
                 onPageChange={handlePageChange}
               />

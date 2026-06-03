@@ -314,7 +314,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           statement: risk.statement || '',
           trigger: risk.triggerIndicator || '',
           triggerActive: risk.triggerStatus === 'Triggered',
-          mitigation: risk.mitigationMeasures || '',
+          mitigation: (risk.mitigationMeasures as unknown as string) || '',
           preventive: risk.preventiveMeasures || '',
           reactive: risk.reactiveMeasures || '',
           orgRoles: mappedOrgRoles,
@@ -502,7 +502,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       ) : error ? (
         <div className="text-center py-8">
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchRiskData} variant="primary">Retry</Button>
+          <Button onClick={() => fetchRiskData()} variant="primary">Retry</Button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6 text-black max-h-[70vh] overflow-y-auto pr-2">
@@ -601,9 +601,10 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
             />
             
             <TextArea
-              label="Mitigation"
+              label="Mitigation Measures"
+              placeholder="Describe the actions to reduce the likelihood or impact of this risk"
               value={form.mitigation}
-              onChange={val => handleChange('mitigation', val)}
+              onChange={(val: string) => setForm((prev: typeof form) => ({ ...prev, mitigation: val }))}
               rows={3}
             />
           </div>

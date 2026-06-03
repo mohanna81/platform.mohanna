@@ -5,10 +5,11 @@ export type TrackingStatus = 'Not Started' | 'In Progress' | 'Applied';
 
 export interface MitigationTracking {
   _id: string;
-  risk: { _id: string; title: string; code?: string; mitigationMeasures?: string; preventiveMeasures?: string; reactiveMeasures?: string };
+  risk: { _id: string; title: string; code?: string; mitigationMeasures?: string | string[] };
   organization: { _id: string; name: string };
   consortium: { _id: string; name: string };
   measureType: MeasureType;
+  measureIndex: number;
   status: TrackingStatus;
   notes?: string;
   updatedBy?: { _id: string; name: string; email: string };
@@ -37,7 +38,7 @@ export interface UpsertTrackingRequest {
   riskId: string;
   organizationId: string;
   consortiumId: string;
-  measureType: MeasureType;
+  measureIndex: number;
   status: TrackingStatus;
   notes?: string;
 }
@@ -68,10 +69,10 @@ export const mitigationTrackingService = {
     );
   },
 
-  async getStatsByConsortia(consortiumIds: string[]) {
+  async getStatsByConsortia(consortiumIds: string[], organizationId?: string) {
     return apiClient.post<{ success: boolean; message: string; data: TrackingStats }>(
       '/mitigation-tracking/stats/consortia',
-      { consortiumIds }
+      { consortiumIds, ...(organizationId ? { organizationId } : {}) }
     );
   },
 };

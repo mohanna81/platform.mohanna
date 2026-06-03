@@ -9,7 +9,7 @@ export type EditActionFormData = {
   title: string;
   description: string;
   consortium: string;
-  assignTo: string;
+  assignTo: string[]; // Organizations (one or more)
   assignToUsers: string[]; // One or more users (required)
   date: string;
   status: string;
@@ -51,7 +51,7 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
     }
   }, [isOpen, initialData]);
 
-  const handleChange = (field: Exclude<keyof EditActionFormData, 'assignToUsers'>, value: string) => {
+  const handleChange = (field: Exclude<keyof EditActionFormData, 'assignToUsers' | 'assignTo'>, value: string) => {
     setForm((prev) => {
       const updated = { ...prev, [field]: value };
 
@@ -105,27 +105,46 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
             rows={3}
           />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
-          <div>
-            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Consortium</label>
-            <Dropdown
-              options={consortiumOptions}
-              value={form.consortium}
-              onChange={(v) => handleChange('consortium', v)}
-              required
-              fullWidth
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To Organization</label>
-            <Dropdown
-              options={orgOptions}
-              value={form.assignTo}
-              onChange={(v) => handleChange('assignTo', v)}
-              required
-              fullWidth
-            />
-          </div>
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-[#0b1320] mb-1">Consortium</label>
+          <Dropdown
+            options={consortiumOptions}
+            value={form.consortium}
+            onChange={(v) => handleChange('consortium', v)}
+            required
+            fullWidth
+          />
+        </div>
+        {/* Assign To Organizations — multi-select */}
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To Organization(s)</label>
+          <Dropdown
+            placeholder={orgOptions.length === 0 ? 'No organizations available' : 'Select an organization to add'}
+            options={orgOptions.filter(o => !form.assignTo.includes(o.value))}
+            value=""
+            onChange={v => {
+              if (!v) return;
+              setForm(prev => ({ ...prev, assignTo: [...prev.assignTo, v] }));
+            }}
+            fullWidth
+            disabled={orgOptions.length === 0}
+          />
+          {form.assignTo.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {form.assignTo.map((orgId, idx) => {
+                const org = orgOptions.find(o => o.value === orgId);
+                return (
+                  <div key={orgId} className="flex items-center justify-between bg-[#2a9d8f]/5 border border-[#2a9d8f]/20 px-3 py-1.5 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{idx + 1}</span>
+                      <span className="text-gray-800 font-medium">{org?.label || orgId}</span>
+                    </div>
+                    <button type="button" onClick={() => setForm(prev => ({ ...prev, assignTo: prev.assignTo.filter(id => id !== orgId) }))} className="text-red-500 hover:text-red-700 font-bold ml-2 text-base leading-none">×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         {/* Assign To Users — multi-select */}
         <div className="mb-2">

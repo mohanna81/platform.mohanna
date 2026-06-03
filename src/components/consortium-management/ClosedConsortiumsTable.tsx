@@ -21,6 +21,7 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
   const [editingConsortiumId, setEditingConsortiumId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [search, setSearch] = useState('');
 
   const fetchConsortia = useCallback(async () => {
     setLoading(true);
@@ -48,9 +49,12 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
   }, [user, refreshKey, fetchConsortia]);
 
   const consortiaArray = Array.isArray(consortiums) ? consortiums : [];
-  const totalPages = Math.ceil(consortiaArray.length / itemsPerPage);
+  const filteredConsortia = search.trim()
+    ? consortiaArray.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
+    : consortiaArray;
+  const totalPages = Math.ceil(filteredConsortia.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentConsortiums = consortiaArray.slice(startIndex, startIndex + itemsPerPage);
+  const currentConsortiums = filteredConsortia.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
     return (
@@ -63,6 +67,15 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-2 sm:p-4 mt-6 overflow-x-auto">
+      <div className="mb-4 px-2">
+        <input
+          type="text"
+          placeholder="Search closed consortiums..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+        />
+      </div>
       <table className="w-full min-w-[600px] text-left">
         <thead>
           <tr className="text-gray-500 text-xs md:text-sm">
@@ -75,7 +88,7 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
         <tbody>
           {error ? (
             <tr><td colSpan={4} className="py-6 text-center text-red-500">{error}</td></tr>
-          ) : consortiaArray.length === 0 ? (
+          ) : filteredConsortia.length === 0 ? (
             <tr><td colSpan={4} className="py-6 text-center text-gray-400">No closed consortiums found.</td></tr>
           ) : (
             currentConsortiums.map((c) => (
@@ -115,14 +128,14 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
         </tbody>
       </table>
 
-      {consortiaArray.length > 0 && (
+      {filteredConsortia.length > 0 && (
         <div className="px-4 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <PageSizeSelector currentSize={itemsPerPage} onSizeChange={(s) => { setItemsPerPage(s); setCurrentPage(1); }} />
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={consortiaArray.length}
+              totalItems={filteredConsortia.length}
               itemsPerPage={itemsPerPage}
               onPageChange={setCurrentPage}
             />

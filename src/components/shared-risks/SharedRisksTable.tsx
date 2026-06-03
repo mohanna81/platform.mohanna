@@ -427,8 +427,7 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
                   <div className="text-sm">
                     <span className="font-semibold text-black">Mitigation:</span>
                     <div className="text-black mt-1">
-                      {(risk.mitigationMeasures || '').substring(0, 100)}
-                      {(risk.mitigationMeasures || '').length > 100 && '...'}
+                      {(risk.mitigationMeasures || '').length > 100 ? (risk.mitigationMeasures || '').substring(0, 100) + '...' : (risk.mitigationMeasures || '')}
                     </div>
                   </div>
                   

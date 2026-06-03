@@ -15,6 +15,8 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { getRoleLevel } from '@/lib/utils/roleHierarchy';
 import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import AccessRestricted from '@/components/risk-review/AccessRestricted';
+import { AppNotification } from '@/lib/api/services/notifications';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 
 // Extend Risk type to include additional fields
 interface Risk extends BaseRisk {
@@ -64,6 +66,10 @@ export default function RiskReviewPage() {
   const [category, setCategory] = useState(CATEGORIES[0].value);
   const [organization, setOrganization] = useState('');
   const [search, setSearch] = useState("");
+  const { notifications: allNotifications, unreadCount: totalUnread, markAsRead: markNotifRead, markAllAsRead: markAllNotifRead } = useNotifications();
+  const mitigationNotifications: AppNotification[] = allNotifications.filter(n => n.type === 'mitigation_status_change');
+  const notificationsLoading = false;
+  const unreadMitigationCount = mitigationNotifications.filter(n => !n.read).length;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [loadingState, setLoadingState] = useState({
@@ -172,7 +178,7 @@ export default function RiskReviewPage() {
           risk.statement,
           risk.category,
           risk.triggerIndicator,
-          risk.mitigationMeasures,
+          risk.mitigationMeasures || '',
           risk.preventiveMeasures,
           risk.reactiveMeasures,
           // Search in consortium names
@@ -296,6 +302,9 @@ export default function RiskReviewPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allPendingRisks, allApprovedRisks, allRejectedRisks, allClosedRisks]);
 
+  const handleMarkNotificationRead = (notificationId: string) => markNotifRead(notificationId);
+  const handleMarkAllNotificationsRead = () => markAllNotifRead();
+
   // Dynamically set tab counts
   const tabCounts = {
     'Pending Review': pendingRisks.length,
@@ -309,6 +318,7 @@ export default function RiskReviewPage() {
     { label: 'Approved', count: tabCounts['Approved'] },
     { label: 'Rejected', count: tabCounts['Rejected'] },
     { label: 'Closed', count: tabCounts['Closed'] },
+    { label: 'Notifications', count: unreadMitigationCount },
   ];
 
   const handleToggleTrigger = async (riskId: string, isCurrentlyTriggered: boolean) => {
@@ -532,11 +542,24 @@ export default function RiskReviewPage() {
                 onClick={() => setActiveTab(tab.label)}
                 type="button"
               >
+                {tab.label === 'Notifications' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                )}
                 {tab.label}
-                {isFullyLoaded && (
-                  <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">
-                    {tab.count}
-                  </span>
+                {tab.label === 'Notifications' ? (
+                  tab.count > 0 && (
+                    <span className="ml-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-semibold">
+                      {tab.count}
+                    </span>
+                  )
+                ) : (
+                  isFullyLoaded && (
+                    <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                      {tab.count}
+                    </span>
+                  )
                 )}
               </button>
             ))}
@@ -656,6 +679,73 @@ export default function RiskReviewPage() {
                   />
                 ))
               )
+            )}
+            {activeTab === 'Notifications' && (
+              <div>
+                {/* Header row */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Mitigation Status Notifications</h2>
+                  {mitigationNotifications.some(n => !n.read) && (
+                    <button
+                      onClick={handleMarkAllNotificationsRead}
+                      className="text-sm text-teal-600 hover:text-teal-800 font-medium"
+                      type="button"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+                {notificationsLoading ? (
+                  <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex items-center justify-center text-gray-400">
+                    Loading notifications…
+                  </div>
+                ) : mitigationNotifications.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-gray-500">
+                    <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <p className="text-lg font-medium">No mitigation notifications</p>
+                    <p className="text-sm text-gray-400">You&apos;ll be notified when mitigation statuses change in your organization</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {mitigationNotifications.map(notification => (
+                      <div
+                        key={notification._id}
+                        className={`bg-white border rounded-xl p-4 flex items-start gap-4 transition-colors ${notification.read ? 'border-gray-200 opacity-70' : 'border-teal-300 shadow-sm'}`}
+                      >
+                        {/* Icon */}
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${notification.read ? 'bg-gray-100' : 'bg-teal-50'}`}>
+                          <svg className={`w-5 h-5 ${notification.read ? 'text-gray-400' : 'text-teal-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                        </div>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={`font-semibold text-sm ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>{notification.title}</p>
+                            {!notification.read && (
+                              <span className="inline-block w-2 h-2 bg-teal-500 rounded-full flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 leading-relaxed">{notification.body}</p>
+                          <p className="text-xs text-gray-400 mt-1">{new Date(notification.createdAt).toLocaleString()}</p>
+                        </div>
+                        {/* Mark read */}
+                        {!notification.read && (
+                          <button
+                            onClick={() => handleMarkNotificationRead(notification._id)}
+                            className="flex-shrink-0 text-xs text-teal-600 hover:text-teal-800 font-medium mt-1"
+                            type="button"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
                         </div>
         )}

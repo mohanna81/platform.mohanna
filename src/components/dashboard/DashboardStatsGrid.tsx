@@ -1440,7 +1440,7 @@ const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardSta
       }
       try {
         const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
-        const res = await mitigationTrackingService.getStatsByConsortia(fUser.consortia as string[]);
+        const res = await mitigationTrackingService.getStatsByConsortia(fUser.consortia as string[], fUser.organizationId);
         if (res.data?.success) setMitigationStats(res.data.data);
       } catch {
         // Non-critical — dashboard still works without this
@@ -1685,7 +1685,7 @@ const OrganizationDashboardContent = ({ stats }: { stats: DashboardStats }) => {
       }
       try {
         const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
-        const res = await mitigationTrackingService.getStatsByConsortia(orgUser.consortia as string[]);
+        const res = await mitigationTrackingService.getStatsByConsortia(orgUser.consortia as string[], orgUser.organizationId);
         if (res.data?.success) setOrgMitigationStats(res.data.data);
       } catch {
         // Non-critical

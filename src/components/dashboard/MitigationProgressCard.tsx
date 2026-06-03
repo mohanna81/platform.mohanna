@@ -52,7 +52,7 @@ export default function MitigationProgressCard({ stats, loading }: MitigationPro
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="text-base font-semibold text-gray-900">Mitigation Implementation Progress</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Real-time tracking across all organisations</p>
+          <p className="text-xs text-gray-500 mt-0.5">A mitigation is complete when all organisation roles are applied</p>
         </div>
         <span className="inline-flex items-center gap-1.5 bg-[#2a9d8f]/10 text-[#1a6b61] text-xs font-semibold px-2.5 py-1 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-[#2a9d8f] inline-block" />
@@ -76,7 +76,7 @@ export default function MitigationProgressCard({ stats, loading }: MitigationPro
           />
         </div>
         <p className="text-xs text-gray-400 mt-1">
-          {s.applied} of {s.total} measures applied
+          {s.applied} of {s.total} mitigations fully applied
         </p>
       </div>
 
@@ -99,33 +99,6 @@ export default function MitigationProgressCard({ stats, loading }: MitigationPro
         />
       </div>
 
-      {/* Per-type breakdown (if data available) */}
-      {stats && stats.byMeasureType.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By Measure Type</p>
-          {(['Mitigation', 'Preventive', 'Reactive'] as const).map(type => {
-            const typeEntries = stats.byMeasureType.filter(e => e._id.measureType === type);
-            const applied = typeEntries.find(e => e._id.status === 'Applied')?.count ?? 0;
-            const inProgress = typeEntries.find(e => e._id.status === 'In Progress')?.count ?? 0;
-            const notStarted = typeEntries.find(e => e._id.status === 'Not Started')?.count ?? 0;
-            const typeTotal = applied + inProgress + notStarted;
-            const pct = typeTotal > 0 ? Math.round((applied / typeTotal) * 100) : 0;
-            if (typeTotal === 0) return null;
-            return (
-              <div key={type} className="flex items-center gap-3">
-                <span className="text-xs text-gray-600 w-20 flex-shrink-0">{type}</span>
-                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#2a9d8f] rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-500 w-8 text-right">{pct}%</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

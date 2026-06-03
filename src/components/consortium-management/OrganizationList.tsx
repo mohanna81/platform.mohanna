@@ -24,6 +24,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
   const [viewUsersOrg, setViewUsersOrg] = useState<Organization | null>(null);
   const [orgUsers, setOrgUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [search, setSearch] = useState('');
   const { user } = useAuth();
 
   // Check if user is Admin or Super User
@@ -156,10 +157,26 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
     );
   }
 
+  const filteredOrgs = search.trim()
+    ? organizations.filter(o =>
+        o.name?.toLowerCase().includes(search.toLowerCase()) ||
+        o.email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : organizations;
+
   return (
     <>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search organizations..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+        />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {organizations.map((organization) => (
+        {filteredOrgs.map((organization) => (
           <div key={organization._id || organization.id} className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-lg text-gray-800">{organization.name}</h3>
