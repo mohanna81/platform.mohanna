@@ -1,7 +1,6 @@
 import React from 'react';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
-import Dropdown from '../common/Dropdown';
 import Modal from '../common/Modal';
 import { User } from '@/lib/api';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -137,27 +136,36 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           </div>
         </div>
         <div>
-          <Dropdown
-            label="Role"
-            placeholder="Select role"
-            options={roleOptions}
+          <label className="block text-sm font-semibold text-gray-900 mb-1">Role</label>
+          <select
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
             value={role}
-            onChange={setRole}
+            onChange={e => setRole(e.target.value)}
             required
-            fullWidth
             disabled={isSubmitting}
-          />
+          >
+            <option value="">Select role</option>
+            {roleOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <Dropdown
-            label="Consortia"
-            placeholder="Select consortia to add"
-            options={consortiumOptions.filter(opt => !consortia.includes(opt.value))}
+          <label className="block text-sm font-semibold text-gray-900 mb-1">Consortia</label>
+          <select
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-black bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
             value=""
-            onChange={v => { if (v && !consortia.includes(v)) setConsortia([...consortia, v]); }}
-            fullWidth
+            onChange={e => {
+              const v = e.target.value;
+              if (v && !consortia.includes(v)) setConsortia([...consortia, v]);
+            }}
             disabled={isSubmitting}
-          />
+          >
+            <option value="" className="text-black">Select consortia</option>
+            {consortiumOptions.map(opt => (
+              <option key={opt.value} value={opt.value} className="text-black">{opt.label}</option>
+            ))}
+          </select>
           {consortia.length > 0 && (
             <div className="mt-2 space-y-1">
               {consortia.map((consortiumId, index) => {
@@ -165,7 +173,14 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                 return (
                   <div key={consortiumId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
                     <span className="text-black font-medium">{consortium?.label || consortiumId}</span>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setConsortia(consortia.filter((_, i) => i !== index))} disabled={isSubmitting} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
+                    <button
+                      type="button"
+                      onClick={() => setConsortia(consortia.filter((_, i) => i !== index))}
+                      className="text-red-500 hover:text-red-700 text-xs font-bold"
+                      disabled={isSubmitting}
+                    >
+                      ×
+                    </button>
                   </div>
                 );
               })}
@@ -173,16 +188,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           )}
         </div>
         <div>
-          <Dropdown
-            label="Organization"
-            placeholder="Select organization"
-            options={filteredOrganizationOptions}
+          <label className="block text-sm font-semibold text-gray-900 mb-1">Organization</label>
+          <select
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
             value={organization}
-            onChange={setOrganization}
+            onChange={e => setOrganization(e.target.value)}
             required
-            fullWidth
             disabled={isSubmitting}
-          />
+          >
+            <option value="">Select organization</option>
+            {filteredOrganizationOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-2">
           <Button variant="outline" size="md" type="button" onClick={onClose} disabled={isSubmitting} className="border-gray-300 text-gray-900 w-full sm:w-auto text-sm md:text-base">Cancel</Button>

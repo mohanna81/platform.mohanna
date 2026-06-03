@@ -294,10 +294,8 @@ export default function ActionItemsPage() {
   const [search, setSearch] = useState("");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
-  const [rawConsortia, setRawConsortia] = useState<Consortium[]>([]);
   const [orgOptions, setOrgOptions] = useState<{ value: string; label: string }[]>([]);
   const [userOptions, setUserOptions] = useState<{ value: string; label: string }[]>([]);
-  const [rawConsortiumUsers, setRawConsortiumUsers] = useState<User[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -329,7 +327,6 @@ export default function ActionItemsPage() {
           label: u.name,
         }));
 
-        setRawConsortiumUsers(consortiumUsers);
         setUserOptions(filteredUserOptions);
       } else {
         console.warn('Failed to fetch users or invalid response format');
@@ -345,7 +342,6 @@ export default function ActionItemsPage() {
   // Function to clear user options when no consortium is selected
   const clearUserOptions = useCallback(() => {
     setUserOptions([]);
-    setRawConsortiumUsers([]);
   }, []);
 
   React.useEffect(() => {
@@ -359,7 +355,6 @@ export default function ActionItemsPage() {
             setLoadingState(prev => ({ ...prev, consortia: true }));
             try {
               const consortia: Consortium[] = await fetchConsortiaByRole(user);
-              setRawConsortia(consortia);
               return consortia.filter(isConsortium).map((c: Consortium) => ({
                 value: c.id || c._id,
                 label: c.name,
@@ -487,8 +482,9 @@ export default function ActionItemsPage() {
   const handleCloseAssignModal = () => setShowAssignModal(false);
   const handleSubmitAssign = async (form: AssignActionFormData) => {
     try {
-      if (!form.assignToUsers || form.assignToUsers.length === 0) {
-        showToast.error('Please select at least one user to assign the action item to');
+      // Validate that a user is selected
+      if (!form.assignToUser) {
+        showToast.error('Please select a user to assign the action item to');
         return;
       }
 
@@ -496,14 +492,12 @@ export default function ActionItemsPage() {
         title: form.title,
         description: form.description,
         consortium: form.consortium,
-        assignTo: form.assignToUsers[0],
+        assignTo: form.assignToUser,
         assignToModel: 'User',
-        organization: form.assignTo[0] || '',
-        organizationUser: form.assignToUsers,
+        organization: form.assignTo, // Include the selected organization
         implementationDate: form.date,
         status: 'In Progress',
         createdBy: authStorage.getUserId() || '',
-        ...(form.relatedRisks && form.relatedRisks.length > 0 && { relatedRisks: form.relatedRisks }),
       };
 
       const res = await actionItemsService.createActionItem(payload);
@@ -520,19 +514,18 @@ export default function ActionItemsPage() {
   };
 
   const handleEdit = (item: ActionItem) => {
-    // Org field — collect all org IDs as array
-    const assignToValue: string[] = [];
-    if (item.organization && item.organization.length > 0) {
-      item.organization.forEach(o => { const id = getId(o); if (id) assignToValue.push(id); });
+    
+    // Calculate the assignTo value
+    let assignToValue = '';
+    if (item.assignToModel === 'User') {
+      assignToValue = '';
     } else if (item.assignToModel === 'Organization') {
-      const id = getId(item.assignTo); if (id) assignToValue.push(id);
+      assignToValue = getId(item.assignTo);
+    } else if (item.organization && item.organization.length > 0) {
+      assignToValue = getId(item.organization[0]);
     }
-
-    // Resolve assigned users: prefer organizationUser array, fall back to primary assignTo
-    const resolvedUsers: string[] = item.organizationUser && item.organizationUser.length > 0
-      ? item.organizationUser.map(u => getId(u)).filter(Boolean)
-      : item.assignToModel === 'User' ? [getId(item.assignTo)].filter(Boolean) : [];
-
+    
+    
     setEditingItem(item);
     setEditModalOpen(true);
     
@@ -549,25 +542,25 @@ export default function ActionItemsPage() {
   const handleSubmitEdit = async (form: EditActionFormData) => {
     if (!editingItem) return;
     try {
-      if (!form.assignToUsers || form.assignToUsers.length === 0) {
-        showToast.error('Please select at least one user to assign the action item to');
+      // Validate that a user is selected
+      if (!form.assignToUser) {
+        showToast.error('Please select a user to assign the action item to');
         return;
       }
 
       const normalizedDate = form.date ? new Date(`${form.date}T00:00:00`).toISOString() : undefined;
-      const organizationId = form.assignTo.length > 0
-        ? form.assignTo[0]
-        : editingItem.organization && editingItem.organization.length > 0
+      const existingOrganizationId =
+        editingItem.organization && editingItem.organization.length > 0
           ? getId(editingItem.organization[0])
           : '';
+      const organizationId = form.assignTo || existingOrganizationId;
 
       const payload: UpdateActionItemRequest = {
         title: form.title,
         description: form.description,
         consortium: form.consortium,
-        assignTo: form.assignToUsers[0],
+        assignTo: form.assignToUser,
         assignToModel: 'User',
-        organizationUser: form.assignToUsers,
         implementationDate: normalizedDate,
         status: form.status,
       };
@@ -741,9 +734,10 @@ export default function ActionItemsPage() {
                 actionItemId={item._id}
                 daysRemaining={statusInfo.daysRemaining}
                 assignedTo={
-                  item.organizationUser && item.organizationUser.length > 0
-                    ? item.organizationUser.map(u => isNamedObject(u) ? u.name : String(u)).join(', ')
-                    : isNamedObject(item.assignTo) ? item.assignTo.name : String(item.assignTo || '')
+                  [
+                    isNamedObject(item.assignTo) ? item.assignTo.name : String(item.assignTo || ''),
+                    item.assignToUser ? (isNamedObject(item.assignToUser) ? item.assignToUser.name : String(item.assignToUser || '')) : undefined
+                  ].filter(Boolean).join(' / ')
                 }
                 consortium={Array.isArray(item.consortium)
                   ? item.consortium.map((c) => {
@@ -775,8 +769,6 @@ export default function ActionItemsPage() {
                   }
                   return String(item.relatedRisk || '');
                 })()}
-                relatedRisks={item.relatedRisks}
-                commentCount={(item.comments ?? []).reduce((acc: number, c: { _id?: string; replies?: unknown[] }) => acc + 1 + (c.replies?.length ?? 0), 0)}
                 onEdit={!authLoading && canAssignOrEdit ? () => handleEdit(item) : undefined}
                 onDelete={!authLoading && isCreatedBy(item, userId) ? () => { setItemToDelete(item); setConfirmDeleteOpen(true); } : undefined}
               />
@@ -790,9 +782,7 @@ export default function ActionItemsPage() {
           onSubmit={handleSubmitAssign}
           consortiumOptions={consortiumOptions}
           orgOptions={orgOptions}
-          rawConsortia={rawConsortia}
           userOptions={userOptions}
-          rawConsortiumUsers={rawConsortiumUsers}
           onConsortiumChange={handleConsortiumChange}
         />
         <EditActionModal
@@ -806,21 +796,21 @@ export default function ActionItemsPage() {
               ? getId(editingItem.consortium[0])
               : getId(editingItem.consortium),
             assignTo: (() => {
-              const ids: string[] = [];
-              if (editingItem.organization && editingItem.organization.length > 0) {
-                editingItem.organization.forEach(o => { const id = getId(o); if (id) ids.push(id); });
+              if (editingItem.assignToModel === 'User') {
+                return '';
               } else if (editingItem.assignToModel === 'Organization') {
-                const id = getId(editingItem.assignTo); if (id) ids.push(id);
+                return getId(editingItem.assignTo);
+              } else if (editingItem.organization && editingItem.organization.length > 0) {
+                return getId(editingItem.organization[0]);
+              } else {
+                return '';
               }
-              return ids;
             })(),
-            assignToUsers: (editingItem.organizationUser && editingItem.organizationUser.length > 0)
-              ? editingItem.organizationUser.map(u => getId(u)).filter(Boolean)
-              : editingItem.assignToModel === 'User' ? [getId(editingItem.assignTo)].filter(Boolean) : [],
+            assignToUser: editingItem.assignToModel === 'User' ? getId(editingItem.assignTo) : getId(editingItem.assignToUser || ''),
             date: formatDate(editingItem.implementationDate),
             status: editingItem.status,
           } : {
-            title: '', description: '', consortium: '', assignTo: [], assignToUsers: [], date: '', status: 'In Progress'
+            title: '', description: '', consortium: '', assignTo: '', assignToUser: '', date: '', status: 'In Progress'
           }}
           consortiumOptions={consortiumOptions}
           orgOptions={orgOptions}

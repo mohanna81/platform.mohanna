@@ -44,7 +44,7 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
     </div>
     <div className="flex justify-end gap-2">
       <button className="border border-gray-300 rounded px-4 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer" onClick={onViewDetails}>View Details</button>
-      {(risk.status === 'Draft' || risk.status === 'Rejected') && onEdit && (userRole === 'Organization User' || userRole === 'Facilitator') && (
+      {(risk.status === 'Draft' || risk.status === 'Rejected') && onEdit && userRole === 'Organization User' && (
         <button className="bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] rounded px-4 py-1 text-sm font-medium transition cursor-pointer border border-[#FBBF77] hover:border-[#f9b15c] flex items-center gap-2" onClick={onEdit}>
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -73,9 +73,9 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
   const filterRisks = useCallback((risks: Risk[]) => {
     let filteredRisks = risks;
 
-    // Org Users and Facilitators only see risks they created
-    if (user?.role === 'Organization User' || user?.role === 'Facilitator') {
-      filteredRisks = risks.filter(risk =>
+    // Filter by user role - Organization Users only see their own risks
+    if (user?.role === 'Organization User') {
+      filteredRisks = risks.filter(risk => 
         risk.createdBy?._id === user.id
       );
     }

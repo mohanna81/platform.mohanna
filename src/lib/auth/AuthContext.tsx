@@ -12,7 +12,6 @@ export interface AuthUser {
   role: UserRole;
   name: string;
   organizationId?: string;
-  consortia?: string[];
 }
 
 interface AuthContextType {
@@ -69,14 +68,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authService.login({ email, password });
       
       if (response.success && response.data) {
-        const userData = response.data.data as Record<string, unknown> & typeof response.data.data;
+        const userData = response.data.data;
         const authUser: AuthUser = {
           id: userData.id,
           email: userData.email,
           name: userData.name,
           role: userData.role as UserRole,
-          organizationId: (userData as Record<string, unknown>).organizationId as string || userData.organization as string || undefined,
-          consortia: Array.isArray(userData.consortia) ? userData.consortia : undefined,
+          organizationId: undefined // Add if available in your response
         };
         
         // Store in cookies (7 days)

@@ -21,7 +21,6 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
   const [editingConsortiumId, setEditingConsortiumId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [search, setSearch] = useState('');
 
   const fetchConsortia = useCallback(async () => {
     setLoading(true);
@@ -35,7 +34,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
       }
       
       const consortiaData = await fetchConsortiaByRole(user);
-      setConsortiums(consortiaData.filter((c: Consortium) => c.status !== 'Closed'));
+      setConsortiums(consortiaData);
     } catch (error) {
       console.error('Error fetching consortia:', error);
       setError('An unexpected error occurred');
@@ -54,13 +53,10 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
 
   // Calculate pagination - ensure consortiums is always an array
   const consortiaArray = Array.isArray(consortiums) ? consortiums : [];
-  const filteredConsortia = search.trim()
-    ? consortiaArray.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
-    : consortiaArray;
-  const totalPages = Math.ceil(filteredConsortia.length / itemsPerPage);
+  const totalPages = Math.ceil(consortiaArray.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentConsortiums = filteredConsortia.slice(startIndex, endIndex);
+  const currentConsortiums = consortiaArray.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -82,15 +78,6 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-2 sm:p-4 mt-6 overflow-x-auto">
-      <div className="mb-4 px-2">
-        <input
-          type="text"
-          placeholder="Search consortiums..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
-        />
-      </div>
       <table className="w-full min-w-[600px] text-left">
         <thead>
           <tr className="text-gray-500 text-xs md:text-sm">
@@ -103,7 +90,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
         <tbody>
           {error ? (
             <tr><td colSpan={4} className="py-6 text-center text-red-500">{error}</td></tr>
-          ) : filteredConsortia.length === 0 ? (
+          ) : consortiaArray.length === 0 ? (
             <tr><td colSpan={4} className="py-6 text-center text-gray-400">No consortia found.</td></tr>
           ) : (
             currentConsortiums.map((c) => (
@@ -151,7 +138,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
       </table>
       
       {/* Pagination */}
-      {filteredConsortia.length > 0 && (
+      {consortiaArray.length > 0 && (
         <div className="px-4 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <PageSizeSelector
@@ -161,7 +148,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredConsortia.length}
+              totalItems={consortiaArray.length}
               itemsPerPage={itemsPerPage}
               onPageChange={handlePageChange}
             />

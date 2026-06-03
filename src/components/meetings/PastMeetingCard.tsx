@@ -7,16 +7,14 @@ import { formatDateTimeRangeWithTimezone } from '@/lib/utils/timezone';
 interface PastMeetingCardProps {
   meeting: Meeting;
   onEdit?: () => void;
-  onDelete?: () => void;
 }
 
 const isMeetingAttendee = (assignedTo: unknown): assignedTo is MeetingAttendee => {
   return !!assignedTo && typeof assignedTo === 'object' && 'name' in assignedTo;
 };
 
-const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDelete }) => {
+const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit }) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   // Format date and time with timezone
   const formatDateTime = (date: string, startTime: string, endTime: string, timezone?: string) => {
     return formatDateTimeRangeWithTimezone(date, startTime, endTime, timezone);
@@ -113,11 +111,6 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
           ))}
         </div>
         <div className="flex justify-end mt-4 gap-2">
-          {onDelete && (
-            <Button variant="outline" size="md" onClick={() => setConfirmDeleteOpen(true)} className="border-red-300 text-red-600 hover:bg-red-50">
-              Delete
-            </Button>
-          )}
           {onEdit && (
             <Button variant="secondary" size="md" onClick={onEdit}>
               {meeting.minutes?.trim() ? 'Edit Minutes' : 'Add Minutes'}
@@ -128,14 +121,6 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
           </Button>
         </div>
       </div>
-      {/* Confirm Delete Modal */}
-      <Modal isOpen={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)} title="Delete Meeting">
-        <div className="py-2 text-gray-700">Are you sure you want to delete <span className="font-semibold">{meeting.title}</span>? This action cannot be undone.</div>
-        <div className="flex justify-end gap-2 mt-6">
-          <button className="bg-white border border-gray-300 text-gray-700 font-medium px-6 py-2 rounded-lg hover:bg-gray-100 text-sm cursor-pointer" onClick={() => setConfirmDeleteOpen(false)}>Cancel</button>
-          <button className="bg-red-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-red-700 text-sm cursor-pointer" onClick={() => { setConfirmDeleteOpen(false); onDelete?.(); }}>Delete</button>
-        </div>
-      </Modal>
       {/* Minutes Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Meeting Minutes" size="lg">
         <div className="space-y-4">
