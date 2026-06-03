@@ -6,6 +6,8 @@ import Loader from '../common/Loader';
 import { fetchOrganizationsByRole } from '@/lib/api/services/organizations';
 import { useAuth } from '@/lib/auth/AuthContext';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { userService, User } from '@/lib/api';
+import Modal from '../common/Modal';
 
 interface OrganizationListProps {
   onEdit?: (organization: Organization) => void;
@@ -19,6 +21,10 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [organizationToDelete, setOrganizationToDelete] = useState<Organization | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewUsersOrg, setViewUsersOrg] = useState<Organization | null>(null);
+  const [orgUsers, setOrgUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [search, setSearch] = useState('');
   const { user } = useAuth();
 
   // Check if user is Admin or Super User
@@ -49,6 +55,26 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
   useEffect(() => {
     fetchOrganizations();
   }, [fetchOrganizations, refreshKey]);
+
+  const handleViewUsers = async (organization: Organization) => {
+    setViewUsersOrg(organization);
+    setLoadingUsers(true);
+    setOrgUsers([]);
+    try {
+      const response = await userService.getUsers();
+      if (response.success && response.data) {
+        const orgId = organization._id || organization.id;
+        const filtered = response.data.filter((u: User) =>
+          u.organizations && u.organizations.includes(orgId)
+        );
+        setOrgUsers(filtered);
+      }
+    } catch {
+      showToast.error('Failed to fetch users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const handleEdit = (organization: Organization) => {
     if (!canEditOrganizations) return;
@@ -131,10 +157,26 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
     );
   }
 
+  const filteredOrgs = search.trim()
+    ? organizations.filter(o =>
+        o.name?.toLowerCase().includes(search.toLowerCase()) ||
+        o.email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : organizations;
+
   return (
     <>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search organizations..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+        />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {organizations.map((organization) => (
+        {filteredOrgs.map((organization) => (
           <div key={organization._id || organization.id} className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-lg text-gray-800">{organization.name}</h3>
@@ -153,20 +195,27 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
             {organization.users !== undefined && (
               <p className="text-xs text-gray-700 mb-3">Users: {organization.users}</p>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleViewUsers(organization); }}
+              >
+                View Users
+              </Button>
               {canEditOrganizations && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleEdit(organization)}
                 >
                   Edit
                 </Button>
               )}
               {canDelete && (
-                <Button 
-                  variant="danger" 
-                  size="sm" 
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleDeleteClick(organization)}
                 >
                   Delete
@@ -191,6 +240,63 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
         cancelText="Cancel"
         loading={isDeleting}
       />
+
+      {/* View Users Modal */}
+      <Modal
+        isOpen={!!viewUsersOrg}
+        onClose={() => setViewUsersOrg(null)}
+        title={viewUsersOrg ? `${viewUsersOrg.name} — Members` : ''}
+        size="2xl"
+      >
+        {loadingUsers ? (
+          <div className="py-8 text-center">
+            <Loader size="md" variant="default" />
+            <p className="text-gray-500 mt-3 text-sm">Loading users...</p>
+          </div>
+        ) : orgUsers.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 text-sm">
+            No users found for this organization.
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="pb-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {orgUsers.map(u => (
+                <tr key={u._id} className="hover:bg-gray-50">
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-blue-600">{u.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{u.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4 text-sm text-gray-600">{u.email}</td>
+                  <td className="py-3 pr-4 text-sm text-gray-600">{u.role}</td>
+                  <td className="py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      u.status.toLowerCase() === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : u.status.toLowerCase() === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {u.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Modal>
     </>
   );
 };

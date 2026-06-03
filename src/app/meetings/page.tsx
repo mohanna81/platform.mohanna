@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import MeetingsTabs from "@/components/meetings/MeetingsTabs";
 import MeetingCard from "@/components/meetings/MeetingCard";
 import PastMeetingCard from "@/components/meetings/PastMeetingCard";
-import CalendarViewCard from "@/components/meetings/CalendarViewCard";
 import Layout from '@/components/common/Layout';
 import NewMeetingModal from "@/components/meetings/NewMeetingModal";
 import Button from "@/components/common/Button";
@@ -14,9 +13,10 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import type { CreateMeetingRequest, Meeting } from "@/lib/api/services/meetings";
 import CompleteMeetingModal from '@/components/meetings/CompleteMeetingModal';
 import { getUserTimezone } from "@/lib/utils/timezone";
-import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
+import { fetchConsortiaByRole, Consortium } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organizations';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
+import { actionItemsService } from '@/lib/api/services/actionitems';
 
 export default function MeetingsPage() {
   const { user } = useAuth();
@@ -26,6 +26,7 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [consortiums, setConsortiums] = useState<{ id: string; name: string }[]>([]);
+  const [rawConsortia, setRawConsortia] = useState<Consortium[]>([]);
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -58,13 +59,20 @@ export default function MeetingsPage() {
   // Check if user can delete a specific meeting
   const canDeleteMeeting = (meeting: Meeting) => {
     if (!user?.id) return false;
-    
+
     // Only the creator can delete meetings
-    const isCreator = 
+    const isCreator =
       (typeof meeting.createdBy === 'string' && meeting.createdBy === user.id) ||
       (typeof meeting.createdBy === 'object' && (meeting.createdBy.id === user.id || meeting.createdBy._id === user.id));
-    
+
     return isCreator;
+  };
+
+  // Admins and Facilitators can delete past meetings
+  const canDeletePastMeeting = () => {
+    if (!user?.role) return false;
+    const role = normalizeRole(user.role);
+    return role === 'Admin' || role === 'Facilitator' || role === 'Super_user';
   };
 
   const fetchMeetings = useCallback(async () => {
@@ -103,6 +111,7 @@ export default function MeetingsPage() {
     async function fetchConsortiaOptions() {
       if (!user) return;
       const consortia = await fetchConsortiaByRole(user);
+      setRawConsortia(consortia);
       setConsortiums(consortia.map((c) => ({ id: c.id || c._id, name: c.name })));
     }
     fetchConsortiaOptions();
@@ -163,7 +172,7 @@ export default function MeetingsPage() {
     setIsSubmitting(true);
     try {
       // Add createdBy and timezone to the payload
-      const payload = { ...meetingData, createdBy: user?.id, timezone: getUserTimezone() };
+      const payload = { ...meetingData, createdBy: user?.id, timezone: getUserTimezone(), ...(meetingData.risks && meetingData.risks.length > 0 && { risks: meetingData.risks }) };
       const response = await meetingsService.createMeeting(payload);
       if (response.success) {
         // Meeting created successfully
@@ -223,8 +232,10 @@ export default function MeetingsPage() {
   // Define ActionItem type based on Meeting type
   type AssignedToType = string | { id?: string; _id?: string };
   type ActionItem = {
+    title: string;
     description: string;
     assignedTo: AssignedToType;
+    deadline: string;
   };
 
   // Complete meeting submit
@@ -232,45 +243,73 @@ export default function MeetingsPage() {
     if (!completingMeeting) return;
     setIsSubmitting(true);
     try {
-      
+      const resolveId = (v: AssignedToType): string =>
+        typeof v === 'string' ? v : (v?.id || v?._id || '');
+
       const updateData = {
         minutes,
-        actionItems: actionItems.map(ai => {
-          let assignedToId = '';
-          if (typeof ai.assignedTo === 'string') {
-            assignedToId = ai.assignedTo;
-          } else if (ai.assignedTo && typeof ai.assignedTo === 'object') {
-            assignedToId = ai.assignedTo.id || ai.assignedTo._id || '';
-          }
-          return {
-            description: ai.description,
-            assignedTo: assignedToId,
-          };
-        }),
+        actionItems: actionItems.map(ai => ({
+          description: ai.description,
+          assignedTo: resolveId(ai.assignedTo),
+        })),
         links: links || [],
         status: 'Completed' as const,
       };
-      
-      
-      // Send actionItems as array of objects
+
       const response = await meetingsService.updateMeeting(completingMeeting._id, updateData);
-      
-      
+
       if (response.success) {
-        showToast.success('Meeting completed successfully!');
+        // Create real ActionItem records from the minutes action items
+        const consortiumId: string =
+          Array.isArray(completingMeeting.consortium) && completingMeeting.consortium.length > 0
+            ? (typeof completingMeeting.consortium[0] === 'object'
+                ? (completingMeeting.consortium[0] as any)._id || (completingMeeting.consortium[0] as any).id || ''
+                : String(completingMeeting.consortium[0]))
+            : '';
+
+        const organizationId: string =
+          Array.isArray(completingMeeting.organization) && completingMeeting.organization.length > 0
+            ? (typeof completingMeeting.organization[0] === 'object'
+                ? (completingMeeting.organization[0] as any)._id || (completingMeeting.organization[0] as any).id || ''
+                : String(completingMeeting.organization[0]))
+            : '';
+
+        const createdById: string = user?.id || '';
+
+        const creationResults = await Promise.allSettled(
+          actionItems.map(ai => {
+            const assignedToId = resolveId(ai.assignedTo);
+            return actionItemsService.createActionItem({
+              title: ai.title,
+              description: ai.description,
+              assignTo: assignedToId,
+              assignToModel: 'User',
+              consortium: consortiumId,
+              organization: organizationId || undefined,
+              implementationDate: ai.deadline,
+              status: 'Draft',
+              createdBy: createdById,
+            } as any);
+          })
+        );
+
+        const failed = creationResults.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+          showToast.error(`${failed} action item(s) could not be saved to the system.`);
+        }
+
+        showToast.success('Meeting completed and action items created!');
         setCompleteModalOpen(false);
         setCompletingMeeting(null);
-        
-        // Immediately update the local state to reflect the change
-        setMeetings(prevMeetings => 
-          prevMeetings.map(meeting => 
-            meeting._id === completingMeeting._id 
+
+        setMeetings(prevMeetings =>
+          prevMeetings.map(meeting =>
+            meeting._id === completingMeeting._id
               ? { ...meeting, status: 'Completed' as const, minutes, actionItems: updateData.actionItems, links: updateData.links }
               : meeting
           )
         );
-        
-        // Also refresh from the server to ensure consistency
+
         setTimeout(async () => {
           await fetchMeetings();
         }, 500);
@@ -399,13 +438,13 @@ export default function MeetingsPage() {
                         key={meeting._id}
                         meeting={meeting}
                         onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
+                        onDelete={canDeletePastMeeting() ? () => handleDeleteMeeting(meeting._id) : undefined}
                       />
                     ))
                   );
                 })()}
               </div>
             )}
-            {activeTab === "Calendar View" && <CalendarViewCard meetings={meetings} />}
           </>
         )}
         <NewMeetingModal
@@ -413,6 +452,7 @@ export default function MeetingsPage() {
           onClose={() => setModalOpen(false)}
           onSubmit={handleScheduleMeeting}
           consortiums={consortiums}
+          rawConsortia={rawConsortia}
           organizations={organizations}
           isSubmitting={isSubmitting}
         />
@@ -423,6 +463,7 @@ export default function MeetingsPage() {
             onClose={() => { setEditModalOpen(false); setEditingMeeting(null); }}
             onSubmit={handleUpdateMeeting}
             consortiums={consortiums}
+            rawConsortia={rawConsortia}
             organizations={organizations}
             isSubmitting={isSubmitting}
             initialValues={{
@@ -451,14 +492,22 @@ export default function MeetingsPage() {
             attendees={completingMeeting.attendees.map(a => ({ id: String(a.id || a._id), name: a.name }))}
             isSubmitting={isSubmitting}
             initialMinutes={completingMeeting.minutes || ''}
-            initialActionItems={completingMeeting.actionItems.map((ai: ActionItem) => {
-              if (typeof ai.assignedTo === 'string') {
-                return { description: ai.description, assignedTo: ai.assignedTo };
-              } else if (ai.assignedTo && typeof ai.assignedTo === 'object') {
-                return { description: ai.description, assignedTo: ai.assignedTo.id || ai.assignedTo._id || '' };
-              } else {
-                return { description: ai.description, assignedTo: '' };
-              }
+            initialActionItems={completingMeeting.actionItems.map((ai) => {
+              const raw = ai as any;
+              const assignedTo: string =
+                typeof raw.assignedTo === 'string'
+                  ? raw.assignedTo
+                  : raw.assignedTo && typeof raw.assignedTo === 'object'
+                  ? (raw.assignedTo.id || raw.assignedTo._id || '')
+                  : '';
+              return {
+                title: raw.title || '',
+                description: raw.description || '',
+                assignedTo,
+                deadline: raw.deadline
+                  ? new Date(raw.deadline).toISOString().split('T')[0]
+                  : new Date().toISOString().split('T')[0],
+              };
             })}
             initialLinks={completingMeeting.links || []}
           />

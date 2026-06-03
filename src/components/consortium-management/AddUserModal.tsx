@@ -129,19 +129,16 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">Role</label>
-            <select
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            <Dropdown
+              label="Role"
+              placeholder="Select role"
+              options={roleOptions}
               value={role}
-              onChange={e => setRole(e.target.value)}
+              onChange={setRole}
               required
+              fullWidth
               disabled={isSubmitting}
-            >
-              <option value="">Select role</option>
-              {roleOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            />
           </div>
           <div>
             <Dropdown
@@ -157,25 +154,15 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-1">Consortia</label>
-          <select
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-black bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          <Dropdown
+            label="Consortia"
+            placeholder={organization ? 'Select consortia to add' : 'Select an organization first'}
+            options={filteredConsortiumOptions.filter(opt => !consortia.includes(opt.value))}
             value=""
-            onChange={e => {
-              const selectedValue = e.target.value;
-              if (selectedValue && !consortia.includes(selectedValue)) {
-                setConsortia([...consortia, selectedValue]);
-              }
-            }}
+            onChange={v => { if (v && !consortia.includes(v)) setConsortia([...consortia, v]); }}
+            fullWidth
             disabled={isSubmitting || !organization}
-          >
-            <option value="" className="text-black">
-              {organization ? 'Select consortia' : 'Select an organization first'}
-            </option>
-            {filteredConsortiumOptions.map(opt => (
-              <option key={opt.value} value={opt.value} className="text-black">{opt.label}</option>
-            ))}
-          </select>
+          />
           {consortia.length > 0 && (
             <div className="mt-2 space-y-1">
               {consortia.map((consortiumId, index) => {
@@ -183,14 +170,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
                 return (
                   <div key={consortiumId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
                     <span className="text-black font-medium">{consortium?.label || consortiumId}</span>
-                    <button
-                      type="button"
-                      onClick={() => setConsortia(consortia.filter((_, i) => i !== index))}
-                      className="text-red-500 hover:text-red-700 text-xs font-bold"
-                      disabled={isSubmitting}
-                    >
-                      ×
-                    </button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setConsortia(consortia.filter((_, i) => i !== index))} disabled={isSubmitting} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
                   </div>
                 );
               })}
