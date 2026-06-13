@@ -7,8 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import ConsortiumTabs, { ConsortiumTab } from '@/components/consortium-management/ConsortiumTabs';
 import AddOrganizationToConsortium from '@/components/consortium-management/AddOrganizationToConsortium';
 import OrganizationList from '@/components/consortium-management/OrganizationList';
-import ActiveConsortiumsTable from '@/components/consortium-management/ActiveConsortiumsTable';
-import ClosedConsortiumsTable from '@/components/consortium-management/ClosedConsortiumsTable';
+import ActiveConsortiaTable from '@/components/consortium-management/ActiveConsortiumsTable';
+import ClosedConsortiaTable from '@/components/consortium-management/ClosedConsortiumsTable';
 import AddConsortiumModal from '@/components/consortium-management/AddConsortiumModal';
 import EditOrganizationModal from '@/components/consortium-management/EditOrganizationModal';
 import AddUserModal from '@/components/consortium-management/AddUserModal';
@@ -27,10 +27,10 @@ function ConsortiumManagementContent() {
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
   const [activeTab, setActiveTab] = useState<ConsortiumTab>(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam === 'Users' || tabParam === 'Organizations' || tabParam === 'Active Consortiums' || tabParam === 'Closed Consortiums') {
+    if (tabParam === 'Users' || tabParam === 'Organizations' || tabParam === 'Active Consortia' || tabParam === 'Closed Consortia') {
       return tabParam as ConsortiumTab;
     }
-    return 'Active Consortiums';
+    return 'Active Consortia';
   });
   const [showAddConsortiumModal, setShowAddConsortiumModal] = useState(false);
   const [showEditOrgModal, setShowEditOrgModal] = useState(false);
@@ -399,8 +399,8 @@ function ConsortiumManagementContent() {
     <div className="p-4 sm:p-8 md:p-12">
       <ConsortiumManagementHeader onNewConsortium={handleOpenAddConsortium} onNewOrganization={handleOpenAddOrg} onNewUser={handleOpenAddUser} canAddUser={canAddUser} canAddConsortium={canAddConsortium} canAddOrganization={canAddOrganization} />
       <ConsortiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      {activeTab === 'Active Consortiums' && <ActiveConsortiumsTable key={refreshKey} refreshKey={refreshKey} />}
-      {activeTab === 'Closed Consortiums' && <ClosedConsortiumsTable key={refreshKey} refreshKey={refreshKey} />}
+      {activeTab === 'Active Consortia' && <ActiveConsortiaTable key={refreshKey} refreshKey={refreshKey} />}
+      {activeTab === 'Closed Consortia' && <ClosedConsortiaTable key={refreshKey} refreshKey={refreshKey} />}
       {activeTab === 'Organizations' && (
         <>
           <AddOrganizationToConsortium 

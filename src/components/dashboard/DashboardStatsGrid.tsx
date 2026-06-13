@@ -170,7 +170,7 @@ const DashboardStatsGrid = () => {
           let pendingRisks: any[] = [];
           if (pendingRisksResponse.data?.success && pendingRisksResponse.data?.data) {
             pendingRisks = pendingRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -185,7 +185,7 @@ const DashboardStatsGrid = () => {
           let approvedRisks: any[] = [];
           if (approvedRisksResponse.data?.success && approvedRisksResponse.data?.data) {
             approvedRisks = approvedRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -200,7 +200,7 @@ const DashboardStatsGrid = () => {
           let rejectedRisks: any[] = [];
           if (rejectedRisksResponse.data?.success && rejectedRisksResponse.data?.data) {
             rejectedRisks = rejectedRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -533,14 +533,14 @@ const DashboardStatsGrid = () => {
           }
 
           // Process Shared Risks using the same logic as the shared risks page
-          const consortiums = Array.isArray(userConsortia) ? userConsortia : [];
+          const consortia = Array.isArray(userConsortia) ? userConsortia : [];
           let sharedRisks: any[] = [];
           if (sharedRisksResponse.success && sharedRisksResponse.data?.data) {
             const approvedRisks = sharedRisksResponse.data.data;
             
             sharedRisks = approvedRisks.filter((risk: any) => {
-              // Filter to show only risks from available consortiums (exact same logic as shared risks page)
-              const availableConsortiumIds = consortiums.map((c: any) => getEntityId(c)).filter(Boolean);
+              // Filter to show only risks from available consortia (exact same logic as shared risks page)
+              const availableConsortiumIds = consortia.map((c: any) => getEntityId(c)).filter(Boolean);
               const hasAvailableConsortium = Array.isArray(risk.consortium) && 
                 risk.consortium.some((c: any) => {
                   const riskConsortiumId = getEntityId(c);
@@ -552,7 +552,7 @@ const DashboardStatsGrid = () => {
                 console.log('Risk filtered out by consortium filter:', {
                   riskId: risk._id,
                   riskTitle: risk.title,
-                  riskConsortiums: risk.consortium?.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })) || [],
+                  riskConsortia: risk.consortium?.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })) || [],
                   availableConsortiumIds,
                   hasAvailableConsortium
                 });
@@ -720,7 +720,7 @@ const DashboardStatsGrid = () => {
             totalRisksForCard: myRisks.length, // Only showing user's own risks in Total Risks
             userActionItems: userActionItems.length,
             userId: user.id,
-            userConsortia: consortiums.length
+            userConsortia: consortia.length
           });
 
           // Log sample of risks to debug filtering
@@ -740,8 +740,8 @@ const DashboardStatsGrid = () => {
           // Debug consortium filtering
           console.log('User consortium info:', {
             userId: user.id,
-            userConsortia: consortiums.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })),
-            hasConsortia: consortiums.length > 0
+            userConsortia: consortia.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })),
+            hasConsortia: consortia.length > 0
           });
 
           // Count how many approved risks are filtered out by consortium
@@ -751,7 +751,7 @@ const DashboardStatsGrid = () => {
             totalApprovedRisks: allApprovedRisks.length,
             sharedRisksAfterConsortiumFilter: sharedRisks.length,
             filteredOutByConsortium: allApprovedRisks.length - sharedRisks.length,
-            note: 'Shared risks includes ALL approved risks from user consortiums (including user own risks)'
+            note: 'Shared risks includes ALL approved risks from user consortia (including user own risks)'
           });
 
         } catch (error) {
@@ -843,7 +843,7 @@ const DashboardStatsGrid = () => {
           return;
         }
       } else {
-        // For regular users, pass consortium ID if selected, otherwise empty string for all consortiums
+        // For regular users, pass consortium ID if selected, otherwise empty string for all consortia
         const consortiumId = selectedConsortium;
         response = await dashboardService.getDashboardStats(consortiumId, user?.id);
       }
@@ -1063,7 +1063,7 @@ const DashboardStatsGrid = () => {
             <div className="text-3xl font-bold mb-1 text-blue-600">
               {hasAdminPrivileges ? 0 : (stats as any).sharedRisks?.count || 0}
             </div>
-            <div className="text-gray-600 text-sm mb-4">Risks shared across consortiums</div>
+            <div className="text-gray-600 text-sm mb-4">Risks shared across consortia</div>
             <button
               className="bg-white rounded-lg px-4 py-2 font-semibold text-gray-900 border border-blue-200 mt-auto cursor-pointer hover:bg-blue-50 transition-colors"
               onClick={() => router.push('/shared-risks')}
@@ -1193,7 +1193,7 @@ const AdminDashboardContent = ({ stats }: { stats: any }) => {
           className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <Settings className="w-5 h-5 text-gray-600" />
-          <span className="font-medium text-gray-900">Manage Consortiums</span>
+          <span className="font-medium text-gray-900">Manage Consortia</span>
         </button>
       </div>
 

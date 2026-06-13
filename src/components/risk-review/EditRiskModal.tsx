@@ -132,7 +132,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   // Helper function to map orgRoles from API format to form format
   const mapOrgRolesFromAPI = useCallback(async (orgRoles: OrgRole[] | undefined, consortium: Consortium[] | undefined) => {
     
-    // Get organizations from all consortiums that the risk belongs to
+    // Get organizations from all consortia that the risk belongs to
     const consortiumOrgs: Array<{ _id?: string; id?: string; name?: string }> = [];
     
     if (consortium && Array.isArray(consortium)) {
@@ -241,7 +241,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
     }
   }, [user]);
 
-  // Fetch organizations for the risk's consortiums
+  // Fetch organizations for the risk's consortia
   const fetchConsortiumOrganizations = useCallback(async (consortiumIds: string[]) => {
     if (!consortiumIds || consortiumIds.length === 0) {
       setConsortiumOrganizations([]);
@@ -251,10 +251,10 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
     setLoadingOrganizations(true);
     try {
       
-      // Get all consortia to find the specific consortiums and their organizations
+      // Get all consortia to find the specific consortia and their organizations
       const allConsortia = await fetchConsortiaByRole(user);
       
-      // Find all consortiums that the risk belongs to
+      // Find all consortia that the risk belongs to
       const riskConsortia = allConsortia.filter(c => 
         consortiumIds.includes(c._id || c.id || '')
       );
@@ -264,7 +264,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         return;
       }
 
-      // Extract organizations from all consortiums that the risk belongs to
+      // Extract organizations from all consortia that the risk belongs to
       const consortiumOrgs: Organization[] = [];
       
       for (const consortium of riskConsortia) {

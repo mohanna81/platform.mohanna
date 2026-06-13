@@ -38,7 +38,7 @@ const DashboardHeader = () => {
         </div>
       </div>
       <p className="text-gray-600 text-lg mt-2">
-        Welcome to the Risk Sharing Platform for humanitarian consortiums. 
+        Welcome to the Risk Sharing Platform for humanitarian consortia. 
         {hasAdminPrivileges ? ' You have administrative privileges.' : 
          isFacilitator ? ' You are a facilitator for consortium risk management.' :
          ' View your organization\'s data and manage risks.'}

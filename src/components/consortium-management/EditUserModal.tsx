@@ -51,7 +51,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     fetchConsortiaData();
   }, [currentUser]);
 
-  // Filter organizations based on selected consortiums
+  // Filter organizations based on selected consortia
   React.useEffect(() => {
     if (consortia.length === 0) {
       setFilteredOrganizationOptions(organizationOptions);

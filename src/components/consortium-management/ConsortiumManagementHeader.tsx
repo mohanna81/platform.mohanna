@@ -21,7 +21,7 @@ const ConsortiumManagementHeader: React.FC<ConsortiumManagementHeaderProps> = ({
   <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-0">
     <div>
       <h1 className="text-xl md:text-2xl font-bold text-gray-800">Consortium Management</h1>
-      <p className="text-sm md:text-base text-gray-600">Manage your organizations, consortiums and users</p>
+      <p className="text-sm md:text-base text-gray-600">Manage your organizations, consortia and users</p>
     </div>
     <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0 w-full md:w-auto">
       {canAddConsortium && (

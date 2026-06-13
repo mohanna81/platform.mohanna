@@ -28,7 +28,7 @@ const RisksLibraryTable: React.FC = () => (
   <div className="bg-white border border-[#e5eaf1] rounded-xl p-8 mt-4">
     <div className="mb-2">
       <div className="text-2xl font-semibold text-[#0b1320] mb-1">Historical Risk Knowledge Base</div>
-      <div className="text-base text-[#7b849b]">Access archived risks from past consortiums to inform your risk management strategies</div>
+      <div className="text-base text-[#7b849b]">Access archived risks from past consortia to inform your risk management strategies</div>
     </div>
     <div className="overflow-x-auto mt-6">
       <table className="min-w-full text-left">

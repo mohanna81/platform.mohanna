@@ -26,7 +26,7 @@ const initialFilters: SharedRisksFilters = {
 
 interface LoadingState {
   risks: boolean;
-  consortiums: boolean;
+  consortia: boolean;
   organizations: boolean;
 }
 
@@ -35,17 +35,17 @@ export default function SharedRisksPage() {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>({
     risks: true,
-    consortiums: true,
+    consortia: true,
     organizations: true,
   });
-  const [consortiums, setConsortiums] = useState<Consortium[]>([]);
+  const [consortia, setConsortia] = useState<Consortium[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const isInitialLoad = useRef(true);
   const { user } = useAuth();
 
-  const isFullyLoaded = !loadingState.risks && !loadingState.consortiums && !loadingState.organizations;
+  const isFullyLoaded = !loadingState.risks && !loadingState.consortia && !loadingState.organizations;
 
   const fetchApprovedRisks = useCallback(async () => {
     setLoadingState(prev => ({ ...prev, risks: true }));
@@ -67,28 +67,28 @@ export default function SharedRisksPage() {
     }
   }, []);
 
-  const fetchConsortiums = useCallback(async () => {
+  const fetchConsortia = useCallback(async () => {
     if (!user) {
-      setLoadingState(prev => ({ ...prev, consortiums: false }));
+      setLoadingState(prev => ({ ...prev, consortia: false }));
       return;
     }
     
-    setLoadingState(prev => ({ ...prev, consortiums: true }));
+    setLoadingState(prev => ({ ...prev, consortia: true }));
     try {
       const consortia = await fetchConsortiaByRole(user);
       
       if (Array.isArray(consortia)) {
-        setConsortiums(consortia);
+        setConsortia(consortia);
       } else {
-        setConsortiums([]);
-        console.warn('Consortiums fetch returned non-array:', consortia);
+        setConsortia([]);
+        console.warn('Consortia fetch returned non-array:', consortia);
       }
     } catch (error) {
-      console.error('Error fetching consortiums:', error);
-      setConsortiums([]);
-      showToast.error('Failed to load consortiums');
+      console.error('Error fetching consortia:', error);
+      setConsortia([]);
+      showToast.error('Failed to load consortia');
     } finally {
-      setLoadingState(prev => ({ ...prev, consortiums: false }));
+      setLoadingState(prev => ({ ...prev, consortia: false }));
     }
   }, [user]);
 
@@ -122,7 +122,7 @@ export default function SharedRisksPage() {
     const loadAllData = async () => {
       await Promise.all([
         fetchApprovedRisks(),
-        fetchConsortiums(),
+        fetchConsortia(),
         fetchOrganizations(),
       ]);
       
@@ -133,24 +133,24 @@ export default function SharedRisksPage() {
     };
 
     loadAllData();
-  }, [fetchApprovedRisks, fetchConsortiums, fetchOrganizations]);
+  }, [fetchApprovedRisks, fetchConsortia, fetchOrganizations]);
 
   // Debug: Log when data is fully loaded
   useEffect(() => {
     if (isFullyLoaded) {
       console.log('All data loaded - Final state:', {
         risks: risks.length,
-        consortiums: consortiums.length,
+        consortia: consortia.length,
         organizations: organizations.length,
         userRole: user?.role
       });
       
-      // Warn if Organization User has no consortiums
-      if (user?.role === 'Organization User' && consortiums.length === 0) {
-        console.warn('Organization User has no consortiums loaded - this may filter out all risks');
+      // Warn if Organization User has no consortia
+      if (user?.role === 'Organization User' && consortia.length === 0) {
+        console.warn('Organization User has no consortia loaded - this may filter out all risks');
       }
     }
-  }, [isFullyLoaded, risks.length, consortiums.length, organizations.length, user?.role]);
+  }, [isFullyLoaded, risks.length, consortia.length, organizations.length, user?.role]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function SharedRisksPage() {
       return false;
     }
     
-    // Consortium filter - only apply if consortiums have loaded
+    // Consortium filter - only apply if consortia have loaded
     if (filters.consortium && filters.consortium.trim() !== '') {
       // Specific consortium selected - filter by that consortium
       const hasConsortium = Array.isArray(risk.consortium) && 
@@ -195,17 +195,17 @@ export default function SharedRisksPage() {
       if (!hasConsortium) {
         return false;
       }
-    } else if (consortiums.length > 0) {
-      // "All Consortiums" selected AND consortiums have loaded
-      // Filter to show only risks from available consortiums
-      const availableConsortiumIds = consortiums.map(c => c._id);
+    } else if (consortia.length > 0) {
+      // "All Consortia" selected AND consortia have loaded
+      // Filter to show only risks from available consortia
+      const availableConsortiumIds = consortia.map(c => c._id);
       const hasAvailableConsortium = Array.isArray(risk.consortium) && 
         risk.consortium.some(c => availableConsortiumIds.includes(c._id));
       if (!hasAvailableConsortium) {
         return false;
       }
     }
-    // If consortiums haven't loaded yet (length === 0), show all risks temporarily
+    // If consortia haven't loaded yet (length === 0), show all risks temporarily
     
     // Organization filter
     if (filters.organization && filters.organization.trim() !== '') {
@@ -250,7 +250,7 @@ export default function SharedRisksPage() {
         <SharedRisksHeader
           filters={filters}
           onFilterChange={setFilters}
-          consortiums={consortiums}
+          consortia={consortia}
           organizations={organizations}
           onExportExcel={handleExportExcel}
         />

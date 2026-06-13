@@ -114,11 +114,11 @@ export default function ActionItemsPage() {
         const userConsortia = userData.consortia || userData.user?.consortia || [];
         setUserConsortia(userConsortia);
       } else {
-        console.warn('Failed to fetch user consortiums:', userProfile);
+        console.warn('Failed to fetch user consortia:', userProfile);
         setUserConsortia([]);
       }
     } catch (error) {
-      console.error('Error fetching user consortiums:', error);
+      console.error('Error fetching user consortia:', error);
       setUserConsortia([]);
       showToast.error('Failed to load user consortium data');
     } finally {
@@ -700,7 +700,7 @@ export default function ActionItemsPage() {
           search={search}
           onSearchChange={setSearch}
           consortiumOptions={[
-            { value: '', label: 'All Consortiums' },
+            { value: '', label: 'All Consortia' },
             ...consortiumOptions
           ]}
         />

@@ -15,10 +15,10 @@ export type SharedRisksFilters = {
 const SharedRisksHeader: React.FC<{
   filters: SharedRisksFilters;
   onFilterChange: (filters: SharedRisksFilters) => void;
-  consortiums: Consortium[];
+  consortia: Consortium[];
   organizations: Organization[];
   onExportExcel?: () => void;
-}> = ({ filters, onFilterChange, consortiums, organizations, onExportExcel }) => {
+}> = ({ filters, onFilterChange, consortia, organizations, onExportExcel }) => {
   const hasActiveFilters = filters.consortium || filters.category || filters.organization || filters.status || filters.search;
 
   const clearAllFilters = () => {
@@ -34,8 +34,8 @@ const SharedRisksHeader: React.FC<{
 
   // Create dynamic options from API data
   const consortiumOptions = [
-    { value: '', label: 'All Consortiums' },
-    ...consortiums.map((consortium: Consortium) => ({
+    { value: '', label: 'All Consortia' },
+    ...consortia.map((consortium: Consortium) => ({
       value: consortium._id,
       label: consortium.name
     }))

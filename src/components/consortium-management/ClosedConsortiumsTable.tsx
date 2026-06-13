@@ -8,13 +8,13 @@ import PageSizeSelector from '../common/PageSizeSelector';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
 
-interface ClosedConsortiumsTableProps {
+interface ClosedConsortiaTableProps {
   refreshKey?: number;
 }
 
-const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => {
+const ClosedConsortiaTable = ({ refreshKey }: ClosedConsortiaTableProps) => {
   const { user } = useAuth();
-  const [consortiums, setConsortiums] = useState<Consortium[]>([]);
+  const [consortia, setConsortia] = useState<Consortium[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -28,14 +28,14 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
     setError(null);
     try {
       if (!user) {
-        setConsortiums([]);
+        setConsortia([]);
         return;
       }
       const all = await fetchConsortiaByRole(user);
-      setConsortiums(all.filter((c: Consortium) => c.status === 'Closed'));
+      setConsortia(all.filter((c: Consortium) => c.status === 'Closed'));
     } catch {
       setError('An unexpected error occurred');
-      setConsortiums([]);
+      setConsortia([]);
     } finally {
       setLoading(false);
     }
@@ -48,19 +48,19 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
     }
   }, [user, refreshKey, fetchConsortia]);
 
-  const consortiaArray = Array.isArray(consortiums) ? consortiums : [];
+  const consortiaArray = Array.isArray(consortia) ? consortia : [];
   const filteredConsortia = search.trim()
     ? consortiaArray.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
     : consortiaArray;
   const totalPages = Math.ceil(filteredConsortia.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentConsortiums = filteredConsortia.slice(startIndex, startIndex + itemsPerPage);
+  const currentConsortia = filteredConsortia.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
     return (
       <div className="py-12">
         <Loader size="lg" variant="default" />
-        <p className="text-center text-gray-500 mt-4">Loading closed consortiums...</p>
+        <p className="text-center text-gray-500 mt-4">Loading closed consortia...</p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
       <div className="mb-4 px-2">
         <input
           type="text"
-          placeholder="Search closed consortiums..."
+          placeholder="Search closed consortia..."
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
@@ -89,9 +89,9 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
           {error ? (
             <tr><td colSpan={4} className="py-6 text-center text-red-500">{error}</td></tr>
           ) : filteredConsortia.length === 0 ? (
-            <tr><td colSpan={4} className="py-6 text-center text-gray-400">No closed consortiums found.</td></tr>
+            <tr><td colSpan={4} className="py-6 text-center text-gray-400">No closed consortia found.</td></tr>
           ) : (
-            currentConsortiums.map((c) => (
+            currentConsortia.map((c) => (
               <tr key={c._id || c.id || c.name} className="border-t last:border-b hover:bg-gray-50">
                 <td className="py-3 px-2 font-semibold text-gray-900">{c.name}</td>
                 <td className="py-3 px-2">
@@ -155,4 +155,4 @@ const ClosedConsortiumsTable = ({ refreshKey }: ClosedConsortiumsTableProps) => 
   );
 };
 
-export default ClosedConsortiumsTable;
+export default ClosedConsortiaTable;

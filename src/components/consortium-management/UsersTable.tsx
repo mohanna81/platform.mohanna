@@ -36,6 +36,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   // Check if user is Admin or Super User
   const canDelete = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super_user');
   const canEditUsers = currentUser ? ['Admin', 'Super_user'].includes(normalizeRole(currentUser.role)) : false;
+  const isOrgUser = currentUser ? normalizeRole(currentUser.role) === 'Organization User' : false;
 
   const fetchDropdownData = useCallback(async () => {
     if (!currentUser) return;
@@ -49,7 +50,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         { value: 'Organization User', label: 'Organization User' },
       ]);
 
-      // Fetch consortiums
+      // Fetch consortia
       const consortia: Consortium[] = await fetchConsortiaByRole(currentUser);
       setConsortiumOptions(
         consortia.map((c: Consortium) => ({
@@ -271,7 +272,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         return 'No users found';
       }
       if (currentUser && normalizeRole(currentUser.role) === 'Facilitator') {
-        return 'No users found in your consortiums';
+        return 'No users found in your consortia';
       }
       return 'No users available for your role level';
     };
@@ -308,9 +309,11 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
+                {!isOrgUser && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
@@ -346,11 +349,13 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
                       {getRoleDisplayName(user.role)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={getStatusBadge(user.status)}>
-                      {user.status}
-                    </span>
-                  </td>
+                  {!isOrgUser && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={getStatusBadge(user.status)}>
+                        {user.status}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>

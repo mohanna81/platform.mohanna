@@ -35,7 +35,7 @@ const ConsortiumSelector: React.FC<ConsortiumSelectorProps> = ({
             onConsortiumChange?.(firstConsortium);
           }
         } catch (error) {
-          console.error('Error fetching consortiums:', error);
+          console.error('Error fetching consortia:', error);
         } finally {
           setLoading(false);
         }
@@ -55,7 +55,7 @@ const ConsortiumSelector: React.FC<ConsortiumSelectorProps> = ({
     return null;
   }
 
-  // Don't render if no consortiums available
+  // Don't render if no consortia available
   if (consortia.length === 0) {
     return null;
   }

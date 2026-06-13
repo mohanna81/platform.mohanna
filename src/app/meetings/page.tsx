@@ -26,7 +26,7 @@ export default function MeetingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
-  const [consortiums, setConsortiums] = useState<{ id: string; name: string }[]>([]);
+  const [consortia, setConsortia] = useState<{ id: string; name: string }[]>([]);
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -104,7 +104,7 @@ export default function MeetingsPage() {
     async function fetchConsortiaOptions() {
       if (!user) return;
       const consortia = await fetchConsortiaByRole(user);
-      setConsortiums(consortia.map((c) => ({ id: c.id || c._id, name: c.name })));
+      setConsortia(consortia.map((c) => ({ id: c.id || c._id, name: c.name })));
     }
     fetchConsortiaOptions();
     
@@ -453,7 +453,7 @@ export default function MeetingsPage() {
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           onSubmit={handleScheduleMeeting}
-          consortiums={consortiums}
+          consortia={consortia}
           organizations={organizations}
           isSubmitting={isSubmitting}
         />
@@ -463,7 +463,7 @@ export default function MeetingsPage() {
             open={editModalOpen}
             onClose={() => { setEditModalOpen(false); setEditingMeeting(null); }}
             onSubmit={handleUpdateMeeting}
-            consortiums={consortiums}
+            consortia={consortia}
             organizations={organizations}
             isSubmitting={isSubmitting}
             initialValues={{

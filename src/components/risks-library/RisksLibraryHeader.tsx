@@ -48,7 +48,7 @@ const RisksLibraryHeader: React.FC<{
           </span>
         </div>
         <div className="w-full">
-          <div className="w-full bg-[#f5f7fa] border border-[#e5eaf1] rounded-xl px-4 py-3 text-[#7b849b] text-base font-semibold">All Consortiums</div>
+          <div className="w-full bg-[#f5f7fa] border border-[#e5eaf1] rounded-xl px-4 py-3 text-[#7b849b] text-base font-semibold">All Consortia</div>
         </div>
         <div className="w-full max-w-xs">
           <Dropdown

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type ConsortiumTab = 'Active Consortiums' | 'Closed Consortiums' | 'Organizations' | 'Users';
+export type ConsortiumTab = 'Active Consortia' | 'Closed Consortia' | 'Organizations' | 'Users';
 
 interface ConsortiumTabsProps {
   activeTab: ConsortiumTab;
@@ -9,8 +9,8 @@ interface ConsortiumTabsProps {
 }
 
 const allTabs: ConsortiumTab[] = [
-  'Active Consortiums',
-  'Closed Consortiums',
+  'Active Consortia',
+  'Closed Consortia',
   'Organizations',
   'Users',
 ];

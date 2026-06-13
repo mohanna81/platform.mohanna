@@ -1,6 +1,6 @@
 import React from 'react';
 
-const consortiums = [
+const consortia = [
   {
     name: 'Health Partners Consortium',
     members: ['orgA', 'orgB', 'orgC'],
@@ -20,7 +20,7 @@ const ConsortiumManagementSection: React.FC = () => (
     <div className="text-2xl font-bold text-[#0b1320] mb-1">Consortium Management</div>
     <div className="text-base text-[#7b849b] mb-6">You are currently facilitating 3 consortium(s)</div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {consortiums.map((consortium) => (
+      {consortia.map((consortium) => (
         <div key={consortium.name} className="bg-white border border-[#e5eaf1] rounded-xl p-6 flex flex-col justify-between">
           <div>
             <div className="text-lg font-bold text-[#0b1320] mb-1">{consortium.name}</div>

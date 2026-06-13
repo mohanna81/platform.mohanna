@@ -170,7 +170,7 @@ export default function ConsortiumDetailPage() {
   return (
     <Layout>
       <div className="px-4 py-8 sm:px-8 md:px-12 md:py-12">
-        <Link href="/consortiums" className="text-sm text-gray-500 hover:text-black flex items-center mb-6">&larr; Back to Consortiums</Link>
+        <Link href="/consortiums" className="text-sm text-gray-500 hover:text-black flex items-center mb-6">&larr; Back to Consortia</Link>
         <div className="bg-white rounded-2xl shadow p-6 sm:p-10 w-full">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -321,9 +321,11 @@ export default function ConsortiumDetailPage() {
                             <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
                             <p className="text-xs text-gray-500 truncate">{u.email}</p>
                           </div>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            u.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                          }`}>{u.status}</span>
+                          {normalizeRole(user?.role ?? '') !== 'Organization User' && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              u.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                            }`}>{u.status}</span>
+                          )}
                         </div>
                       ))}
                     </div>

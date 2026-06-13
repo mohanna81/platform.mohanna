@@ -34,7 +34,7 @@ interface NewMeetingModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: MeetingFormData) => void;
-  consortiums: Array<{ id: string; name: string }>;
+  consortia: Array<{ id: string; name: string }>;
   rawConsortia?: Consortium[];
   organizations: Array<{ id: string; name: string }>;
   isSubmitting?: boolean;
@@ -42,7 +42,7 @@ interface NewMeetingModalProps {
   editMode?: boolean;
 }
 
-const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubmit, consortiums, rawConsortia = [], organizations, isSubmitting = false, initialValues, editMode = false }) => {
+const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubmit, consortia, rawConsortia = [], organizations, isSubmitting = false, initialValues, editMode = false }) => {
   const { user: currentUser } = useAuth();
   const [form, setForm] = useState<MeetingFormData>({
     title: "",
@@ -173,15 +173,15 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         );
         setUsers(filteredUsers);
       } else {
-        // When no consortium is selected, show users from all available consortiums in dropdown
-        const availableConsortiumIds = consortiums.map(c => c.id);
+        // When no consortium is selected, show users from all available consortia in dropdown
+        const availableConsortiumIds = consortia.map(c => c.id);
         const filteredUsers = allUsers.filter(user => 
           user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
         );
         setUsers(filteredUsers);
       }
     }
-  }, [form.consortium, allUsers, consortiums]);
+  }, [form.consortium, allUsers, consortia]);
 
   const handleChange = (name: string, value: string) => {
     setForm((prev) => {
@@ -245,8 +245,8 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
             id => id === currentUser?.id || validIds.has(id)
           );
         } else {
-          // If no consortium selected, show users from all available consortiums in dropdown
-          const availableConsortiumIds = consortiums.map(c => c.id);
+          // If no consortium selected, show users from all available consortia in dropdown
+          const availableConsortiumIds = consortia.map(c => c.id);
           const filteredUsers = allUsers.filter(user =>
             user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
           );
@@ -471,7 +471,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         <Dropdown
           label="Consortium"
           name="consortium"
-          options={consortiums.map((c) => ({ value: c.id, label: c.name }))}
+          options={consortia.map((c) => ({ value: c.id, label: c.name }))}
           value={form.consortium}
           onChange={(value) => handleChange("consortium", value)}
           fullWidth
@@ -547,7 +547,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
             You are automatically included as an attendee and cannot be removed. Please select at least one other attendee.
             {!form.consortium && (
               <span className="block mt-1 text-blue-600">
-                Showing users from all available consortiums
+                Showing users from all available consortia
               </span>
             )}
           </div>

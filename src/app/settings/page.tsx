@@ -240,14 +240,14 @@ export default function SettingsPage() {
     fetchConsortiaByRole(user).then((list) => {
       if (list?.length) {
         setConsortia([
-          { value: "", label: "All Consortiums" },
+          { value: "", label: "All Consortia" },
           ...list.map((c: { _id?: string; id?: string; name: string }) => ({
             value: c._id || c.id || "",
             label: c.name,
           })),
         ]);
       } else {
-        setConsortia([{ value: "", label: "All Consortiums" }]);
+        setConsortia([{ value: "", label: "All Consortia" }]);
       }
     });
   }, [user]);

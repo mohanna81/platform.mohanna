@@ -121,7 +121,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
       async function fetchConsortiumOrganizations() {
         try {
           if (editMode && riskId) {
-            // In edit mode, fetch organizations from the risk's consortiums
+            // In edit mode, fetch organizations from the risk's consortia
             const organizations = await fetchOrganizationsByConsortia([consortium], user);
             setConsortiumOrganizations(organizations);
           } else {

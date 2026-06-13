@@ -133,7 +133,7 @@ export default function LoginPage() {
               Risk Management
             </h1>
             <p className="text-white/75 text-lg leading-relaxed max-w-sm">
-              A unified platform for consortiums to collaborate, share, and manage risks effectively.
+              A unified platform for consortia to collaborate, share, and manage risks effectively.
             </p>
           </div>
 
@@ -141,7 +141,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-3">
             {[
               { icon: '🛡️', text: 'Shared Risk Register' },
-              { icon: '🤝', text: 'Consortium Collaboration' },
+              { icon: '🤝', text: 'Consortia Collaboration' },
               { icon: '📊', text: 'Real-time Risk Analytics' },
             ].map(({ icon, text }) => (
               <div key={text} className="flex items-center gap-3">

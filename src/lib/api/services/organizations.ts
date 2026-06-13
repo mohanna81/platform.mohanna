@@ -115,7 +115,7 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
             }
           }
           
-          // Find consortiums that contain this organization
+          // Find consortia that contain this organization
           const relevantConsortia = allConsortia.filter((consortium: Consortium) => {
             if (consortium.organizations && Array.isArray(consortium.organizations)) {
               return consortium.organizations.some((org: string | Organization) => {
@@ -130,7 +130,7 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
             return false;
           });
           
-          // Check if facilitator created any of these consortiums
+          // Check if facilitator created any of these consortia
           const isConsortiumCreator = relevantConsortia.some((consortium: Consortium) => {
             const createdByMatch = consortium.createdBy === user.id;
             console.log(`fetchOrganizationsByRole - Consortium ${consortium.name}:`, {
@@ -161,7 +161,7 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
     if (userConsortiaResponse.success && userData && typeof userData === 'object' && !Array.isArray(userData) && 'consortia' in userData) {
       const userConsortia = (userData as { consortia: Consortium[] }).consortia || [];
       
-      // Extract organizations from user's consortiums
+      // Extract organizations from user's consortia
       userConsortia.forEach((consortium: Consortium) => {
         if (consortium.organizations && Array.isArray(consortium.organizations)) {
           consortium.organizations.forEach((org: string | Organization) => {
@@ -179,13 +179,13 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
     
     return facilitatorOrganizations;
   } else if (user.role === 'Organization User' && user.id) {
-    // Use the same endpoint as consortiums to get user's consortiums and extract organizations
+    // Use the same endpoint as consortia to get user's consortia and extract organizations
     const response = await consortiaService.getUserConsortium(user.id);
     const data = response.data?.data;
     if (response.success && data && typeof data === 'object' && !Array.isArray(data) && 'consortia' in data) {
       const userConsortia = (data as { consortia: Consortium[] }).consortia || [];
       
-      // Extract organizations from consortiums
+      // Extract organizations from consortia
       const organizations: Organization[] = [];
       userConsortia.forEach((consortium: Consortium) => {
         if (consortium.organizations && Array.isArray(consortium.organizations)) {
@@ -233,7 +233,7 @@ export async function fetchOrganizationsByConsortia(consortiumIds: string[], use
       consortiumIds.includes(consortium._id || consortium.id || '')
     );
 
-    // Extract organizations from the selected consortiums
+    // Extract organizations from the selected consortia
     const organizations: Organization[] = [];
     filteredConsortia.forEach((consortium: Consortium) => {
       if (consortium.organizations && Array.isArray(consortium.organizations)) {

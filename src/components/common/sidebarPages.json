@@ -6,7 +6,7 @@
       { "name": "My Risks", "icon": "shield", "path": "/my-risks" },
       { "name": "Shared Risks", "icon": "users", "path": "/shared-risks" },
       { "name": "Closed Risks", "icon": "bookmarks", "path": "/shared-risks/closed", "roles": ["Super_user", "Admin", "Facilitator"] },
-      { "name": "Consortiums", "icon": "layers", "path": "/consortiums" }
+      { "name": "Consortia", "icon": "layers", "path": "/consortiums" }
     ]
   },
   {

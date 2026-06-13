@@ -46,7 +46,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ isOpen, onC
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add New Organization" size="lg">
-      <p className="text-gray-600 mb-6 text-sm">Create a new organization and add it to consortiums</p>
+      <p className="text-gray-600 mb-6 text-sm">Create a new organization and add it to consortia</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-1">Organization Name</label>

@@ -8,13 +8,13 @@ import PageSizeSelector from '../common/PageSizeSelector';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
 
-interface ActiveConsortiumsTableProps {
+interface ActiveConsortiaTableProps {
   refreshKey?: number;
 }
 
-const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => {
+const ActiveConsortiaTable = ({ refreshKey }: ActiveConsortiaTableProps) => {
   const { user } = useAuth();
-  const [consortiums, setConsortiums] = useState<Consortium[]>([]);
+  const [consortia, setConsortia] = useState<Consortium[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -30,16 +30,16 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
     
     try {
       if (!user) {
-        setConsortiums([]);
+        setConsortia([]);
         return;
       }
       
       const consortiaData = await fetchConsortiaByRole(user);
-      setConsortiums(consortiaData.filter((c: Consortium) => c.status !== 'Closed'));
+      setConsortia(consortiaData.filter((c: Consortium) => c.status !== 'Closed'));
     } catch (error) {
       console.error('Error fetching consortia:', error);
       setError('An unexpected error occurred');
-      setConsortiums([]);
+      setConsortia([]);
     } finally {
       setLoading(false);
     }
@@ -52,15 +52,15 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
     }
   }, [user, refreshKey, fetchConsortia]);
 
-  // Calculate pagination - ensure consortiums is always an array
-  const consortiaArray = Array.isArray(consortiums) ? consortiums : [];
+  // Calculate pagination - ensure consortia is always an array
+  const consortiaArray = Array.isArray(consortia) ? consortia : [];
   const filteredConsortia = search.trim()
     ? consortiaArray.filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
     : consortiaArray;
   const totalPages = Math.ceil(filteredConsortia.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentConsortiums = filteredConsortia.slice(startIndex, endIndex);
+  const currentConsortia = filteredConsortia.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -75,7 +75,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
     return (
       <div className="py-12">
         <Loader size="lg" variant="default" />
-        <p className="text-center text-gray-500 mt-4">Loading consortiums...</p>
+        <p className="text-center text-gray-500 mt-4">Loading consortia...</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
       <div className="mb-4 px-2">
         <input
           type="text"
-          placeholder="Search consortiums..."
+          placeholder="Search consortia..."
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
@@ -106,7 +106,7 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
           ) : filteredConsortia.length === 0 ? (
             <tr><td colSpan={4} className="py-6 text-center text-gray-400">No consortia found.</td></tr>
           ) : (
-            currentConsortiums.map((c) => (
+            currentConsortia.map((c) => (
               <tr key={c._id || c.id || c.name} className="border-t last:border-b hover:bg-gray-50">
                 <td className="py-3 px-2 font-semibold text-gray-900">{c.name}</td>
                 <td className="py-3 px-2">
@@ -181,4 +181,4 @@ const ActiveConsortiumsTable = ({ refreshKey }: ActiveConsortiumsTableProps) => 
   );
 };
 
-export default ActiveConsortiumsTable; 
+export default ActiveConsortiaTable; 
