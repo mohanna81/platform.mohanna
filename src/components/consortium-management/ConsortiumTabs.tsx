@@ -5,16 +5,21 @@ export type ConsortiumTab = 'Active Consortiums' | 'Closed Consortiums' | 'Organ
 interface ConsortiumTabsProps {
   activeTab: ConsortiumTab;
   onTabChange: (tab: ConsortiumTab) => void;
+  userRole?: string;
 }
 
-const tabs: ConsortiumTab[] = [
+const allTabs: ConsortiumTab[] = [
   'Active Consortiums',
   'Closed Consortiums',
   'Organizations',
   'Users',
 ];
 
-const ConsortiumTabs: React.FC<ConsortiumTabsProps> = ({ activeTab, onTabChange }) => (
+const ConsortiumTabs: React.FC<ConsortiumTabsProps> = ({ activeTab, onTabChange, userRole }) => {
+  const tabs = userRole === 'Organization User'
+    ? allTabs.filter(t => t !== 'Users')
+    : allTabs;
+  return (
   <div className="mb-6">
     {/* Search Bar */}
     <div className="mb-4">
@@ -49,4 +54,6 @@ const ConsortiumTabs: React.FC<ConsortiumTabsProps> = ({ activeTab, onTabChange 
   </div>
 );
 
-export default ConsortiumTabs; 
+};
+
+export default ConsortiumTabs;

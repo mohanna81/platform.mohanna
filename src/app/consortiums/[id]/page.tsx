@@ -28,6 +28,9 @@ export default function ConsortiumDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [viewUsersOrg, setViewUsersOrg] = useState<Organization | null>(null);
+  const [orgUsers, setOrgUsers] = useState<User[]>([]);
+  const [orgUsersLoading, setOrgUsersLoading] = useState(false);
 
   const [usersLoading, setUsersLoading] = useState(true);
   const [facilitators, setFacilitators] = useState<User[]>([]);
@@ -129,6 +132,27 @@ export default function ConsortiumDetailPage() {
     }
   };
 
+  const handleViewUsers = async (org: Organization) => {
+    setViewUsersOrg(org);
+    setOrgUsersLoading(true);
+    try {
+      const response = await userService.getUsers();
+      if (response.success && response.data) {
+        const orgId = org._id || org.id;
+        const filtered = response.data.filter((u: User) =>
+          (u.organizations || []).some((o: unknown) =>
+            typeof o === 'string' ? o === orgId : (o as { _id?: string; id?: string })?._id === orgId || (o as { _id?: string; id?: string })?.id === orgId
+          )
+        );
+        setOrgUsers(filtered);
+      }
+    } catch {
+      setOrgUsers([]);
+    } finally {
+      setOrgUsersLoading(false);
+    }
+  };
+
   if (loading) return (
     <Layout>
       <div className="p-8 flex justify-center items-center min-h-[400px]">
@@ -196,8 +220,8 @@ export default function ConsortiumDetailPage() {
                           <div className="font-medium">{org.name}</div>
                         </div>
                         <button
-                          className="flex items-center gap-1 border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-100"
-                          onClick={() => router.push('/consortium-management?tab=Users')}
+                          className="flex items-center gap-1 border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-100 cursor-pointer"
+                          onClick={() => handleViewUsers(org)}
                         >
                           <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
                           View Users
@@ -257,6 +281,58 @@ export default function ConsortiumDetailPage() {
               View Shared Risks
             </button>
           </div>
+          {/* View Users Popup */}
+          {viewUsersOrg && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+              onClick={() => setViewUsersOrg(null)}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative max-h-[80vh] flex flex-col"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setViewUsersOrg(null)}
+                  className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">
+                  Users — {viewUsersOrg.name}
+                </h3>
+                <p className="text-xs text-gray-500 mb-4">Members assigned to this organization</p>
+                <div className="overflow-y-auto flex-1">
+                  {orgUsersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader size="sm" />
+                    </div>
+                  ) : orgUsers.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic text-center py-8">No users found for this organization.</p>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {orgUsers.map(u => (
+                        <div key={u._id} className="flex items-center gap-3 py-3">
+                          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-blue-600">{u.name.charAt(0).toUpperCase()}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            u.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                          }`}>{u.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <EditConsortiumModal
             isOpen={showEditModal}
             onClose={() => setShowEditModal(false)}
