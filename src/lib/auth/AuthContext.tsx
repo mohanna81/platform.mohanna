@@ -70,13 +70,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (response.success && response.data) {
         const userData = response.data.data as Record<string, unknown> & typeof response.data.data;
+        const orgs = (userData as Record<string, unknown>).organizations as unknown[] | undefined;
+        const firstOrg = Array.isArray(orgs) ? orgs[0] : undefined;
+        const organizationId: string | undefined =
+          (typeof firstOrg === 'object' && firstOrg !== null
+            ? (firstOrg as Record<string, unknown>)._id as string
+            : firstOrg as string) || undefined;
+
+        const rawConsortia = (userData as Record<string, unknown>).consortia as unknown[] | undefined;
+        const consortia = Array.isArray(rawConsortia)
+          ? rawConsortia.map(c =>
+              typeof c === 'object' && c !== null
+                ? ((c as Record<string, unknown>)._id as string)
+                : c as string
+            )
+          : undefined;
+
         const authUser: AuthUser = {
           id: userData.id,
           email: userData.email,
           name: userData.name,
           role: userData.role as UserRole,
-          organizationId: (userData as Record<string, unknown>).organizationId as string || userData.organization as string || undefined,
-          consortia: Array.isArray(userData.consortia) ? userData.consortia : undefined,
+          organizationId,
+          consortia,
         };
         
         // Store in cookies (7 days)

@@ -518,21 +518,19 @@ const DashboardStatsGrid = () => {
         
         try {
           // Fetch data from individual page APIs in parallel, including user's consortia and meetings
+          const orgId = (user as any).organizationId;
           const [myRisksResponse, sharedRisksResponse, actionItemsResponse, meetingsResponse, userConsortia] = await Promise.all([
-            risksService.getRisks(), // For My Risks
+            orgId ? risksService.getRisksByOrgRole(orgId) : risksService.getRisks(),
             risksService.getRisksByStatus('Approved'), // For Shared Risks (same as shared risks page)
             actionItemsService.getActionItems(),
             meetingsService.getAttendeeMeetings(user.id), // For Upcoming Meetings
             fetchConsortiaByRole(user) // Get user's consortia for shared risks filtering
           ]);
 
-          
-          // Process My Risks (filter for user's own risks)
+          // Process My Risks — all risks belonging to this organization
           let myRisks: any[] = [];
           if (myRisksResponse.success && myRisksResponse.data?.data) {
-            myRisks = myRisksResponse.data.data.filter((risk: any) => 
-              risk.createdBy?._id === user.id || risk.createdBy === user.id
-            );
+            myRisks = myRisksResponse.data.data;
           }
 
           // Process Shared Risks using the same logic as the shared risks page
@@ -1036,25 +1034,22 @@ const DashboardStatsGrid = () => {
           </>
         )}
 
-        {/* My Risks - Only for Organization Users */}
+        {/* My Organization Risks - Only for Organization Users */}
         {roleHelpers.isOrganization() && (
           <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 flex flex-col items-start min-h-[160px] border border-indigo-200">
             <div className="flex items-center justify-between w-full mb-3">
-              <span className="font-semibold text-lg text-gray-900">My Risks</span>
+              <span className="font-semibold text-lg text-gray-900">My Organization Risks</span>
               <Shield className="w-6 h-6 text-indigo-500" />
             </div>
             <div className="text-3xl font-bold mb-1 text-indigo-600">
-              {hasAdminPrivileges 
-                ? (stats as any).systemOverview?.totalRisks || 0
-                : (stats as DashboardStatsWithAdditional).additionalData?.totalRisks || (stats as any).myRisks?.count + (stats as any).sharedRisks?.count || 0
-              }
+              {(stats as any).myRisks?.count || 0}
             </div>
-            <div className="text-gray-600 text-sm mb-4">Your organization's registered risks</div>
+            <div className="text-gray-600 text-sm mb-4">All risks registered by your organization</div>
             <button
               className="bg-white rounded-lg px-4 py-2 font-semibold text-gray-900 border border-indigo-200 mt-auto cursor-pointer hover:bg-indigo-50 transition-colors"
               onClick={() => router.push('/my-risks')}
             >
-              View My Risks
+              View Organization Risks
             </button>
           </div>
         )}

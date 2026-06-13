@@ -230,7 +230,7 @@ export default function MeetingsPage() {
   };
 
   // Define ActionItem type based on Meeting type
-  type AssignedToType = string | { id?: string; _id?: string };
+  type AssignedToType = string | string[] | { id?: string; _id?: string };
   type ActionItem = {
     title: string;
     description: string;
@@ -243,14 +243,17 @@ export default function MeetingsPage() {
     if (!completingMeeting) return;
     setIsSubmitting(true);
     try {
-      const resolveId = (v: AssignedToType): string =>
-        typeof v === 'string' ? v : (v?.id || v?._id || '');
+      const resolveIds = (v: AssignedToType): string[] => {
+        if (Array.isArray(v)) return v.filter(Boolean);
+        if (typeof v === 'string') return v ? [v] : [];
+        return v?.id ? [v.id] : v?._id ? [v._id] : [];
+      };
 
       const updateData = {
         minutes,
         actionItems: actionItems.map(ai => ({
           description: ai.description,
-          assignedTo: resolveId(ai.assignedTo),
+          assignedTo: resolveIds(ai.assignedTo)[0] || '',
         })),
         links: links || [],
         status: 'Completed' as const,
@@ -259,7 +262,6 @@ export default function MeetingsPage() {
       const response = await meetingsService.updateMeeting(completingMeeting._id, updateData);
 
       if (response.success) {
-        // Create real ActionItem records from the minutes action items
         const consortiumId: string =
           Array.isArray(completingMeeting.consortium) && completingMeeting.consortium.length > 0
             ? (typeof completingMeeting.consortium[0] === 'object'
@@ -278,12 +280,15 @@ export default function MeetingsPage() {
 
         const creationResults = await Promise.allSettled(
           actionItems.map(ai => {
-            const assignedToId = resolveId(ai.assignedTo);
+            const assigneeIds = resolveIds(ai.assignedTo);
+            const primaryId = assigneeIds[0] || '';
+            const additionalAssignees = assigneeIds.slice(1);
             return actionItemsService.createActionItem({
               title: ai.title,
               description: ai.description,
-              assignTo: assignedToId,
+              assignTo: primaryId,
               assignToModel: 'User',
+              additionalAssignees,
               consortium: consortiumId,
               organization: organizationId || undefined,
               implementationDate: ai.deadline,
@@ -494,12 +499,16 @@ export default function MeetingsPage() {
             initialMinutes={completingMeeting.minutes || ''}
             initialActionItems={completingMeeting.actionItems.map((ai) => {
               const raw = ai as any;
-              const assignedTo: string =
+              const primaryId: string =
                 typeof raw.assignedTo === 'string'
                   ? raw.assignedTo
                   : raw.assignedTo && typeof raw.assignedTo === 'object'
                   ? (raw.assignedTo.id || raw.assignedTo._id || '')
                   : '';
+              const additionalIds: string[] = (raw.additionalAssignees || []).map((a: any) =>
+                typeof a === 'string' ? a : (a?.id || a?._id || '')
+              ).filter(Boolean);
+              const assignedTo = [...new Set([primaryId, ...additionalIds].filter(Boolean))];
               return {
                 title: raw.title || '',
                 description: raw.description || '',

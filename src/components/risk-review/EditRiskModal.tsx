@@ -12,6 +12,7 @@ import { fetchConsortiaByRole, Consortium } from '@/lib/api/services/consortia';
 import { Organization, organizationsService } from '@/lib/api/services/organizations';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { showToast } from '@/lib/utils/toast';
+import { mitigationTrackingService, TrackingStatus, MitigationTracking } from '@/lib/api/services/mitigationTracking';
 
 export interface EditRiskFormData {
   title: string;
@@ -22,7 +23,7 @@ export interface EditRiskFormData {
   mitigation: string;
   preventive: string;
   reactive: string;
-  orgRoles: { orgId: string; orgName: string; value: string }[];
+  orgRoles: { orgId: string; orgName: string; value: string; measures: string[] }[];
   likelihood: string;
   severity: string;
   consortium: string[];
@@ -96,17 +97,18 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   const [consortia, setConsortia] = useState<Array<{ value: string; label: string }>>([]);
   const [consortiumOrganizations, setConsortiumOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
+  const [riskStatus, setRiskStatus] = useState<string>('');
+  const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
+  const [savingTracking, setSavingTracking] = useState(false);
   const hasFetchedData = useRef(false);
-  // Cache raw consortia so we don't re-fetch them multiple times
   const rawConsortiaCache = useRef<Consortium[]>([]);
-  // Track whether the initial load has set form.consortium to skip the effect re-trigger
   const isInitialConsortiumSet = useRef(false);
 
   // Check if user can delete risks (Admin or Super User)
   const canDelete = user?.role === 'Admin' || user?.role === 'Super_user';
-  
-  // Check if user is a facilitator
-  const isFacilitator = user?.role === 'Facilitator';
+
+  // Check if user is a facilitator or admin (both can update tracking)
+  const isFacilitator = user?.role === 'Facilitator' || user?.role === 'Admin' || user?.role === 'Super_user';
 
   // Helper function to fetch organization details by ID
   const fetchOrganizationDetails = useCallback(async (orgId: string): Promise<{ _id: string; name: string } | null> => {
@@ -178,16 +180,19 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       });
     }
 
-    const mappedOrgRoles: Array<{ orgId: string; orgName: string; value: string }> = [];
+    const mappedOrgRoles: Array<{ orgId: string; orgName: string; value: string; measures: string[] }> = [];
 
-    // First, existing orgRoles with non-empty roles
+    // First, existing orgRoles (with measures array support)
     if (orgRoles && Array.isArray(orgRoles)) {
       orgRoles.forEach(orgRole => {
-        if (orgRole.organization?._id && orgRole.role?.trim()) {
+        if (orgRole.organization?._id) {
+          const existingMeasures = (orgRole as unknown as { measures?: string[] }).measures?.filter((m: string) => m?.trim()) || [];
+          const measures = existingMeasures.length > 0 ? existingMeasures : (orgRole.role?.trim() ? [orgRole.role] : ['']);
           mappedOrgRoles.push({
             orgId: orgRole.organization._id,
             orgName: orgRole.organization.name || 'Unknown Organization',
-            value: orgRole.role
+            value: orgRole.role || '',
+            measures,
           });
         }
       });
@@ -201,7 +206,8 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         mappedOrgRoles.push({
           orgId,
           orgName: org.name || 'Unknown Organization',
-          value: existingOrgRolesMap.get(orgId) || ''
+          value: existingOrgRolesMap.get(orgId) || '',
+          measures: [existingOrgRolesMap.get(orgId) || ''],
         });
       }
     });
@@ -308,6 +314,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         ]);
 
         isInitialConsortiumSet.current = true;
+        setRiskStatus(risk.status || '');
         setForm({
           title: risk.title || '',
           category: risk.category || '',
@@ -322,6 +329,15 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           severity: risk.severity || '',
           consortium: consortiumIds,
         });
+
+        // Fetch tracking data for approved risks
+        if (risk.status === 'Approved') {
+          mitigationTrackingService.getTrackingByRisk(riskId).then(res => {
+            if (res.data?.success && Array.isArray(res.data.data)) {
+              setTrackingData(res.data.data);
+            }
+          }).catch(() => {});
+        }
       } else {
         setError('Failed to load risk data');
         showToast.error('Failed to load risk data');
@@ -408,23 +424,88 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
   const handleOrgRoleChange = (index: number, value: string) => {
     setForm(prev => ({
       ...prev,
-      orgRoles: prev.orgRoles.map((role, i) => 
-        i === index ? { ...role, value } : role
+      orgRoles: prev.orgRoles.map((role, i) =>
+        i === index ? { ...role, value, measures: [value] } : role
       )
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOrgMeasureChange = (roleIndex: number, measureIndex: number, value: string) => {
+    setForm(prev => ({
+      ...prev,
+      orgRoles: prev.orgRoles.map((role, i) => {
+        if (i !== roleIndex) return role;
+        const measures = [...role.measures];
+        measures[measureIndex] = value;
+        return { ...role, measures, value: measures[0] || '' };
+      })
+    }));
+  };
+
+  const handleAddOrgMeasure = (roleIndex: number) => {
+    setForm(prev => ({
+      ...prev,
+      orgRoles: prev.orgRoles.map((role, i) =>
+        i === roleIndex ? { ...role, measures: [...role.measures, ''] } : role
+      )
+    }));
+  };
+
+  const handleRemoveOrgMeasure = (roleIndex: number, measureIndex: number) => {
+    setForm(prev => ({
+      ...prev,
+      orgRoles: prev.orgRoles.map((role, i) => {
+        if (i !== roleIndex) return role;
+        const measures = role.measures.filter((_, mi) => mi !== measureIndex);
+        return { ...role, measures: measures.length > 0 ? measures : [''], value: measures[0] || '' };
+      })
+    }));
+  };
+
+  // ── Tracking helpers ──────────────────────────────────────────────────────
+
+  const STATUS_OPTIONS: { value: TrackingStatus; label: string; color: string; dot: string }[] = [
+    { value: 'Not Started', label: 'Not Started', color: 'bg-gray-100 text-gray-600 border-gray-200', dot: 'bg-gray-400' },
+    { value: 'In Progress', label: 'In Progress', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+    { value: 'Applied',     label: 'Applied',     color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  ];
+
+  const getTrackingStatus = (orgId: string, measureIndex: number): TrackingStatus => {
+    const entry = trackingData
+      .filter(t => t.measureIndex === measureIndex && t.measureType === 'Mitigation' && t.organization?._id === orgId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    return entry?.status ?? 'Not Started';
+  };
+
+  const handleUpdateTracking = async (orgId: string, measureIndex: number, status: TrackingStatus) => {
+    const consortiumId = Array.isArray(form.consortium) ? form.consortium[0] : '';
+    if (!consortiumId || !orgId) { showToast.error('Missing consortium or organization info.'); return; }
+    setSavingTracking(true);
+    try {
+      await mitigationTrackingService.upsertTracking({ riskId, organizationId: orgId, consortiumId, measureIndex, status });
+      showToast.success(`Status updated to "${status}"`);
+      const refreshed = await mitigationTrackingService.getTrackingByRisk(riskId);
+      if (refreshed.data?.success) setTrackingData(refreshed.data.data ?? []);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast.error(msg || 'Failed to update tracking status.');
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const handleSubmit = async (e: React.FormEvent, submitForReview = false) => {
     e.preventDefault();
     if (!riskId) return;
     setSubmitting(true);
     try {
-      // Convert orgRoles back to the format expected by the backend
-      // Only include orgRoles that contain data (non-empty role values)
       const formattedOrgRoles = form.orgRoles
-        .filter(role => role.value && role.value.trim() !== '')
+        .filter(role => role.measures.some(m => m.trim()) || role.value.trim())
         .map(role => {
           const org = consortiumOrganizations.find(org => org._id === role.orgId);
+          const measures = role.measures.filter(m => m.trim());
           return {
             organization: {
               _id: role.orgId,
@@ -432,9 +513,23 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
               type: 'Schema.Types.ObjectId',
               ref: 'Organization'
             },
-            role: role.value
+            role: measures[0] || role.value,
+            measures,
           };
         });
+
+      // Determine new status for org users
+      let newStatus: string | undefined;
+      const isOrgUser = user?.role === 'Organization User';
+      if (isOrgUser) {
+        if (submitForReview) {
+          newStatus = 'Pending'; // submit for facilitator review
+        } else if (riskStatus === 'Draft') {
+          newStatus = 'Draft'; // save draft
+        } else if (riskStatus === 'Rejected') {
+          newStatus = 'Pending'; // re-submit on any save after rejection
+        }
+      }
 
       await risksService.updateRisk(riskId, {
         title: form.title,
@@ -449,8 +544,10 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         likelihood: form.likelihood,
         severity: form.severity,
         consortium: form.consortium ? [form.consortium] : [],
+        ...(newStatus ? { status: newStatus } : {}),
       } as unknown as Partial<ExtendedRisk>);
-      showToast.success('Risk updated successfully');
+
+      showToast.success(submitForReview ? 'Risk submitted for review!' : 'Risk updated successfully');
       setSubmitting(false);
       onClose();
       onSubmit();
@@ -630,7 +727,15 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
 
           {/* Organization Roles Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">Organization Roles</h3>
+            <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Organization Roles</h3>
+              {riskStatus === 'Approved' && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Tracking enabled
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-600 mb-4">
               {form.consortium 
                 ? `Define the role of each organization in the selected consortium for mitigating this risk.`
@@ -648,18 +753,71 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
                   </div>
                 );
               } else if (form.consortium && form.orgRoles.length > 0) {
-                return form.orgRoles.map((role, index) => (
-                  <div key={role.orgId || index} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      {role.orgName || `Organization ${index + 1}`}
-                    </label>
-                    <TextArea
-                      value={role.value || ''}
-                      onChange={val => handleOrgRoleChange(index, val)}
-                      rows={2}
-                      placeholder={`Enter ${role.orgName || `Organization ${index + 1}`}'s role in mitigating this risk`}
-                      disabled={!isFacilitator}
-                    />
+                return form.orgRoles.map((role, roleIndex) => (
+                  <div key={role.orgId || roleIndex} className="space-y-2 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-semibold text-gray-800">
+                        {role.orgName || `Organization ${roleIndex + 1}`}
+                      </label>
+                      {isFacilitator && (
+                        <button
+                          type="button"
+                          onClick={() => handleAddOrgMeasure(roleIndex)}
+                          className="text-xs text-[#2a9d8f] hover:text-[#1a6b61] font-medium flex items-center gap-1"
+                        >
+                          <span className="text-base leading-none">+</span> Add measure
+                        </button>
+                      )}
+                    </div>
+                    {(role.measures.length > 0 ? role.measures : ['']).map((measure, measureIndex) => {
+                      const currentStatus = getTrackingStatus(role.orgId, measureIndex);
+                      const currentOpt = STATUS_OPTIONS.find(s => s.value === currentStatus) ?? STATUS_OPTIONS[0];
+                      return (
+                        <div key={measureIndex} className="rounded-lg border border-gray-100 bg-white p-3 space-y-2">
+                          <div className="flex gap-2 items-start">
+                            <span className="inline-flex items-center justify-center w-5 h-5 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0 mt-2">{measureIndex + 1}</span>
+                            <textarea
+                              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40 resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                              rows={2}
+                              placeholder={`Measure ${measureIndex + 1} for ${role.orgName}`}
+                              value={measure}
+                              disabled={!isFacilitator}
+                              onChange={e => handleOrgMeasureChange(roleIndex, measureIndex, e.target.value)}
+                            />
+                            {isFacilitator && role.measures.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOrgMeasure(roleIndex, measureIndex)}
+                                className="mt-2 text-red-400 hover:text-red-600 font-bold text-lg leading-none"
+                              >×</button>
+                            )}
+                          </div>
+
+                          {/* Tracking status — only for approved risks */}
+                          {riskStatus === 'Approved' && (
+                            <div className="flex items-center gap-2 flex-wrap pl-7">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${currentOpt.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${currentOpt.dot}`} />
+                                {currentOpt.label}
+                              </span>
+                              <span className="text-xs text-gray-400">→</span>
+                              {STATUS_OPTIONS.filter(o => o.value !== currentStatus).map(opt => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  disabled={savingTracking}
+                                  onClick={() => handleUpdateTracking(role.orgId, measureIndex, opt.value)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border bg-white text-gray-500 border-gray-200 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ));
               } else if (form.consortium && form.orgRoles.length === 0) {
@@ -692,7 +850,20 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
               </Button>
             )}
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</Button>
+            {user?.role === 'Organization User' && (riskStatus === 'Draft' || riskStatus === 'Rejected') ? (
+              <>
+                {riskStatus === 'Draft' && (
+                  <Button type="submit" variant="outline" disabled={submitting} onClick={(e) => handleSubmit(e, false)}>
+                    {submitting ? 'Saving...' : 'Save as Draft'}
+                  </Button>
+                )}
+                <Button type="button" variant="primary" disabled={submitting} onClick={(e) => handleSubmit(e, true)}>
+                  {submitting ? 'Submitting...' : riskStatus === 'Rejected' ? 'Edit & Re-submit' : 'Submit for Review'}
+                </Button>
+              </>
+            ) : (
+              <Button type="submit" variant="primary" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</Button>
+            )}
           </div>
         </form>
       )}
