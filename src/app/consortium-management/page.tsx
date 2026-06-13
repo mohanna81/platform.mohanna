@@ -397,7 +397,7 @@ function ConsortiumManagementContent() {
     <Layout>
     <div className="p-4 sm:p-8 md:p-12">
       <ConsortiumManagementHeader onNewConsortium={handleOpenAddConsortium} onNewOrganization={handleOpenAddOrg} onNewUser={handleOpenAddUser} canAddUser={canAddUser} canAddConsortium={canAddConsortium} canAddOrganization={canAddOrganization} />
-      <ConsortiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <ConsortiumTabs activeTab={activeTab} onTabChange={setActiveTab} userRole={user?.role} />
       {activeTab === 'Active Consortiums' && <ActiveConsortiumsTable key={refreshKey} refreshKey={refreshKey} />}
       {activeTab === 'Organizations' && (
         <>

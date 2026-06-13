@@ -99,23 +99,13 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         return false;
       }
 
-      // For facilitators, additionally filter by consortium access
-      if (currentUserRole === 'Facilitator') {
-        // Get available consortium IDs for the facilitator
+      // For facilitators and organization users, filter by consortium access
+      if (currentUserRole === 'Facilitator' || currentUserRole === 'Organization User') {
         const availableConsortiumIds = consortiumOptions.map(c => c.value);
-        
-        // Check if the user belongs to any of the facilitator's consortiums
         const userConsortiumIds = user.consortia || [];
-        const hasSharedConsortium = userConsortiumIds.some(consortiumId => 
+        const hasSharedConsortium = userConsortiumIds.some(consortiumId =>
           availableConsortiumIds.includes(consortiumId)
         );
-        
-        console.log(`Facilitator ${currentUser.name} consortium check for ${user.name}:`, {
-          availableConsortiumIds,
-          userConsortiumIds,
-          hasSharedConsortium
-        });
-        
         return hasSharedConsortium;
       }
 
