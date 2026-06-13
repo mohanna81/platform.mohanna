@@ -129,7 +129,4 @@ export const risksService = {
   async deleteRisk(id: string) {
     return apiClient.delete<{ message: string; success: boolean }>(`/risk/${id}`);
   },
-  async getRisksByOrgRole(organizationId: string) {
-    return apiClient.get<GetRisksResponse>(`/risk/orgrole/${organizationId}`);
-  },
 }; 
