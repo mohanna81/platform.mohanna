@@ -172,7 +172,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
     if (!likelihood) newErrors.likelihood = 'Likelihood is required.';
     if (!severity) newErrors.severity = 'Severity is required.';
     if (!trigger.trim()) newErrors.trigger = 'Trigger indicator is required.';
-    if (!mitigation.trim()) newErrors.mitigation = 'Mitigation measure is required.';
+    if (!mitigation.trim()) newErrors.mitigation = 'Mitigation measures are required.';
     return newErrors;
   };
 
@@ -219,8 +219,8 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           severity,
           triggerIndicator: trigger,
           mitigationMeasures: mitigation,
-          preventiveMeasures: '',
-          reactiveMeasures: '',
+          preventiveMeasures: '', // TODO: Add field if needed
+          reactiveMeasures: '', // TODO: Add field if needed
           status: 'Draft',
           triggerStatus: 'Not Triggered',
           orgRoles: consortiumOrganizations.map(org => ({
@@ -263,7 +263,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
       <p className="text-gray-700 mb-6 text-sm sm:text-base">
         {editMode ? "Update the details of the risk and re-submit for review." : "Enter the details of the risk your organization is facing."}
       </p>
-      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+      <form onSubmit={handleSubmit} className="space-y-4 text-black max-h-[70vh] overflow-y-auto pr-2">
         <InputField
           label="Risk Title"
           placeholder="Eg. Payment Delay Risk"
@@ -272,8 +272,8 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           required
           error={errors.title}
         />
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 min-w-0">
+        <div className="flex gap-4">
+          <div className="flex-1">
             <Dropdown
               label="Risk Category"
               options={riskCategories}
@@ -285,7 +285,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
               error={errors.category}
             />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1">
             <Dropdown
               label="Consortium"
               options={consortiumOptions}
@@ -353,10 +353,9 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         />
         <TextArea
           label={<span>Mitigation Measures <span title="Actions to reduce the likelihood or impact of this risk" className="inline-flex items-center justify-center align-middle cursor-pointer text-gray-400 hover:text-gray-700 border border-gray-300 rounded-full w-4 h-4 text-xs ml-1">?</span></span>}
-          placeholder="Describe the actions to reduce the likelihood or impact of this risk"
+          placeholder="Describe the actions that can be taken to prevent this risk or reduce its impact if it occurs."
           value={mitigation}
           onChange={setMitigation}
-          required
           rows={3}
           error={errors.mitigation}
         />

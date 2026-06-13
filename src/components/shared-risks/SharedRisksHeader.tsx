@@ -17,8 +17,7 @@ const SharedRisksHeader: React.FC<{
   onFilterChange: (filters: SharedRisksFilters) => void;
   consortiums: Consortium[];
   organizations: Organization[];
-  onExportExcel?: () => void;
-}> = ({ filters, onFilterChange, consortiums, organizations, onExportExcel }) => {
+}> = ({ filters, onFilterChange, consortiums, organizations }) => {
   const hasActiveFilters = filters.consortium || filters.category || filters.organization || filters.status || filters.search;
 
   const clearAllFilters = () => {
@@ -119,17 +118,7 @@ const SharedRisksHeader: React.FC<{
             Clear Filters
           </button>
         )}
-        {onExportExcel && (
-          <button
-            onClick={onExportExcel}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-            </svg>
-            Download Excel
-          </button>
-        )}
+
       </div>
     </div>
   );

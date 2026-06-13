@@ -26,7 +26,7 @@ export interface Consortium {
   description?: string;
   start_date?: string;
   end_date?: string;
-  status: 'Active' | 'Inactive' | 'Draft' | 'Closed';
+  status: 'Active' | 'Inactive' | 'Draft';
   organizations: (string | Organization)[]; // Can be string[] or Organization[] depending on API response
   Facilitators?: string[];
   createdBy?: string;
@@ -103,11 +103,6 @@ export const consortiaService = {
       API_ENDPOINTS.CONSORTIA.ADD_ORGANIZATION,
       data
     );
-  },
-
-  // Update consortium status (Active / Closed)
-  async updateConsortiumStatus(id: string, status: 'Active' | 'Closed') {
-    return apiClient.patch<CreateConsortiumResponse>(`/consortia/${id}/status`, { status });
   },
 
   // Remove organization from consortium

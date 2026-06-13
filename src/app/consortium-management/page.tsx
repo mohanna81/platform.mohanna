@@ -8,7 +8,6 @@ import ConsortiumTabs, { ConsortiumTab } from '@/components/consortium-managemen
 import AddOrganizationToConsortium from '@/components/consortium-management/AddOrganizationToConsortium';
 import OrganizationList from '@/components/consortium-management/OrganizationList';
 import ActiveConsortiumsTable from '@/components/consortium-management/ActiveConsortiumsTable';
-import ClosedConsortiumsTable from '@/components/consortium-management/ClosedConsortiumsTable';
 import AddConsortiumModal from '@/components/consortium-management/AddConsortiumModal';
 import EditOrganizationModal from '@/components/consortium-management/EditOrganizationModal';
 import AddUserModal from '@/components/consortium-management/AddUserModal';
@@ -400,7 +399,6 @@ function ConsortiumManagementContent() {
       <ConsortiumManagementHeader onNewConsortium={handleOpenAddConsortium} onNewOrganization={handleOpenAddOrg} onNewUser={handleOpenAddUser} canAddUser={canAddUser} canAddConsortium={canAddConsortium} canAddOrganization={canAddOrganization} />
       <ConsortiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
       {activeTab === 'Active Consortiums' && <ActiveConsortiumsTable key={refreshKey} refreshKey={refreshKey} />}
-      {activeTab === 'Closed Consortiums' && <ClosedConsortiumsTable key={refreshKey} refreshKey={refreshKey} />}
       {activeTab === 'Organizations' && (
         <>
           <AddOrganizationToConsortium 

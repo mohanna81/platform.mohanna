@@ -3,6 +3,7 @@ import React from 'react';
 const tabs = [
   { label: 'Upcoming' },
   { label: 'Past Meetings' },
+  { label: 'Calendar View' },
 ];
 
 interface MeetingsTabsProps {

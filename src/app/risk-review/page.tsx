@@ -15,8 +15,6 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { getRoleLevel } from '@/lib/utils/roleHierarchy';
 import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import AccessRestricted from '@/components/risk-review/AccessRestricted';
-import { AppNotification } from '@/lib/api/services/notifications';
-import { useNotifications } from '@/lib/hooks/useNotifications';
 
 // Extend Risk type to include additional fields
 interface Risk extends BaseRisk {
@@ -50,7 +48,6 @@ const STATUS_OPTIONS = [
   { value: 'Approved', label: 'Approve' },
   { value: 'Rejected', label: 'Reject' },
   { value: 'Pending', label: 'Mark as Pending' },
-  { value: 'Closed', label: 'Close Risk' },
 ];
 
 export default function RiskReviewPage() {
@@ -59,24 +56,18 @@ export default function RiskReviewPage() {
   const [allPendingRisks, setAllPendingRisks] = useState<Risk[]>([]);
   const [allApprovedRisks, setAllApprovedRisks] = useState<Risk[]>([]);
   const [allRejectedRisks, setAllRejectedRisks] = useState<Risk[]>([]);
-  const [allClosedRisks, setAllClosedRisks] = useState<Risk[]>([]);
   const [activeTab, setActiveTab] = useState('Pending Review');
   const [consortium, setConsortium] = useState(CONSORTIUMS[0].value);
   const [status, setStatus] = useState(STATUSES[0].value);
   const [category, setCategory] = useState(CATEGORIES[0].value);
   const [organization, setOrganization] = useState('');
   const [search, setSearch] = useState("");
-  const { notifications: allNotifications, unreadCount: totalUnread, markAsRead: markNotifRead, markAllAsRead: markAllNotifRead } = useNotifications();
-  const mitigationNotifications: AppNotification[] = allNotifications.filter(n => n.type === 'mitigation_status_change');
-  const notificationsLoading = false;
-  const unreadMitigationCount = mitigationNotifications.filter(n => !n.read).length;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [loadingState, setLoadingState] = useState({
     pendingRisks: true,
     approvedRisks: true,
     rejectedRisks: true,
-    closedRisks: true,
     consortia: true,
     organizations: true,
   });
@@ -88,7 +79,7 @@ export default function RiskReviewPage() {
   const organizationNamesCacheRef = useRef<Record<string, string>>({});
   const isInitialLoad = useRef(true);
   
-  const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.closedRisks && !loadingState.consortia && !loadingState.organizations;
+  const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.consortia && !loadingState.organizations;
   
   // Check if user has access to risk review (Facilitator level or higher)
   const hasRiskReviewAccess = user && getRoleLevel(user.role) >= 2;
@@ -178,7 +169,7 @@ export default function RiskReviewPage() {
           risk.statement,
           risk.category,
           risk.triggerIndicator,
-          risk.mitigationMeasures || '',
+          risk.mitigationMeasures,
           risk.preventiveMeasures,
           risk.reactiveMeasures,
           // Search in consortium names
@@ -209,7 +200,6 @@ export default function RiskReviewPage() {
   const pendingRisks = useMemo(() => filterRisks(allPendingRisks), [allPendingRisks, filterRisks]);
   const approvedRisks = useMemo(() => filterRisks(allApprovedRisks), [allApprovedRisks, filterRisks]);
   const rejectedRisks = useMemo(() => filterRisks(allRejectedRisks), [allRejectedRisks, filterRisks]);
-  const closedRisks = useMemo(() => filterRisks(allClosedRisks), [allClosedRisks, filterRisks]);
 
   // Fetch organizations and consortia based on user role
   const fetchFilterData = useCallback(async () => {
@@ -257,7 +247,7 @@ export default function RiskReviewPage() {
   // Fetch organization names for all risks when they load
   useEffect(() => {
     const fetchAllOrganizationNames = async () => {
-      const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks, ...allClosedRisks];
+      const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks];
       const orgIdsToFetch = new Set<string>();
 
       // Use ref to check cache — avoids re-triggering this effect when cache state updates
@@ -296,29 +286,23 @@ export default function RiskReviewPage() {
       }
     };
 
-    if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0 || allClosedRisks.length > 0) {
+    if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0) {
       fetchAllOrganizationNames();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allPendingRisks, allApprovedRisks, allRejectedRisks, allClosedRisks]);
-
-  const handleMarkNotificationRead = (notificationId: string) => markNotifRead(notificationId);
-  const handleMarkAllNotificationsRead = () => markAllNotifRead();
+  }, [allPendingRisks, allApprovedRisks, allRejectedRisks]);
 
   // Dynamically set tab counts
   const tabCounts = {
     'Pending Review': pendingRisks.length,
     'Approved': approvedRisks.length,
     'Rejected': rejectedRisks.length,
-    'Closed': closedRisks.length,
   };
 
   const TABS = [
     { label: 'Pending Review', count: tabCounts['Pending Review'] },
     { label: 'Approved', count: tabCounts['Approved'] },
     { label: 'Rejected', count: tabCounts['Rejected'] },
-    { label: 'Closed', count: tabCounts['Closed'] },
-    { label: 'Notifications', count: unreadMitigationCount },
   ];
 
   const handleToggleTrigger = async (riskId: string, isCurrentlyTriggered: boolean) => {
@@ -335,90 +319,73 @@ export default function RiskReviewPage() {
 
   // Refetch all risks for all tabs
   const refetchAllRisks = () => {
-    setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
+    setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true }));
     Promise.all([
       risksService.getRisksByStatus('Pending'),
       risksService.getRisksByStatus('Approved'),
       risksService.getRisksByStatus('Rejected'),
-      risksService.getRisksByStatus('Closed'),
-    ]).then(([pendingRes, approvedRes, rejectedRes, closedRes]) => {
+    ]).then(([pendingRes, approvedRes, rejectedRes]) => {
       if (pendingRes.data?.success && pendingRes.data?.data && Array.isArray(pendingRes.data.data)) {
         setAllPendingRisks(pendingRes.data.data);
       } else {
         setAllPendingRisks([]);
       }
       setLoadingState(prev => ({ ...prev, pendingRisks: false }));
-
+      
       if (approvedRes.data?.success && approvedRes.data?.data && Array.isArray(approvedRes.data.data)) {
         setAllApprovedRisks(approvedRes.data.data);
       } else {
         setAllApprovedRisks([]);
       }
       setLoadingState(prev => ({ ...prev, approvedRisks: false }));
-
+      
       if (rejectedRes.data?.success && rejectedRes.data?.data && Array.isArray(rejectedRes.data.data)) {
         setAllRejectedRisks(rejectedRes.data.data);
       } else {
         setAllRejectedRisks([]);
       }
       setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
-
-      if (closedRes.data?.success && closedRes.data?.data && Array.isArray(closedRes.data.data)) {
-        setAllClosedRisks(closedRes.data.data);
-      } else {
-        setAllClosedRisks([]);
-      }
-      setLoadingState(prev => ({ ...prev, closedRisks: false }));
     }).catch((error) => {
       console.error('Error fetching risks:', error);
       setAllPendingRisks([]);
       setAllApprovedRisks([]);
       setAllRejectedRisks([]);
-      setAllClosedRisks([]);
       showToast.error('Failed to refresh risks data');
-      setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
+      setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false }));
     });
   };
 
   useEffect(() => {
     const loadAllData = async () => {
-      setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
-
+      setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true }));
+      
       try {
-        const [pendingRes, approvedRes, rejectedRes, closedRes] = await Promise.all([
+        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
           risksService.getRisksByStatus('Pending'),
           risksService.getRisksByStatus('Approved'),
           risksService.getRisksByStatus('Rejected'),
-          risksService.getRisksByStatus('Closed'),
         ]);
-
+        
         if (pendingRes.data?.success && pendingRes.data?.data && Array.isArray(pendingRes.data.data)) {
           setAllPendingRisks(pendingRes.data.data);
         } else {
           setAllPendingRisks([]);
         }
         setLoadingState(prev => ({ ...prev, pendingRisks: false }));
-
+        
         if (approvedRes.data?.success && approvedRes.data?.data && Array.isArray(approvedRes.data.data)) {
           setAllApprovedRisks(approvedRes.data.data);
         } else {
           setAllApprovedRisks([]);
         }
         setLoadingState(prev => ({ ...prev, approvedRisks: false }));
-
+        
         if (rejectedRes.data?.success && rejectedRes.data?.data && Array.isArray(rejectedRes.data.data)) {
           setAllRejectedRisks(rejectedRes.data.data);
         } else {
           setAllRejectedRisks([]);
         }
         setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
-
-        if (closedRes.data?.success && closedRes.data?.data && Array.isArray(closedRes.data.data)) {
-          setAllClosedRisks(closedRes.data.data);
-        } else {
-          setAllClosedRisks([]);
-        }
-        setLoadingState(prev => ({ ...prev, closedRisks: false }));
         
         if (isInitialLoad.current) {
           showToast.success('Risk review data loaded successfully');
@@ -429,12 +396,11 @@ export default function RiskReviewPage() {
         setAllPendingRisks([]);
         setAllApprovedRisks([]);
         setAllRejectedRisks([]);
-        setAllClosedRisks([]);
         showToast.error('Failed to load risk review data');
-        setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
+        setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false }));
       }
     };
-
+    
     loadAllData();
   }, []);
 
@@ -542,24 +508,11 @@ export default function RiskReviewPage() {
                 onClick={() => setActiveTab(tab.label)}
                 type="button"
               >
-                {tab.label === 'Notifications' && (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                )}
                 {tab.label}
-                {tab.label === 'Notifications' ? (
-                  tab.count > 0 && (
-                    <span className="ml-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-semibold">
-                      {tab.count}
-                    </span>
-                  )
-                ) : (
-                  isFullyLoaded && (
-                    <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">
-                      {tab.count}
-                    </span>
-                  )
+                {isFullyLoaded && (
+                  <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                    {tab.count}
+                  </span>
                 )}
               </button>
             ))}
@@ -655,98 +608,6 @@ export default function RiskReviewPage() {
                 ))
               )
                           )}
-        {activeTab === 'Closed' && (
-              closedRisks.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-gray-500">
-                  <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-lg font-medium">No closed risks found</p>
-                  <p className="text-sm text-gray-400">No risks have been closed yet</p>
-                </div>
-              ) : (
-                closedRisks.map((risk) => (
-                  <RiskCard
-                    key={risk._id}
-                    risk={risk}
-                    status="closed"
-                    onToggleTrigger={handleToggleTrigger}
-                    onEditRisk={handleEditRisk}
-                    onChangeStatus={handleChangeStatus}
-                    renderConsortiumNames={renderConsortiumNames}
-                    renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
-                  />
-                ))
-              )
-            )}
-            {activeTab === 'Notifications' && (
-              <div>
-                {/* Header row */}
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Mitigation Status Notifications</h2>
-                  {mitigationNotifications.some(n => !n.read) && (
-                    <button
-                      onClick={handleMarkAllNotificationsRead}
-                      className="text-sm text-teal-600 hover:text-teal-800 font-medium"
-                      type="button"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
-                </div>
-                {notificationsLoading ? (
-                  <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex items-center justify-center text-gray-400">
-                    Loading notifications…
-                  </div>
-                ) : mitigationNotifications.length === 0 ? (
-                  <div className="bg-white border border-gray-200 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-gray-500">
-                    <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    <p className="text-lg font-medium">No mitigation notifications</p>
-                    <p className="text-sm text-gray-400">You&apos;ll be notified when mitigation statuses change in your organization</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {mitigationNotifications.map(notification => (
-                      <div
-                        key={notification._id}
-                        className={`bg-white border rounded-xl p-4 flex items-start gap-4 transition-colors ${notification.read ? 'border-gray-200 opacity-70' : 'border-teal-300 shadow-sm'}`}
-                      >
-                        {/* Icon */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${notification.read ? 'bg-gray-100' : 'bg-teal-50'}`}>
-                          <svg className={`w-5 h-5 ${notification.read ? 'text-gray-400' : 'text-teal-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                        </div>
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className={`font-semibold text-sm ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>{notification.title}</p>
-                            {!notification.read && (
-                              <span className="inline-block w-2 h-2 bg-teal-500 rounded-full flex-shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 leading-relaxed">{notification.body}</p>
-                          <p className="text-xs text-gray-400 mt-1">{new Date(notification.createdAt).toLocaleString()}</p>
-                        </div>
-                        {/* Mark read */}
-                        {!notification.read && (
-                          <button
-                            onClick={() => handleMarkNotificationRead(notification._id)}
-                            className="flex-shrink-0 text-xs text-teal-600 hover:text-teal-800 font-medium mt-1"
-                            type="button"
-                          >
-                            Mark read
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
                         </div>
         )}
 

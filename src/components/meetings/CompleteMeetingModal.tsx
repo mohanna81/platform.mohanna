@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
-import InputField from '@/components/common/InputField';
-import TextArea from '@/components/common/TextArea';
 import Loader from '@/components/common/Loader';
+
+const todayStr = () => new Date().toISOString().split('T')[0];
+const selectClass = 'border border-[#e5eaf1] rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77]';
 
 interface AttendeeOption {
   id: string;
@@ -32,8 +33,6 @@ interface CompleteMeetingModalProps {
   initialActionItems?: ActionItem[];
   initialLinks?: MeetingLink[];
 }
-
-const todayStr = () => new Date().toISOString().split('T')[0];
 
 const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   open,
@@ -81,15 +80,17 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   };
 
   const handleAddLink = () => {
-    setLinks(prev => [...prev, { title: '', url: '' }]);
+    setLinks(prevLinks => [...prevLinks, { title: '', url: '' }]);
   };
 
   const handleRemoveLink = (idx: number) => {
-    setLinks(prev => prev.filter((_, i) => i !== idx));
+    setLinks(prevLinks => prevLinks.filter((_, i) => i !== idx));
   };
 
   const handleLinkChange = (idx: number, field: 'title' | 'url', value: string) => {
-    setLinks(prev => prev.map((link, i) => i === idx ? { ...link, [field]: value } : link));
+    setLinks(prevLinks => prevLinks.map((link, i) =>
+      i === idx ? { ...link, [field]: value } : link
+    ));
   };
 
   const validate = () => {
@@ -107,45 +108,52 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    const filteredLinks = links.filter(link => link.title.trim() && link.url.trim());
-    onSubmit({ minutes, actionItems, links: filteredLinks.length > 0 ? filteredLinks : undefined });
-  };
 
-  const selectClass = 'border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/20 focus:border-[#2a9d8f] disabled:opacity-50 disabled:cursor-not-allowed';
+    const filteredLinks = links.filter(link => link.title.trim() && link.url.trim());
+
+    onSubmit({
+      minutes,
+      actionItems,
+      links: filteredLinks.length > 0 ? filteredLinks : undefined
+    });
+  };
 
   return (
     <Modal isOpen={open} onClose={onClose} title="Complete Meeting" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6 text-[#0b1320]">
-        <TextArea
-          label={<>Minutes <span className="text-red-500">*</span></>}
-          id="minutes"
-          value={minutes}
-          onChange={setMinutes}
-          rows={4}
-          fullWidth
-          required
-          disabled={isSubmitting}
-          error={errors?.minutes}
-        />
-
+      <form onSubmit={handleSubmit} className="space-y-6 text-[#0b1320] max-h-[70vh] overflow-y-auto pr-2">
+        <div>
+          <label className="block font-semibold mb-1" htmlFor="minutes">Minutes <span className="text-red-500">*</span></label>
+          <textarea
+            id="minutes"
+            className="w-full border border-[#e5eaf1] rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77] resize-vertical min-h-[80px]"
+            value={minutes}
+            onChange={e => setMinutes(e.target.value)}
+            required
+            disabled={isSubmitting}
+          />
+          {errors?.minutes && <div className="text-red-500 text-sm mt-1">{errors.minutes}</div>}
+        </div>
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="font-semibold text-sm">Action Items <span className="text-red-500">*</span></label>
+            <label className="font-semibold">Action Items <span className="text-red-500">*</span></label>
             <Button type="button" variant="outline" size="sm" onClick={handleAddActionItem} disabled={isSubmitting}>
               + Add Item
             </Button>
           </div>
           {actionItems.map((item, idx) => (
-            <div key={idx} className="flex flex-col gap-3 mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <InputField
-                label="Task Title"
-                placeholder="Brief task title"
-                value={item.title}
-                onChange={v => handleActionItemChange(idx, 'title', v)}
-                fullWidth
-                required
-                disabled={isSubmitting}
-              />
+            <div key={idx} className="flex flex-col gap-2 mb-4 p-4 border border-[#e5eaf1] rounded-lg bg-gray-50">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-gray-700">Title <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  className={selectClass + ' w-full'}
+                  placeholder="Action item title"
+                  value={item.title}
+                  onChange={e => handleActionItemChange(idx, 'title', e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
                 <textarea
@@ -200,50 +208,61 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="font-semibold text-sm">Additional Links <span className="text-gray-400 font-normal">(Optional)</span></label>
+            <label className="font-semibold">Additional Links (Optional)</label>
             <Button type="button" variant="outline" size="sm" onClick={handleAddLink} disabled={isSubmitting}>
               + Add Link
             </Button>
           </div>
-          <p className="text-sm text-gray-500 mb-2">Add related documents, resources, or reference links for meeting minutes</p>
+          <div className="text-sm text-gray-600 mb-2">
+            Add related documents, resources, or reference links for meeting minutes
+          </div>
           {links.length > 0 ? (
             <div className="space-y-2">
               {links.map((link, idx) => (
-                <div key={idx} className="flex flex-col md:flex-row gap-2 items-start md:items-end p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div key={idx} className="flex flex-col md:flex-row gap-2 items-start md:items-end p-3 border border-[#e5eaf1] rounded-lg bg-gray-50">
                   <div className="flex-1 min-w-0">
-                    <InputField
-                      label="Link Title"
+                    <label className="block text-sm font-medium text-[#0b1320] mb-1">Link Title</label>
+                    <input
+                      type="text"
+                      className="w-full border border-[#e5eaf1] rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77]"
                       placeholder="e.g., Meeting Recording"
                       value={link.title}
-                      onChange={v => handleLinkChange(idx, 'title', v)}
-                      fullWidth
+                      onChange={e => handleLinkChange(idx, 'title', e.target.value)}
                       disabled={isSubmitting}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <InputField
-                      label="URL"
+                    <label className="block text-sm font-medium text-[#0b1320] mb-1">URL</label>
+                    <input
                       type="url"
+                      className="w-full border border-[#e5eaf1] rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77]"
                       placeholder="https://example.com/recording"
                       value={link.url}
-                      onChange={v => handleLinkChange(idx, 'url', v)}
-                      fullWidth
+                      onChange={e => handleLinkChange(idx, 'url', e.target.value)}
                       disabled={isSubmitting}
                     />
                   </div>
-                  <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveLink(idx)} disabled={isSubmitting}>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleRemoveLink(idx)}
+                    disabled={isSubmitting}
+                  >
                     Remove
                   </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic py-2">No links added yet. Click &quot;+ Add Link&quot; to add one.</p>
+            <div className="text-sm text-gray-500 italic py-2">
+              No links added yet. Click &quot;+ Add Link&quot; to add a link to this meeting&apos;s minutes.
+            </div>
           )}
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="border-gray-300 text-gray-700">Cancel</Button>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isSubmitting ? <Loader size="sm" /> : 'Complete Meeting'}
           </Button>
