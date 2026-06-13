@@ -17,6 +17,7 @@ import { getUserTimezone } from "@/lib/utils/timezone";
 import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organizations';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
+import { actionItemsService } from '@/lib/api/services/actionitems';
 
 export default function MeetingsPage() {
   const { user } = useAuth();
@@ -223,8 +224,10 @@ export default function MeetingsPage() {
   // Define ActionItem type based on Meeting type
   type AssignedToType = string | string[] | { id?: string; _id?: string };
   type ActionItem = {
+    title: string;
     description: string;
     assignedTo: AssignedToType;
+    deadline: string;
   };
 
   // Complete meeting submit

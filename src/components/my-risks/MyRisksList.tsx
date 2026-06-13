@@ -241,12 +241,10 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
 
   const handleEditRisk = (risk: Risk) => {
     setSelectedRiskForEdit(risk);
-    // Org users use EditRiskModal for all statuses (richer experience)
-    // For Draft/Rejected they can still save/submit; for Approved they can update tracking
     if (isOrgUser) {
       setEditModalOpen(true);
     } else {
-      // Facilitators use NewRiskModal for Draft/Rejected
+      // Facilitators use NewRiskModal
       setNewRiskEditOpen(true);
     }
   };
