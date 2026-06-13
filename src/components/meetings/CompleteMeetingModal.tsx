@@ -1,10 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const selectClass = 'border border-[#e5eaf1] rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77]';
+
+interface AssigneeDropdownProps {
+  attendees: AttendeeOption[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+}
+
+const AssigneeDropdown: React.FC<AssigneeDropdownProps> = ({ attendees, selected, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggle = (id: string) => {
+    onChange(selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id]);
+  };
+
+  const selectedNames = attendees.filter(a => selected.includes(a.id)).map(a => a.name);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/20 focus:border-[#2a9d8f] disabled:opacity-50 disabled:cursor-not-allowed min-h-[38px]"
+      >
+        <span className="flex flex-wrap gap-1 flex-1">
+          {selectedNames.length === 0 ? (
+            <span className="text-gray-400">Select assignees…</span>
+          ) : (
+            selectedNames.map(name => (
+              <span key={name} className="inline-flex items-center gap-1 bg-[#e6f4f2] text-[#2a9d8f] text-xs font-medium px-2 py-0.5 rounded-full">
+                {name}
+              </span>
+            ))
+          )}
+        </span>
+        <svg
+          className={`flex-shrink-0 w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {attendees.map(a => (
+            <label
+              key={a.id}
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(a.id)}
+                onChange={() => toggle(a.id)}
+                className="accent-[#2a9d8f] w-4 h-4 flex-shrink-0"
+              />
+              <span className="text-sm text-gray-800">{a.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface AttendeeOption {
   id: string;
@@ -169,20 +242,12 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
               <div className="flex flex-col md:flex-row gap-2 items-end">
                 <div className="flex flex-col gap-1 flex-1">
                   <label className="text-xs font-medium text-gray-700">Assignees <span className="text-red-500">*</span></label>
-                  <div className="border border-gray-200 rounded-lg bg-white p-2 space-y-1 max-h-32 overflow-y-auto">
-                    {attendees.map(a => (
-                      <label key={a.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
-                        <input
-                          type="checkbox"
-                          checked={item.assignedTo.includes(a.id)}
-                          onChange={() => handleToggleAssignee(idx, a.id)}
-                          disabled={isSubmitting}
-                          className="accent-[#2a9d8f]"
-                        />
-                        <span className="text-sm text-gray-800">{a.name}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <AssigneeDropdown
+                    attendees={attendees}
+                    selected={item.assignedTo}
+                    onChange={ids => setActionItems(items => items.map((it, i) => i === idx ? { ...it, assignedTo: ids } : it))}
+                    disabled={isSubmitting}
+                  />
                   {item.assignedTo.length === 0 && <p className="text-xs text-red-400 mt-0.5">Select at least one assignee</p>}
                 </div>
                 <div className="flex flex-col gap-1 flex-1">

@@ -91,8 +91,10 @@ export interface Risk {
   createdBy?: User;
   updatedAt?: string;
   rejectionReason?: string;
+  closingComment?: string;
+  mitigationSuccess?: string | number;
+  lastEditedBy?: User;
   __v?: number;
-  // ...add other fields as needed
 }
 
 export interface GetRisksResponse {

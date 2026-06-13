@@ -119,9 +119,8 @@ export interface ForgotPasswordResponse {
 }
 
 export interface UpdatePasswordRequest {
-  userId: string;
-  otp: string;
-  newPassword: string;
+  email: string;
+  password: string;
 }
 
 export interface UpdatePasswordResponse {

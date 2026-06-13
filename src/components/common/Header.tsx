@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { User } from "lucide-react";
 import { usePathname } from "next/navigation";
+import NotificationBell from "./NotificationBell";
 import sidebarPages from "./sidebarPages.json";
 import {
   BarChart2,
@@ -80,7 +81,7 @@ const Header: React.FC<HeaderProps> = ({ className = "", onMenuClick, title }) =
   const userEmail = user?.email || "superAdmin@example.com";
 
   return (
-    <header className={`w-full h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 md:px-8 bg-white border-b shadow-sm z-10 ${className}`}>
+    <header className={`w-full h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 md:px-8 bg-white border-b shadow-sm z-40 ${className}`}>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {/* Hamburger menu for mobile */}
         <button
@@ -102,12 +103,7 @@ const Header: React.FC<HeaderProps> = ({ className = "", onMenuClick, title }) =
         )}
       </div>
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-        {/* Notification bell icon */}
-        <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" className="sm:w-5 sm:h-5">
-            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11c0-3.07-1.64-5.64-5-5.96V4a1 1 0 10-2 0v1.04C6.64 5.36 5 7.92 5 11v3.159c0 .538-.214 1.055-.595 1.436L3 17h5m7 0v1a3 3 0 11-6 0v-1m6 0H9" stroke="#D4A72C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        <NotificationBell />
         {/* User avatar and dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button

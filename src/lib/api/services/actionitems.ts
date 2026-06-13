@@ -8,6 +8,7 @@ export interface CreateActionItemRequest {
   assignTo: string;
   assignToModel: string;
   relatedRisk?: string;
+  relatedRisks?: string[];
   consortium: string;
   description: string;
   implementationDate: string;
@@ -15,6 +16,7 @@ export interface CreateActionItemRequest {
   assignToUser?: string;
   assignToUserModel?: string;
   organization?: string;
+  organizationUser?: string[];
 }
 
 export interface CreateActionItemResponse {
@@ -88,6 +90,7 @@ export interface ActionItem {
   assignTo: string | { _id: string; name: string };
   assignToModel: string;
   relatedRisk?: string | { _id: string; name: string };
+  relatedRisks?: Array<{ _id: string; title: string; category?: string }>;
   consortium: string | { _id: string; name: string } | Array<string | { _id: string; name: string }>;
   description: string;
   implementationDate: string;
@@ -98,6 +101,7 @@ export interface ActionItem {
   assignToUserModel?: string;
   organization?: Array<string | { _id: string; name: string }>;
   organizationUser?: Array<string | { _id: string; name: string }>;
+  comments?: { _id?: string }[];
 }
 
 export interface GetActionItemsResponse {
@@ -118,6 +122,7 @@ export interface UpdateActionItemRequest {
   description?: string;
   implementationDate?: string;
   organization?: string;
+  organizationUser?: string[];
 }
 
 export interface UpdateActionItemResponse {
