@@ -19,7 +19,7 @@ const protectedRoutes = [
 // Define public routes (login page)
 const publicRoutes = ['/'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Get token from cookies
