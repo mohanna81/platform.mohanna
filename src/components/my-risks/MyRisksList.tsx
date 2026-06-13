@@ -95,45 +95,100 @@ const AuditModal: React.FC<{ risk: Risk; onClose: () => void }> = ({ risk, onClo
   );
 };
 
+// ── Status badge colours ──────────────────────────────────────────────────────
+const statusStyle: Record<string, string> = {
+  Rejected: 'bg-red-100 text-red-700 border border-red-200',
+  Approved: 'bg-green-100 text-green-700 border border-green-200',
+  Pending:  'bg-yellow-100 text-yellow-700 border border-yellow-200',
+  Draft:    'bg-gray-100 text-gray-600 border border-gray-200',
+};
+
 // ── Risk card ─────────────────────────────────────────────────────────────────
 const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () => void; userRole?: string }> = ({ risk, onViewDetails, onEdit, userRole }) => {
   const [auditOpen, setAuditOpen] = useState(false);
+  const isRejected = risk.status === 'Rejected';
 
   return (
     <>
-      <div className={`bg-white border rounded-xl p-6 mb-4 shadow-sm flex flex-col gap-2 ${
-        risk.status === 'Rejected' ? 'border-red-300 bg-red-50' : 'border-gray-200'
+      <div className={`bg-white border rounded-2xl p-5 mb-3 shadow-sm transition hover:shadow-md ${
+        isRejected ? 'border-red-200 bg-red-50/40' : 'border-gray-200'
       }`}>
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          <span className="text-xl font-bold text-gray-900">{risk.title}</span>
-          {risk.code && <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-0.5 rounded">{risk.code}</span>}
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-            risk.status === 'Rejected'
-              ? 'bg-red-100 text-red-700'
-              : risk.status === 'Approved'
-              ? 'bg-green-100 text-green-700'
-              : risk.status === 'Pending'
-              ? 'bg-yellow-100 text-yellow-700'
-              : 'bg-gray-100 text-gray-700'
-          }`}>{risk.status}</span>
-          {risk.consortium && Array.isArray(risk.consortium) && risk.consortium.length > 0 && (
-            <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-0.5 rounded">{getConsortiumNames(risk.consortium)}</span>
+
+        {/* ── Top row: title + badges ── */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="text-base font-bold text-gray-900 leading-tight">{risk.title}</span>
+            {risk.code && (
+              <span className="bg-gray-100 text-gray-500 text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0">
+                {risk.code}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${statusStyle[risk.status] || statusStyle.Draft}`}>
+              {risk.status}
+            </span>
+            {risk.consortium && Array.isArray(risk.consortium) && risk.consortium.length > 0 && (
+              <span className="bg-teal-50 text-teal-700 border border-teal-100 text-[11px] font-semibold px-2.5 py-0.5 rounded-full truncate max-w-[180px]">
+                {getConsortiumNames(risk.consortium)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── Meta row ── */}
+        <div className="flex flex-wrap gap-3 text-xs text-gray-400 mb-3">
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {risk.createdAt?.slice(0, 10)}
+          </span>
+          {risk.category && (
+            <span className="flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              {risk.category}
+            </span>
           )}
         </div>
-        <div className="text-sm text-gray-500 mb-2">
-          Created: {risk.createdAt?.slice(0, 10)}
-          {risk.category && <> &bull; Category: {risk.category}</>}
-        </div>
-        <div className="text-gray-800 mb-2">{risk.statement}</div>
-        <div className="text-gray-900 font-semibold mb-2">
-          Trigger: <span className="font-normal text-gray-800">{risk.triggerIndicator}</span>
-        </div>
-        <div className="flex justify-end gap-2">
-          {/* Eye icon — audit trail */}
+
+        {/* ── Statement (truncated) ── */}
+        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2 mb-3">
+          {risk.statement}
+        </p>
+
+        {/* ── Trigger indicator (truncated) ── */}
+        {risk.triggerIndicator && (
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-4">
+            <svg className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <p className="text-xs text-amber-800 line-clamp-1 leading-relaxed">
+              <span className="font-semibold">Trigger: </span>{risk.triggerIndicator}
+            </p>
+          </div>
+        )}
+
+        {/* ── Rejection reason ── */}
+        {isRejected && risk.rejectionReason && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+            <svg className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-red-700 line-clamp-2 leading-relaxed">
+              <span className="font-semibold">Reason: </span>{risk.rejectionReason}
+            </p>
+          </div>
+        )}
+
+        {/* ── Action buttons ── */}
+        <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
           <button
-            title="View audit info"
+            title="View audit trail"
             onClick={() => setAuditOpen(true)}
-            className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-[#2a9d8f] hover:border-[#2a9d8f] transition cursor-pointer"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-[#2a9d8f] hover:bg-teal-50 transition cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -141,20 +196,20 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
             </svg>
           </button>
           <button
-            className="border border-gray-300 rounded px-4 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+            className="border border-gray-200 rounded-lg px-4 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
             onClick={onViewDetails}
           >
             View Details
           </button>
           {onEdit && (userRole === 'Organization User' || userRole === 'Facilitator') && (
             <button
-              className="bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] rounded px-4 py-1 text-sm font-medium transition cursor-pointer border border-[#FBBF77] hover:border-[#f9b15c] flex items-center gap-2"
+              className="bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] rounded-lg px-4 py-1.5 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
               onClick={onEdit}
             >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              {risk.status === 'Draft' ? 'Edit' : risk.status === 'Rejected' ? 'Edit & Re-submit' : 'Edit'}
+              {risk.status === 'Rejected' ? 'Edit & Re-submit' : 'Edit'}
             </button>
           )}
         </div>
