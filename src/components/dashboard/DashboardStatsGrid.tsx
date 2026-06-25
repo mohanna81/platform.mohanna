@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, Users, Calendar, CheckSquare, AlertTriangle, Clock, BarChart3, Activity, Target, Eye, RefreshCw, Plus, Settings, MoreHorizontal } from 'lucide-react';
+import MitigationProgressCard from '@/components/dashboard/MitigationProgressCard';
 import { useRouter } from 'next/navigation';
 import { dashboardService, DashboardStats, FacilitatorDashboardStats, Risk, ActionItem, adminDashboardService, AdminDashboardStats } from '@/lib/api';
 import { risksService } from '@/lib/api/services/risks';
@@ -170,7 +171,7 @@ const DashboardStatsGrid = () => {
           let pendingRisks: any[] = [];
           if (pendingRisksResponse.data?.success && pendingRisksResponse.data?.data) {
             pendingRisks = pendingRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -185,7 +186,7 @@ const DashboardStatsGrid = () => {
           let approvedRisks: any[] = [];
           if (approvedRisksResponse.data?.success && approvedRisksResponse.data?.data) {
             approvedRisks = approvedRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -200,7 +201,7 @@ const DashboardStatsGrid = () => {
           let rejectedRisks: any[] = [];
           if (rejectedRisksResponse.data?.success && rejectedRisksResponse.data?.data) {
             rejectedRisks = rejectedRisksResponse.data.data.filter((risk: any) => {
-              // Filter risks by facilitator's accessible consortia (using consortia IDs from user profile)
+              // Filter risks by facilitator's accessible consortiums (using consortia IDs from user profile)
               const riskConsortiumIds = Array.isArray(risk.consortium) 
                 ? risk.consortium.map((c: any) => getEntityId(c)).filter(Boolean)
                 : [];
@@ -517,30 +518,32 @@ const DashboardStatsGrid = () => {
         
         try {
           // Fetch data from individual page APIs in parallel, including user's consortia and meetings
-          const orgId = (user as any).organizationId;
           const [myRisksResponse, sharedRisksResponse, actionItemsResponse, meetingsResponse, userConsortia] = await Promise.all([
-            orgId ? risksService.getRisksByOrgRole(orgId) : risksService.getRisks(),
+            risksService.getRisks(), // For My Risks
             risksService.getRisksByStatus('Approved'), // For Shared Risks (same as shared risks page)
             actionItemsService.getActionItems(),
             meetingsService.getAttendeeMeetings(user.id), // For Upcoming Meetings
             fetchConsortiaByRole(user) // Get user's consortia for shared risks filtering
           ]);
 
-          // Process My Risks — all risks belonging to this organization
+          
+          // Process My Risks (filter for user's own risks)
           let myRisks: any[] = [];
           if (myRisksResponse.success && myRisksResponse.data?.data) {
-            myRisks = myRisksResponse.data.data;
+            myRisks = myRisksResponse.data.data.filter((risk: any) => 
+              risk.createdBy?._id === user.id || risk.createdBy === user.id
+            );
           }
 
           // Process Shared Risks using the same logic as the shared risks page
-          const consortia = Array.isArray(userConsortia) ? userConsortia : [];
+          const consortiums = Array.isArray(userConsortia) ? userConsortia : [];
           let sharedRisks: any[] = [];
           if (sharedRisksResponse.success && sharedRisksResponse.data?.data) {
             const approvedRisks = sharedRisksResponse.data.data;
             
             sharedRisks = approvedRisks.filter((risk: any) => {
-              // Filter to show only risks from available consortia (exact same logic as shared risks page)
-              const availableConsortiumIds = consortia.map((c: any) => getEntityId(c)).filter(Boolean);
+              // Filter to show only risks from available consortiums (exact same logic as shared risks page)
+              const availableConsortiumIds = consortiums.map((c: any) => getEntityId(c)).filter(Boolean);
               const hasAvailableConsortium = Array.isArray(risk.consortium) && 
                 risk.consortium.some((c: any) => {
                   const riskConsortiumId = getEntityId(c);
@@ -552,7 +555,7 @@ const DashboardStatsGrid = () => {
                 console.log('Risk filtered out by consortium filter:', {
                   riskId: risk._id,
                   riskTitle: risk.title,
-                  riskConsortia: risk.consortium?.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })) || [],
+                  riskConsortiums: risk.consortium?.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })) || [],
                   availableConsortiumIds,
                   hasAvailableConsortium
                 });
@@ -720,7 +723,7 @@ const DashboardStatsGrid = () => {
             totalRisksForCard: myRisks.length, // Only showing user's own risks in Total Risks
             userActionItems: userActionItems.length,
             userId: user.id,
-            userConsortia: consortia.length
+            userConsortia: consortiums.length
           });
 
           // Log sample of risks to debug filtering
@@ -740,8 +743,8 @@ const DashboardStatsGrid = () => {
           // Debug consortium filtering
           console.log('User consortium info:', {
             userId: user.id,
-            userConsortia: consortia.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })),
-            hasConsortia: consortia.length > 0
+            userConsortia: consortiums.map((c: any) => ({ id: getEntityId(c), name: c?.name || 'Unknown' })),
+            hasConsortia: consortiums.length > 0
           });
 
           // Count how many approved risks are filtered out by consortium
@@ -751,7 +754,7 @@ const DashboardStatsGrid = () => {
             totalApprovedRisks: allApprovedRisks.length,
             sharedRisksAfterConsortiumFilter: sharedRisks.length,
             filteredOutByConsortium: allApprovedRisks.length - sharedRisks.length,
-            note: 'Shared risks includes ALL approved risks from user consortia (including user own risks)'
+            note: 'Shared risks includes ALL approved risks from user consortiums (including user own risks)'
           });
 
         } catch (error) {
@@ -843,7 +846,7 @@ const DashboardStatsGrid = () => {
           return;
         }
       } else {
-        // For regular users, pass consortium ID if selected, otherwise empty string for all consortia
+        // For regular users, pass consortium ID if selected, otherwise empty string for all consortiums
         const consortiumId = selectedConsortium;
         response = await dashboardService.getDashboardStats(consortiumId, user?.id);
       }
@@ -1033,22 +1036,25 @@ const DashboardStatsGrid = () => {
           </>
         )}
 
-        {/* My Organization Risks - Only for Organization Users */}
+        {/* My Risks - Only for Organization Users */}
         {roleHelpers.isOrganization() && (
           <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 flex flex-col items-start min-h-[160px] border border-indigo-200">
             <div className="flex items-center justify-between w-full mb-3">
-              <span className="font-semibold text-lg text-gray-900">My Organization Risks</span>
+              <span className="font-semibold text-lg text-gray-900">My Risks</span>
               <Shield className="w-6 h-6 text-indigo-500" />
             </div>
             <div className="text-3xl font-bold mb-1 text-indigo-600">
-              {(stats as any).myRisks?.count || 0}
+              {hasAdminPrivileges 
+                ? (stats as any).systemOverview?.totalRisks || 0
+                : (stats as DashboardStatsWithAdditional).additionalData?.totalRisks || (stats as any).myRisks?.count + (stats as any).sharedRisks?.count || 0
+              }
             </div>
-            <div className="text-gray-600 text-sm mb-4">All risks registered by your organization</div>
+            <div className="text-gray-600 text-sm mb-4">Your organization's registered risks</div>
             <button
               className="bg-white rounded-lg px-4 py-2 font-semibold text-gray-900 border border-indigo-200 mt-auto cursor-pointer hover:bg-indigo-50 transition-colors"
               onClick={() => router.push('/my-risks')}
             >
-              View Organization Risks
+              View My Risks
             </button>
           </div>
         )}
@@ -1063,7 +1069,7 @@ const DashboardStatsGrid = () => {
             <div className="text-3xl font-bold mb-1 text-blue-600">
               {hasAdminPrivileges ? 0 : (stats as any).sharedRisks?.count || 0}
             </div>
-            <div className="text-gray-600 text-sm mb-4">Risks shared across consortia</div>
+            <div className="text-gray-600 text-sm mb-4">Risks shared across consortiums</div>
             <button
               className="bg-white rounded-lg px-4 py-2 font-semibold text-gray-900 border border-blue-200 mt-auto cursor-pointer hover:bg-blue-50 transition-colors"
               onClick={() => router.push('/shared-risks')}
@@ -1152,6 +1158,31 @@ const DashboardStatsGrid = () => {
 // Admin Dashboard Content
 const AdminDashboardContent = ({ stats }: { stats: any }) => {
   const router = useRouter();
+  const [adminMitigationStats, setAdminMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [adminMitigationLoading, setAdminMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchAdminMitigationStats = async () => {
+      try {
+        // Fetch every consortium in the system — Admin has full visibility
+        const { consortiaService } = await import('@/lib/api/services/consortia');
+        const consortiaRes = await consortiaService.getConsortia();
+        const allConsortia = consortiaRes.data?.data ?? [];
+        const consortiumIds = allConsortia.map((c) => c._id).filter(Boolean);
+
+        if (consortiumIds.length > 0) {
+          const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+          const res = await mitigationTrackingService.getStatsByConsortia(consortiumIds);
+          if (res.data?.success) setAdminMitigationStats(res.data.data);
+        }
+      } catch {
+        // Non-critical — card will render with empty state
+      } finally {
+        setAdminMitigationLoading(false);
+      }
+    };
+    fetchAdminMitigationStats();
+  }, []);
 
   // Calculate analytics for admin dashboard
   const totalRisks = stats.systemOverview?.totalRisks || 0;
@@ -1193,9 +1224,12 @@ const AdminDashboardContent = ({ stats }: { stats: any }) => {
           className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <Settings className="w-5 h-5 text-gray-600" />
-          <span className="font-medium text-gray-900">Manage Consortia</span>
+          <span className="font-medium text-gray-900">Manage Consortiums</span>
         </button>
       </div>
+
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={adminMitigationStats} loading={adminMitigationLoading} />
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1394,6 +1428,28 @@ const AdminDashboardContent = ({ stats }: { stats: any }) => {
 // Facilitator Dashboard Content
 const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardStats }) => {
   const router = useRouter();
+  const { user: fUser } = useAuth();
+  const [mitigationStats, setMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [mitigationLoading, setMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchMitigationStats = async () => {
+      if (!fUser?.consortia || fUser.consortia.length === 0) {
+        setMitigationLoading(false);
+        return;
+      }
+      try {
+        const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+        const res = await mitigationTrackingService.getStatsByConsortia(fUser.consortia as string[]);
+        if (res.data?.success) setMitigationStats(res.data.data);
+      } catch {
+        // Non-critical — dashboard still works without this
+      } finally {
+        setMitigationLoading(false);
+      }
+    };
+    fetchMitigationStats();
+  }, [fUser?.consortia]);
 
   return (
     <div className="space-y-6">
@@ -1422,12 +1478,15 @@ const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardSta
         </button>
       </div>
 
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={mitigationStats} loading={mitigationLoading} />
+
       {/* Facilitator Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Risk Overview */}
 
         {/* Action Items Overview */}
-      
+
 
         {/* Meeting Overview section hidden per user request */}
       </div>
@@ -1614,6 +1673,28 @@ const FacilitatorDashboardContent = ({ stats }: { stats: FacilitatorDashboardSta
 // Organization Dashboard Content
 const OrganizationDashboardContent = ({ stats }: { stats: DashboardStats }) => {
   const router = useRouter();
+  const { user: orgUser } = useAuth();
+  const [orgMitigationStats, setOrgMitigationStats] = React.useState<import('@/lib/api/services/mitigationTracking').TrackingStats | null>(null);
+  const [orgMitigationLoading, setOrgMitigationLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchOrgMitigationStats = async () => {
+      if (!orgUser?.consortia || orgUser.consortia.length === 0) {
+        setOrgMitigationLoading(false);
+        return;
+      }
+      try {
+        const { mitigationTrackingService } = await import('@/lib/api/services/mitigationTracking');
+        const res = await mitigationTrackingService.getStatsByConsortia(orgUser.consortia as string[]);
+        if (res.data?.success) setOrgMitigationStats(res.data.data);
+      } catch {
+        // Non-critical
+      } finally {
+        setOrgMitigationLoading(false);
+      }
+    };
+    fetchOrgMitigationStats();
+  }, [orgUser?.consortia]);
 
   return (
     <div className="space-y-6">
@@ -1648,6 +1729,9 @@ const OrganizationDashboardContent = ({ stats }: { stats: DashboardStats }) => {
           <span className="font-medium text-gray-900">View Action Items</span>
         </button>
       </div>
+
+      {/* Mitigation Implementation Progress */}
+      <MitigationProgressCard stats={orgMitigationStats} loading={orgMitigationLoading} />
 
       {/* Basic Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
