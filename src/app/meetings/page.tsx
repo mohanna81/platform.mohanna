@@ -68,6 +68,13 @@ export default function MeetingsPage() {
     return isCreator;
   };
 
+  // Admins and Facilitators can delete past meetings
+  const canDeletePastMeeting = () => {
+    if (!user?.role) return false;
+    const role = normalizeRole(user.role);
+    return role === 'Admin' || role === 'Facilitator' || role === 'Super_user';
+  };
+
   const fetchMeetings = useCallback(async () => {
     try {
       setLoading(true);
@@ -440,6 +447,7 @@ export default function MeetingsPage() {
                         key={meeting._id}
                         meeting={meeting}
                         onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
+                        onDelete={canDeletePastMeeting() ? () => handleDeleteMeeting(meeting._id) : undefined}
                       />
                     ))
                   );
