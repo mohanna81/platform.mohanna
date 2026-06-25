@@ -12,7 +12,7 @@ export type AssignActionFormData = {
   title: string;
   description: string;
   consortium: string;
-  assignTo: string[]; // Organizations (one or more)
+  assignTo: string; // Organization (required)
   assignToUsers: string[]; // Users (one or more required)
   date: string;
   relatedRisks: string[];
@@ -26,7 +26,6 @@ interface AssignActionModalProps {
   orgOptions: { value: string; label: string }[];
   rawConsortia?: Consortium[];
   userOptions: { value: string; label: string }[];
-  rawConsortiumUsers?: { _id: string; name: string; organizations?: string[] }[];
   onConsortiumChange?: (consortiumId: string) => void;
 }
 
@@ -38,14 +37,13 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
   orgOptions,
   rawConsortia = [],
   userOptions,
-  rawConsortiumUsers = [],
   onConsortiumChange,
 }) => {
   const [form, setForm] = React.useState<AssignActionFormData>({
     title: '',
     description: '',
     consortium: '',
-    assignTo: [],
+    assignTo: '',
     assignToUsers: [],
     date: '',
     relatedRisks: [],
@@ -64,16 +62,6 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
     );
     return orgOptions.filter(o => orgIds.has(o.value));
   }, [form.consortium, rawConsortia, orgOptions]);
-
-  // Filter users by selected orgs (if any orgs selected, show only users in those orgs)
-  const filteredUserOptions = React.useMemo(() => {
-    if (form.assignTo.length === 0 || rawConsortiumUsers.length === 0) return userOptions;
-    const selectedOrgIds = new Set(form.assignTo);
-    const filtered = rawConsortiumUsers.filter(u =>
-      u.organizations && u.organizations.some((orgId: string) => selectedOrgIds.has(orgId))
-    );
-    return filtered.map(u => ({ value: u._id, label: u.name }));
-  }, [form.assignTo, rawConsortiumUsers, userOptions]);
 
   // Fetch approved risks when consortium changes
   React.useEffect(() => {
@@ -102,7 +90,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
       title: '',
       description: '',
       consortium: '',
-      assignTo: [],
+      assignTo: '',
       assignToUsers: [],
       date: '',
       relatedRisks: [],
@@ -124,7 +112,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
     
     // If consortium changes, clear org, users, risks and notify parent
     if (field === 'consortium') {
-      setForm(prev => ({ ...prev, assignTo: [], assignToUsers: [], relatedRisks: [] }));
+      setForm(prev => ({ ...prev, assignTo: '', assignToUsers: [], relatedRisks: [] }));
       if (onConsortiumChange) onConsortiumChange(value);
     }
   };
@@ -160,46 +148,29 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
             rows={3}
           />
         </div>
-        <div className="mb-2">
-          <label className="block text-sm font-semibold text-[#0b1320] mb-1">Consortium</label>
-          <Dropdown
-            options={consortiumOptions}
-            value={form.consortium}
-            onChange={(v) => handleChange('consortium', v)}
-            required
-            fullWidth
-          />
-        </div>
-        {/* Assign To Organizations — multi-select */}
-        <div className="mb-2">
-          <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To Organization(s)</label>
-          <Dropdown
-            placeholder={!form.consortium ? 'Select a consortium first' : filteredOrgOptions.length === 0 ? 'No organizations in this consortium' : 'Select an organization to add'}
-            options={filteredOrgOptions.filter(o => !form.assignTo.includes(o.value))}
-            value=""
-            onChange={v => {
-              if (!v) return;
-              setForm(prev => ({ ...prev, assignTo: [...prev.assignTo, v] }));
-            }}
-            fullWidth
-            disabled={!form.consortium || filteredOrgOptions.length === 0}
-          />
-          {form.assignTo.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {form.assignTo.map((orgId, idx) => {
-                const org = filteredOrgOptions.find(o => o.value === orgId);
-                return (
-                  <div key={orgId} className="flex items-center justify-between bg-[#2a9d8f]/5 border border-[#2a9d8f]/20 px-3 py-1.5 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center justify-center w-4 h-4 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0">{idx + 1}</span>
-                      <span className="text-gray-800 font-medium">{org?.label || orgId}</span>
-                    </div>
-                    <button type="button" onClick={() => setForm(prev => ({ ...prev, assignTo: prev.assignTo.filter(id => id !== orgId), assignToUsers: [] }))} className="text-red-500 hover:text-red-700 font-bold ml-2 text-base leading-none">×</button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
+          <div>
+            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Consortium</label>
+            <Dropdown
+              options={consortiumOptions}
+              value={form.consortium}
+              onChange={(v) => handleChange('consortium', v)}
+              required
+              fullWidth
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-[#0b1320] mb-1">Assign To Organization</label>
+            <Dropdown
+              options={filteredOrgOptions}
+              placeholder={!form.consortium ? 'Select a consortium first' : filteredOrgOptions.length === 0 ? 'No organizations in this consortium' : 'Select organization'}
+              value={form.assignTo}
+              onChange={(v) => handleChange('assignTo', v)}
+              required
+              fullWidth
+              disabled={!form.consortium || filteredOrgOptions.length === 0}
+            />
+          </div>
         </div>
         {/* Related Risks */}
         <div className="mb-2">
@@ -244,20 +215,20 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
             Assign To User(s) <span className="text-red-500">*</span>
           </label>
           <Dropdown
-            placeholder={filteredUserOptions.length === 0 ? (form.assignTo.length > 0 ? 'No users in selected organizations' : 'No users available') : 'Select a user to add'}
-            options={filteredUserOptions.filter(u => !form.assignToUsers.includes(u.value))}
+            placeholder={userOptions.length === 0 ? 'No users available' : 'Select a user to add'}
+            options={userOptions.filter(u => !form.assignToUsers.includes(u.value))}
             value=""
             onChange={v => {
               if (!v) return;
               setForm(prev => ({ ...prev, assignToUsers: [...prev.assignToUsers, v] }));
             }}
             fullWidth
-            disabled={filteredUserOptions.length === 0}
+            disabled={userOptions.length === 0}
           />
           {form.assignToUsers.length > 0 && (
             <div className="mt-2 space-y-1">
               {form.assignToUsers.map((userId, idx) => {
-                const u = filteredUserOptions.find(o => o.value === userId) || userOptions.find(o => o.value === userId);
+                const u = userOptions.find(o => o.value === userId);
                 return (
                   <div key={userId} className="flex items-center justify-between bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-sm">
                     <div className="flex items-center gap-2">

@@ -69,15 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authService.login({ email, password });
       
       if (response.success && response.data) {
-        const userData = response.data.data as Record<string, unknown> & typeof response.data.data;
-        const orgs = (userData as Record<string, unknown>).organizations as unknown[] | undefined;
+        const userData = response.data.data as typeof response.data.data & Record<string, unknown>;
+        const orgs = userData.organizations as unknown[] | undefined;
         const firstOrg = Array.isArray(orgs) ? orgs[0] : undefined;
         const organizationId: string | undefined =
           (typeof firstOrg === 'object' && firstOrg !== null
             ? (firstOrg as Record<string, unknown>)._id as string
             : firstOrg as string) || undefined;
-
-        const rawConsortia = (userData as Record<string, unknown>).consortia as unknown[] | undefined;
+        const rawConsortia = userData.consortia as unknown[] | undefined;
         const consortia = Array.isArray(rawConsortia)
           ? rawConsortia.map(c =>
               typeof c === 'object' && c !== null
@@ -85,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 : c as string
             )
           : undefined;
-
         const authUser: AuthUser = {
           id: userData.id,
           email: userData.email,

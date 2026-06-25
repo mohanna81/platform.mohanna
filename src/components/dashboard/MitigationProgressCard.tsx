@@ -100,11 +100,11 @@ export default function MitigationProgressCard({ stats, loading }: MitigationPro
       </div>
 
       {/* Per-type breakdown (if data available) */}
-      {stats && stats.byMeasureType.length > 0 && (
+      {stats && stats.byMeasureType?.length > 0 && (
         <div className="mt-5 pt-4 border-t border-gray-100 space-y-2">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By Measure Type</p>
           {(['Mitigation', 'Preventive', 'Reactive'] as const).map(type => {
-            const typeEntries = stats.byMeasureType.filter(e => e._id.measureType === type);
+            const typeEntries = (stats.byMeasureType ?? []).filter(e => e._id.measureType === type);
             const applied = typeEntries.find(e => e._id.status === 'Applied')?.count ?? 0;
             const inProgress = typeEntries.find(e => e._id.status === 'In Progress')?.count ?? 0;
             const notStarted = typeEntries.find(e => e._id.status === 'Not Started')?.count ?? 0;
