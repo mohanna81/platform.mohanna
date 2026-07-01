@@ -95,14 +95,14 @@ const RiskDetailsDrawer = ({ open, onClose, risk, onUpdated }: {
         </div>
 
         {/* Floating Footer with Action Buttons */}
-        {(risk?.status === 'Draft' || (risk?.status === 'Rejected' && user?.role === 'Organization User')) && (
+        {(risk?.status === 'Draft' || (risk?.status === 'Rejected' && (user?.role === 'Organization User' || user?.role === 'Facilitator'))) && (
           <div className="fixed bottom-0 right-0 w-full max-w-md p-6 bg-white border-t border-gray-200 shadow-lg">
             {risk?.status === 'Draft' && (
               <div className="flex flex-col gap-2">
                 <Button className="w-full bg-yellow-200 hover:bg-yellow-300 text-gray-900 font-bold py-2 rounded" type="button" onClick={handleSubmitForReview} disabled={submitting}>
                   {submitting ? 'Submitting...' : 'Submit for Review'}
                 </Button>
-                {user?.role === 'Organization User' && (
+                {(user?.role === 'Organization User' || user?.role === 'Facilitator') && (
                   <Button className="w-full bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] font-bold py-2 rounded border border-[#FBBF77] hover:border-[#f9b15c] flex items-center justify-center gap-2" type="button" onClick={handleEditRisk}>
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -112,7 +112,7 @@ const RiskDetailsDrawer = ({ open, onClose, risk, onUpdated }: {
                 )}
               </div>
             )}
-            {risk?.status === 'Rejected' && user?.role === 'Organization User' && (
+            {risk?.status === 'Rejected' && (user?.role === 'Organization User' || user?.role === 'Facilitator') && (
               <Button className="w-full bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] font-bold py-2 rounded border border-[#FBBF77] hover:border-[#f9b15c] flex items-center justify-center gap-2" type="button" onClick={handleEditRisk}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
