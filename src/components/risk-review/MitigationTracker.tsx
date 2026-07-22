@@ -20,6 +20,7 @@ interface MitigationTrackerProps {
   consortiumId?: string;
   canUpdate?: boolean;
   isFacilitator?: boolean;
+  highlightMeasureIndex?: number | null;
 }
 
 const STATUS_OPTIONS: { value: TrackingStatus; label: string; color: string; dot: string }[] = [
@@ -36,6 +37,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
   consortiumId,
   canUpdate = false,
   isFacilitator = false,
+  highlightMeasureIndex = null,
 }) => {
   const { user } = useAuth();
   const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
@@ -176,6 +178,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
                 canUpdate={canUpdate}
                 saving={saving}
                 onStatusChange={(s) => handleStatusChange(s, i)}
+                highlighted={highlightMeasureIndex === i}
               />
             ))
           ) : (
@@ -232,12 +235,13 @@ interface OrgMeasureRowProps {
   canUpdate: boolean;
   saving: boolean;
   onStatusChange: (status: TrackingStatus) => void;
+  highlighted?: boolean;
 }
 
-const OrgMeasureRow: React.FC<OrgMeasureRowProps> = ({ index, measureText, status, canUpdate, saving, onStatusChange }) => {
+const OrgMeasureRow: React.FC<OrgMeasureRowProps> = ({ index, measureText, status, canUpdate, saving, onStatusChange, highlighted = false }) => {
   const current = STATUS_OPTIONS.find(s => s.value === status) ?? STATUS_OPTIONS[0];
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+    <div className={`rounded-xl border p-3 ${highlighted ? 'border-[#2a9d8f] ring-2 ring-[#2a9d8f]/40 bg-[#2a9d8f]/5' : 'border-gray-100 bg-gray-50/50'}`}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-start gap-2 min-w-0">
           <span className="inline-flex items-center justify-center w-5 h-5 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0 mt-0.5">{index + 1}</span>

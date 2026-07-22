@@ -1,15 +1,22 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { risksService, Risk } from '@/lib/api/services/risks';
 import MitigationTracker from '@/components/risk-review/MitigationTracker';
 
-export default function MyMitigationsTab() {
+export default function MyMitigationsTab({
+  targetRiskId,
+  targetMeasure,
+}: {
+  targetRiskId?: string | null;
+  targetMeasure?: number | null;
+} = {}) {
   const { user } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
+  const highlightedCardRef = useRef<HTMLDivElement | null>(null);
 
   const fetchApprovedRisks = useCallback(async () => {
     setLoading(true);
@@ -45,6 +52,22 @@ export default function MyMitigationsTab() {
   }, [user?.organizationId]);
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
+
+  // Auto-expand and scroll to the risk referenced by a notification deep link
+  useEffect(() => {
+    if (!targetRiskId || risks.length === 0) return;
+    const match = risks.some(r => r._id === targetRiskId);
+    if (!match) return;
+    setExpandedRisk(targetRiskId);
+  }, [targetRiskId, risks]);
+
+  useEffect(() => {
+    if (!targetRiskId || expandedRisk !== targetRiskId) return;
+    const timer = setTimeout(() => {
+      highlightedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [targetRiskId, expandedRisk]);
 
   // Derive consortiumId for a risk
   const getConsortiumId = (risk: Risk): string => {
@@ -86,6 +109,7 @@ export default function MyMitigationsTab() {
 
       {risks.map(risk => {
         const isExpanded = expandedRisk === risk._id;
+        const isTarget = targetRiskId === risk._id;
         const consortiumId = getConsortiumId(risk);
         const orgRoles = (risk.orgRoles || []) as unknown as Array<{
           organization: { _id: string; name: string };
@@ -94,7 +118,13 @@ export default function MyMitigationsTab() {
         }>;
 
         return (
-          <div key={risk._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div
+            key={risk._id}
+            ref={isTarget ? highlightedCardRef : undefined}
+            className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-shadow ${
+              isTarget ? 'border-[#2a9d8f] ring-2 ring-[#2a9d8f]/40' : 'border-gray-200'
+            }`}
+          >
             {/* Risk header — click to expand */}
             <button
               type="button"
@@ -146,6 +176,7 @@ export default function MyMitigationsTab() {
                   consortiumId={consortiumId}
                   canUpdate={true}
                   isFacilitator={false}
+                  highlightMeasureIndex={isTarget ? targetMeasure ?? null : null}
                 />
               </div>
             )}

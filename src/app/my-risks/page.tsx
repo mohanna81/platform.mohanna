@@ -5,7 +5,7 @@ import MyRisksTabs, { MITIGATION_TAB } from '@/components/my-risks/MyRisksTabs';
 import MyRisksList from '@/components/my-risks/MyRisksList';
 import MyMitigationsTab from '@/components/my-risks/MyMitigationsTab';
 import NewRiskModal from '@/components/my-risks/NewRiskModal';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '@/components/common/Layout';
 import { ProtectedRoute } from '@/components/common';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -15,8 +15,21 @@ export default function MyRisksPage() {
   const [showNewRiskModal, setShowNewRiskModal] = useState(false);
   const [activeTab, setActiveTab] = useState('All Risks');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
+  const [targetMeasure, setTargetMeasure] = useState<number | null>(null);
 
   const isOrgUser = user?.role === 'Organization User';
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'mitigations') {
+      setActiveTab(MITIGATION_TAB);
+    }
+    const riskId = params.get('riskId');
+    if (riskId) setTargetRiskId(riskId);
+    const measure = params.get('measure');
+    if (measure !== null) setTargetMeasure(Number(measure));
+  }, []);
 
   const handleOpenNewRisk = () => setShowNewRiskModal(true);
   const handleCloseNewRisk = (shouldRefresh = false) => {
@@ -35,7 +48,7 @@ export default function MyRisksPage() {
             showMitigationsTab={isOrgUser}
           />
           {activeTab === MITIGATION_TAB ? (
-            <MyMitigationsTab />
+            <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} />
           ) : (
             <MyRisksList statusFilter={activeTab} refreshKey={refreshKey} />
           )}
