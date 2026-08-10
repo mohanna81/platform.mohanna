@@ -8,11 +8,13 @@ import Loader from './Loader';
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: string;
+  excludedRoles?: string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRole
+  requiredRole,
+  excludedRoles
 }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -49,7 +51,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role-based access if required
-  if (requiredRole && user.role !== requiredRole) {
+  if (
+    (requiredRole && user.role !== requiredRole) ||
+    (excludedRoles && excludedRoles.includes(user.role))
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

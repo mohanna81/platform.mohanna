@@ -18,7 +18,7 @@ export default function MyRisksPage() {
     if (shouldRefresh) setRefreshKey(prev => prev + 1);
   };
   return (
-    <ProtectedRoute requiredRole={undefined}>
+    <ProtectedRoute excludedRoles={['Facilitator']}>
       <Layout>
         <div className="min-h-screen px-2 sm:px-3 md:px-4 max-w-screen-xl mx-auto py-6">
           <MyRisksHeader onNewRisk={handleOpenNewRisk} />
