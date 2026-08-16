@@ -24,8 +24,8 @@ export interface Consortium {
   id?: string;
   name: string;
   description?: string;
-  start_date?: string;
-  end_date?: string;
+  startDate?: string;
+  endDate?: string;
   status: 'Active' | 'Inactive' | 'Draft';
   organizations: (string | Organization)[]; // Can be string[] or Organization[] depending on API response
   Facilitators?: string[];

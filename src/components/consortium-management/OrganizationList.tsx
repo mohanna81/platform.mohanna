@@ -149,7 +149,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
             {organization.description && (
               <p className="text-sm mb-2 text-gray-600">{organization.description}</p>
             )}
-            <p className="text-xs text-gray-700 mb-1">Contact: {organization.email}</p>
+            <p className="text-xs text-gray-700 mb-1">Contact: {organization.contactEmail}</p>
             {organization.users !== undefined && (
               <p className="text-xs text-gray-700 mb-3">Users: {organization.users}</p>
             )}

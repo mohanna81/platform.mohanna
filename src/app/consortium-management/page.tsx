@@ -422,7 +422,7 @@ function ConsortiumManagementContent() {
         onSubmit={handleEditOrgSubmit}
         initialData={selectedOrganization ? {
           name: selectedOrganization.name,
-          contact_email: selectedOrganization.contact_email || selectedOrganization.email || '',
+          contact_email: selectedOrganization.contactEmail || '',
           description: selectedOrganization.description || '',
           consortiumIds: selectedOrgConsortiaIds,
         } : {

@@ -8,12 +8,11 @@ export interface Organization {
   id: string;
   name: string;
   description?: string;
-  email: string;
   status: 'Active' | 'Inactive' | 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
   users?: number;
-  contact_email?: string;
+  contactEmail?: string;
   consortiumId?: string;
   consortia?: Array<{
     _id?: string;

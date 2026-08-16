@@ -203,8 +203,8 @@ export default function ConsortiumDetailPage() {
             <div>
               <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8 7V3h8v4"/><rect width="16" height="13" x="4" y="7" rx="2" stroke="currentColor" strokeWidth="2"/></svg> Duration</h3>
               <div className="text-gray-700 text-sm">
-                <div>Start Date<br/><span className="font-bold">{consortium.start_date ? new Date(consortium.start_date).toLocaleString('default', { month: 'long', year: 'numeric' }) : '-'}</span></div>
-                <div className="mt-2">End Date<br/><span className="font-bold">{consortium.end_date ? new Date(consortium.end_date).toLocaleString('default', { month: 'long', year: 'numeric' }) : (consortium.status === 'Active' ? 'Active' : '-')}</span></div>
+                <div>Start Date<br/><span className="font-bold">{consortium.startDate ? new Date(consortium.startDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : '-'}</span></div>
+                <div className="mt-2">End Date<br/><span className="font-bold">{consortium.endDate ? new Date(consortium.endDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : (consortium.status === 'Active' ? 'Active' : '-')}</span></div>
               </div>
             </div>
             <div>
