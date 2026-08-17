@@ -12,7 +12,7 @@ export interface OrganizationUserDashboardData {
       _id: string;
       name: string;
       description: string;
-      contact_email: string;
+      contactEmail: string;
       status: string;
       consortia: string[];
       createdBy: string;
@@ -23,8 +23,8 @@ export interface OrganizationUserDashboardData {
     consortia: Array<{
       _id: string;
       name: string;
-      start_date: string;
-      end_date: string;
+      startDate: string;
+      endDate: string;
       description: string;
       status: string;
       organizations: string[];

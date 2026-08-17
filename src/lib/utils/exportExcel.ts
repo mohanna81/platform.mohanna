@@ -29,6 +29,19 @@ function riskToRow(risk: Risk, index?: number) {
         .join(', ')
     : '';
 
+  const orgMitigationMeasures = Array.isArray(risk.orgRoles)
+    ? risk.orgRoles
+        .map((r) => {
+          const orgName = r.organization?.name || 'Unknown Organization';
+          const measures = (r.measures && r.measures.length ? r.measures : (r.role ? [r.role] : []))
+            .filter((m) => m?.trim())
+            .join('; ');
+          return measures ? `${orgName}: ${measures}` : null;
+        })
+        .filter(Boolean)
+        .join(' | ')
+    : '';
+
   const row: Record<string, string | number> = {
     'Risk Title': risk.title || '',
     'Risk Code': risk.code || '',
@@ -42,6 +55,7 @@ function riskToRow(risk: Risk, index?: number) {
     'Mitigation Measures': risk.mitigationMeasures || '',
     'Preventive Measures': risk.preventiveMeasures || '',
     'Reactive Measures': risk.reactiveMeasures || '',
+    'Organization Mitigation Measures': orgMitigationMeasures,
     'Consortium(s)': consortiumNames,
     'Status': risk.status || '',
     'Created At': risk.createdAt ? new Date(risk.createdAt).toLocaleDateString() : '',
@@ -67,6 +81,7 @@ const COL_WIDTHS = [
   { wch: 40 },  // Mitigation Measures
   { wch: 40 },  // Preventive Measures
   { wch: 40 },  // Reactive Measures
+  { wch: 50 },  // Organization Mitigation Measures
   { wch: 30 },  // Consortium(s)
   { wch: 12 },  // Status
   { wch: 14 },  // Created At

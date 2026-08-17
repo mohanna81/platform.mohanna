@@ -2,18 +2,22 @@ import { apiClient } from '../client';
 import { AuthUser } from '@/lib/auth/AuthContext';
 import { consortiaService, Consortium, fetchConsortiaByRole } from './consortia';
 
+// Organization type dropdown — "Other" reveals a free-text field whose value
+// is stored directly as the organizationType (no separate "other text" column).
+export const ORGANIZATION_TYPE_OPTIONS = ['Donor', 'INGO', 'NNGO', 'CSO', 'Other'] as const;
+
 // Types for organizations
 export interface Organization {
   _id: string;
   id: string;
   name: string;
   description?: string;
-  email: string;
   status: 'Active' | 'Inactive' | 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
   users?: number;
-  contact_email?: string;
+  contactEmail?: string;
+  organizationType?: string;
   consortiumId?: string;
   consortia?: Array<{
     _id?: string;
@@ -33,6 +37,7 @@ export interface CreateOrganizationRequest {
   name: string;
   description?: string;
   contact_email: string;
+  organization_type: string;
   consortiumId: string;
 }
 

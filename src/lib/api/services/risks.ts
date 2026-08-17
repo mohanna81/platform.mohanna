@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '../config';
 export interface OrgRole {
   organization: { _id: string; name: string; type?: string; ref?: string };
   role: string;
+  measures?: string[];
 }
 
 export interface Organization {

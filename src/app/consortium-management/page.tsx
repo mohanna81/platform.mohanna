@@ -152,7 +152,7 @@ function ConsortiumManagementContent() {
     setSelectedOrganization(null);
     setSelectedOrgConsortiaIds([]);
   };
-  const handleCreateOrg = async (data: { name: string; description: string; contact_email: string; consortiumIds: string[] }) => {
+  const handleCreateOrg = async (data: { name: string; description: string; contact_email: string; organization_type: string; consortiumIds: string[] }) => {
     try {
       // Validate required fields
       if (!data.name.trim()) {
@@ -163,16 +163,21 @@ function ConsortiumManagementContent() {
         showToast.error('Organization email is required');
         return;
       }
+      if (!data.organization_type.trim()) {
+        showToast.error('Organization type is required');
+        return;
+      }
       if (!data.consortiumIds || data.consortiumIds.length === 0) {
         showToast.error('At least one consortium is required');
         return;
       }
-      
+
       // Create organization with the first consortium as the primary one
       const organizationData = {
         name: data.name.trim(),
         description: data.description.trim() || undefined,
         contact_email: data.contact_email.trim(),
+        organization_type: data.organization_type.trim(),
         consortiumId: data.consortiumIds[0], // Use first consortium as primary
       };
       
@@ -274,7 +279,7 @@ function ConsortiumManagementContent() {
     setShowAddUserModal(true);
   };
   const handleCloseAddUser = () => setShowAddUserModal(false);
-  const handleEditOrgSubmit = async (data: { name: string; description: string; contact_email: string; consortiumIds: string[] }) => {
+  const handleEditOrgSubmit = async (data: { name: string; description: string; contact_email: string; organization_type: string; consortiumIds: string[] }) => {
     if (!selectedOrganization) {
       showToast.error('No organization selected for editing');
       return;
@@ -289,16 +294,21 @@ function ConsortiumManagementContent() {
         showToast.error('Organization email is required');
         return;
       }
+      if (!data.organization_type.trim()) {
+        showToast.error('Organization type is required');
+        return;
+      }
       if (!data.consortiumIds || data.consortiumIds.length === 0) {
         showToast.error('At least one consortium is required');
         return;
       }
-      
+
       // Update organization with the first consortium as the primary one
       const organizationData = {
         name: data.name.trim(),
         description: data.description.trim() || undefined,
         contact_email: data.contact_email.trim(),
+        organization_type: data.organization_type.trim(),
         consortiumId: data.consortiumIds[0], // Use first consortium as primary
       };
       
@@ -424,12 +434,14 @@ function ConsortiumManagementContent() {
         onSubmit={handleEditOrgSubmit}
         initialData={selectedOrganization ? {
           name: selectedOrganization.name,
-          contact_email: selectedOrganization.contact_email || selectedOrganization.email || '',
+          contact_email: selectedOrganization.contactEmail || '',
+          organization_type: selectedOrganization.organizationType || '',
           description: selectedOrganization.description || '',
           consortiumIds: selectedOrgConsortiaIds,
         } : {
           name: '',
           contact_email: '',
+          organization_type: '',
           description: '',
           consortiumIds: [],
         }}

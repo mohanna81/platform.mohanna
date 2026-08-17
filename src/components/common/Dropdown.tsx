@@ -67,11 +67,19 @@ const Dropdown: React.FC<DropdownProps> = ({
       top = rect.top - Math.min(menuMaxH, options.length * 40 + 8) - 4;
     }
 
+    // The trigger button is often narrower than the longest option label
+    // (e.g. full consortium names). Let the open menu grow past the
+    // trigger's width, up to the remaining viewport space, instead of
+    // truncating every option down to the button's width.
+    const maxAvailableWidth = window.innerWidth - rect.left - 16;
+
     setMenuStyle({
       position: 'fixed',
       top,
       left: rect.left,
-      width: rect.width,
+      minWidth: rect.width,
+      maxWidth: Math.max(rect.width, Math.min(maxAvailableWidth, 480)),
+      width: 'max-content',
       zIndex: 9999,
     });
     setIsOpen(true);
@@ -136,7 +144,7 @@ const Dropdown: React.FC<DropdownProps> = ({
             onClick={() => !option.disabled && handleOptionClick(option.value)}
             disabled={option.disabled}
           >
-            <span className="block truncate" title={option.label}>
+            <span className="block whitespace-normal break-words" title={option.label}>
               {option.label}
             </span>
           </Button>

@@ -44,8 +44,8 @@ export interface ActionItem {
 export interface Consortium {
   _id: string;
   name: string;
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
   description: string;
   status: string;
   organizations: string[];
@@ -58,7 +58,7 @@ export interface Organization {
   _id: string;
   name: string;
   description: string;
-  contact_email: string;
+  contactEmail: string;
   status: string;
   consortia: string[];
   createdAt: string;

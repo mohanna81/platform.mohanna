@@ -46,8 +46,8 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
         if (response.success && response.data) {
           const c = response.data.data;
           setName(c.name || '');
-          setStartDate(c.start_date ? c.start_date.substring(0, 10) : '');
-          setEndDate(c.end_date ? c.end_date.substring(0, 10) : '');
+          setStartDate(c.startDate ? c.startDate.substring(0, 10) : '');
+          setEndDate(c.endDate ? c.endDate.substring(0, 10) : '');
           setDescription(c.description || '');
           setStatus((c.status === 'Closed' ? 'Closed' : 'Active') as 'Active' | 'Closed');
         }

@@ -3,24 +3,36 @@ import Button from '../common/Button';
 import InputField from '../common/InputField';
 import TextArea from '../common/TextArea';
 import Modal from '../common/Modal';
+import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/api/services/organizations';
 
 interface EditOrganizationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; description: string; contact_email: string; consortiumIds: string[] }) => void;
+  onSubmit: (data: { name: string; description: string; contact_email: string; organization_type: string; consortiumIds: string[] }) => void;
   initialData: {
     name: string;
     contact_email: string;
+    organization_type: string;
     description: string;
     consortiumIds: string[];
   };
   consortiumOptions: { value: string; label: string }[];
 }
 
+const KNOWN_TYPES: readonly string[] = ORGANIZATION_TYPE_OPTIONS;
+
+function splitOrgType(value: string): { organizationType: string; organizationTypeOther: string } {
+  if (!value) return { organizationType: '', organizationTypeOther: '' };
+  if (KNOWN_TYPES.includes(value) && value !== 'Other') return { organizationType: value, organizationTypeOther: '' };
+  return { organizationType: 'Other', organizationTypeOther: value };
+}
+
 const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, onClose, onSubmit, initialData, consortiumOptions }) => {
   const [name, setName] = React.useState(initialData.name);
   const [contactEmail, setContactEmail] = React.useState(initialData.contact_email);
   const [description, setDescription] = React.useState(initialData.description);
+  const [organizationType, setOrganizationType] = React.useState(() => splitOrgType(initialData.organization_type).organizationType);
+  const [organizationTypeOther, setOrganizationTypeOther] = React.useState(() => splitOrgType(initialData.organization_type).organizationTypeOther);
   const [consortiumIds, setConsortiumIds] = React.useState<string[]>(initialData.consortiumIds);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -28,6 +40,9 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, o
     setName(initialData.name);
     setContactEmail(initialData.contact_email);
     setDescription(initialData.description);
+    const split = splitOrgType(initialData.organization_type);
+    setOrganizationType(split.organizationType);
+    setOrganizationTypeOther(split.organizationTypeOther);
     setConsortiumIds(initialData.consortiumIds);
   }, [initialData]);
 
@@ -35,7 +50,8 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, o
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      onSubmit({ name, description, contact_email: contactEmail, consortiumIds });
+      const resolvedType = organizationType === 'Other' ? organizationTypeOther.trim() : organizationType;
+      onSubmit({ name, description, contact_email: contactEmail, organization_type: resolvedType, consortiumIds });
     } catch {
       // Error handling is done in the parent component
     } finally {
@@ -69,6 +85,33 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({ isOpen, o
             fullWidth
             disabled={isSubmitting}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-1">Organization Type</label>
+          <select
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            value={organizationType}
+            onChange={e => setOrganizationType(e.target.value)}
+            required
+            disabled={isSubmitting}
+          >
+            <option value="" disabled>Select organization type</option>
+            {ORGANIZATION_TYPE_OPTIONS.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          {organizationType === 'Other' && (
+            <div className="mt-2">
+              <InputField
+                placeholder="Enter organization type"
+                value={organizationTypeOther}
+                onChange={setOrganizationTypeOther}
+                required
+                fullWidth
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-1">Description</label>

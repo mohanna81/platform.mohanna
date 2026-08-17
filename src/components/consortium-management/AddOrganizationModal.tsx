@@ -3,11 +3,12 @@ import Button from '../common/Button';
 import InputField from '../common/InputField';
 import TextArea from '../common/TextArea';
 import Modal from '../common/Modal';
+import { ORGANIZATION_TYPE_OPTIONS } from '@/lib/api/services/organizations';
 
 interface AddOrganizationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; description: string; contact_email: string; consortiumIds: string[] }) => void;
+  onSubmit: (data: { name: string; description: string; contact_email: string; organization_type: string; consortiumIds: string[] }) => void;
   consortiumOptions: { value: string; label: string }[];
 }
 
@@ -15,6 +16,8 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ isOpen, onC
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [contactEmail, setContactEmail] = React.useState('');
+  const [organizationType, setOrganizationType] = React.useState('');
+  const [organizationTypeOther, setOrganizationTypeOther] = React.useState('');
   const [consortiumIds, setConsortiumIds] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -23,6 +26,8 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ isOpen, onC
       setName('');
       setDescription('');
       setContactEmail('');
+      setOrganizationType('');
+      setOrganizationTypeOther('');
       setConsortiumIds([]);
       setIsSubmitting(false);
     }
@@ -32,10 +37,13 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ isOpen, onC
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit({ name, description, contact_email: contactEmail, consortiumIds });
+      const resolvedType = organizationType === 'Other' ? organizationTypeOther.trim() : organizationType;
+      await onSubmit({ name, description, contact_email: contactEmail, organization_type: resolvedType, consortiumIds });
       setName('');
       setDescription('');
       setContactEmail('');
+      setOrganizationType('');
+      setOrganizationTypeOther('');
       setConsortiumIds([]);
     } catch {
       // Error handling is done in the parent component
@@ -82,6 +90,33 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ isOpen, onC
             fullWidth
             disabled={isSubmitting}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-1">Organization Type</label>
+          <select
+            className="w-full border border-gray-200 rounded-md px-3 py-2 text-black bg-white focus:outline-none focus:ring-2 focus:ring-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            value={organizationType}
+            onChange={e => setOrganizationType(e.target.value)}
+            required
+            disabled={isSubmitting}
+          >
+            <option value="" disabled>Select organization type</option>
+            {ORGANIZATION_TYPE_OPTIONS.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          {organizationType === 'Other' && (
+            <div className="mt-2">
+              <InputField
+                placeholder="Enter organization type"
+                value={organizationTypeOther}
+                onChange={setOrganizationTypeOther}
+                required
+                fullWidth
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-1">Consortia</label>

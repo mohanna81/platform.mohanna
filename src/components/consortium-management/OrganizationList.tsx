@@ -160,7 +160,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
   const filteredOrgs = search.trim()
     ? organizations.filter(o =>
         o.name?.toLowerCase().includes(search.toLowerCase()) ||
-        o.email?.toLowerCase().includes(search.toLowerCase())
+        o.contactEmail?.toLowerCase().includes(search.toLowerCase())
       )
     : organizations;
 
@@ -188,10 +188,15 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ onEdit, refreshKey 
                 {organization.status.toLowerCase() === 'active' ? 'Active' : 'Inactive'}
               </span>
             </div>
+            {organization.organizationType && (
+              <span className="inline-block text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 mb-2">
+                {organization.organizationType}
+              </span>
+            )}
             {organization.description && (
               <p className="text-sm mb-2 text-gray-600">{organization.description}</p>
             )}
-            <p className="text-xs text-gray-700 mb-1">Contact: {organization.email}</p>
+            <p className="text-xs text-gray-700 mb-1">Contact: {organization.contactEmail}</p>
             {organization.users !== undefined && (
               <p className="text-xs text-gray-700 mb-3">Users: {organization.users}</p>
             )}
