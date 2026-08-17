@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [otpOpen, setOtpOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [verifiedOtp, setVerifiedOtp] = useState('');
 
   useEffect(() => {
     if (user) router.push('/dashboard');
@@ -67,6 +68,7 @@ export default function LoginPage() {
     const res = await userService.verifyOtp({ email: forgotEmail, otp });
     if (res.success) {
       showToast.success(res.message || 'OTP verified successfully');
+      setVerifiedOtp(otp);
       setOtpOpen(false);
       setResetOpen(true);
     } else {
@@ -76,12 +78,13 @@ export default function LoginPage() {
   };
 
   const handleResetSubmit = async (password: string) => {
-    if (!forgotEmail) return;
-    const res = await userService.updatePassword({ email: forgotEmail, password });
+    if (!forgotEmail || !verifiedOtp) return;
+    const res = await userService.updatePassword({ email: forgotEmail, otp: verifiedOtp, newPassword: password });
     if (res.success) {
       showToast.success(res.message || 'Password reset successfully');
       setResetOpen(false);
       setForgotEmail('');
+      setVerifiedOtp('');
     } else {
       showToast.error(res.message || 'Failed to reset password');
       throw new Error(res.message || 'Failed to reset password');
