@@ -70,7 +70,12 @@ const Dropdown: React.FC<DropdownProps> = ({
     // The trigger button is often narrower than the longest option label
     // (e.g. full consortium names). Let the open menu grow past the
     // trigger's width, up to the remaining viewport space, instead of
-    // truncating every option down to the button's width.
+    // truncating every option down to the button's width. The 640px cap
+    // is generous enough that realistic long labels (e.g. a 100-character
+    // consortium name) fit on one line on any normal-width screen; on
+    // narrow/mobile viewports `maxAvailableWidth` is the smaller number and
+    // wins instead, so options still wrap gracefully there rather than
+    // overflowing the screen.
     const maxAvailableWidth = window.innerWidth - rect.left - 16;
 
     setMenuStyle({
@@ -78,7 +83,7 @@ const Dropdown: React.FC<DropdownProps> = ({
       top,
       left: rect.left,
       minWidth: rect.width,
-      maxWidth: Math.max(rect.width, Math.min(maxAvailableWidth, 480)),
+      maxWidth: Math.max(rect.width, Math.min(maxAvailableWidth, 640)),
       width: 'max-content',
       zIndex: 9999,
     });
