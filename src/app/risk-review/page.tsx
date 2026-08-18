@@ -63,6 +63,8 @@ export default function RiskReviewPage() {
   const [allRejectedRisks, setAllRejectedRisks] = useState<Risk[]>([]);
   const [allClosedRisks, setAllClosedRisks] = useState<Risk[]>([]);
   const [activeTab, setActiveTab] = useState('Pending Review');
+  // Deep-link target from a notification (e.g. "Mitigation Status Updated")
+  const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
   const [consortium, setConsortium] = useState(CONSORTIUMS[0].value);
   const [status, setStatus] = useState(STATUSES[0].value);
   const [category, setCategory] = useState(CATEGORIES[0].value);
@@ -255,6 +257,24 @@ export default function RiskReviewPage() {
       fetchFilterData();
     }
   }, [user, fetchFilterData]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const tabMap: Record<string, string> = { pending: 'Pending Review', approved: 'Approved', rejected: 'Rejected', closed: 'Closed' };
+    if (tab && tabMap[tab]) setActiveTab(tabMap[tab]);
+    const riskId = params.get('riskId');
+    if (riskId) setTargetRiskId(riskId);
+  }, []);
+
+  // Scroll to and highlight the risk a notification deep-linked to.
+  const scrollToRiskRef = (riskId: string) => (el: HTMLDivElement | null) => {
+    if (el && riskId === targetRiskId) {
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+  };
+  const riskHighlightClass = (riskId: string) =>
+    riskId === targetRiskId ? 'ring-2 ring-[#2a9d8f] ring-offset-2 rounded-xl' : '';
 
   // Fetch organization names for all risks when they load
   useEffect(() => {
@@ -608,17 +628,18 @@ export default function RiskReviewPage() {
                 </div>
               ) : (
                 pendingRisks.map((risk) => (
-                  <RiskCard
-                    key={risk._id}
-                    risk={risk}
-                    status="pending"
-                    onToggleTrigger={handleToggleTrigger}
-                    onEditRisk={handleEditRisk}
-                    onChangeStatus={handleChangeStatus}
-                    renderConsortiumNames={renderConsortiumNames}
-                    renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
-                  />
+                  <div key={risk._id} ref={scrollToRiskRef(risk._id)} className={riskHighlightClass(risk._id)}>
+                    <RiskCard
+                      risk={risk}
+                      status="pending"
+                      onToggleTrigger={handleToggleTrigger}
+                      onEditRisk={handleEditRisk}
+                      onChangeStatus={handleChangeStatus}
+                      renderConsortiumNames={renderConsortiumNames}
+                      renderOrganizationNames={renderOrganizationNames}
+                      organizationNamesCache={organizationNamesCache}
+                    />
+                  </div>
                 ))
           )
         )}
@@ -633,17 +654,18 @@ export default function RiskReviewPage() {
             </div>
           ) : (
                 approvedRisks.map((risk) => (
-                  <RiskCard
-                    key={risk._id}
-                    risk={risk}
-                    status="approved"
-                    onToggleTrigger={handleToggleTrigger}
-                    onEditRisk={handleEditRisk}
-                    onChangeStatus={handleChangeStatus}
-                    renderConsortiumNames={renderConsortiumNames}
-                    renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
-                  />
+                  <div key={risk._id} ref={scrollToRiskRef(risk._id)} className={riskHighlightClass(risk._id)}>
+                    <RiskCard
+                      risk={risk}
+                      status="approved"
+                      onToggleTrigger={handleToggleTrigger}
+                      onEditRisk={handleEditRisk}
+                      onChangeStatus={handleChangeStatus}
+                      renderConsortiumNames={renderConsortiumNames}
+                      renderOrganizationNames={renderOrganizationNames}
+                      organizationNamesCache={organizationNamesCache}
+                    />
+                  </div>
                 ))
           )
         )}
@@ -658,17 +680,18 @@ export default function RiskReviewPage() {
             </div>
           ) : (
                 rejectedRisks.map((risk) => (
-                  <RiskCard
-                    key={risk._id}
-                    risk={risk}
-                    status="rejected"
-                    onToggleTrigger={handleToggleTrigger}
-                    onEditRisk={handleEditRisk}
-                    onChangeStatus={handleChangeStatus}
-                    renderConsortiumNames={renderConsortiumNames}
-                    renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
-                  />
+                  <div key={risk._id} ref={scrollToRiskRef(risk._id)} className={riskHighlightClass(risk._id)}>
+                    <RiskCard
+                      risk={risk}
+                      status="rejected"
+                      onToggleTrigger={handleToggleTrigger}
+                      onEditRisk={handleEditRisk}
+                      onChangeStatus={handleChangeStatus}
+                      renderConsortiumNames={renderConsortiumNames}
+                      renderOrganizationNames={renderOrganizationNames}
+                      organizationNamesCache={organizationNamesCache}
+                    />
+                  </div>
                 ))
               )
                           )}
@@ -683,17 +706,18 @@ export default function RiskReviewPage() {
                 </div>
               ) : (
                 closedRisks.map((risk) => (
-                  <RiskCard
-                    key={risk._id}
-                    risk={risk}
-                    status="closed"
-                    onToggleTrigger={handleToggleTrigger}
-                    onEditRisk={handleEditRisk}
-                    onChangeStatus={handleChangeStatus}
-                    renderConsortiumNames={renderConsortiumNames}
-                    renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
-                  />
+                  <div key={risk._id} ref={scrollToRiskRef(risk._id)} className={riskHighlightClass(risk._id)}>
+                    <RiskCard
+                      risk={risk}
+                      status="closed"
+                      onToggleTrigger={handleToggleTrigger}
+                      onEditRisk={handleEditRisk}
+                      onChangeStatus={handleChangeStatus}
+                      renderConsortiumNames={renderConsortiumNames}
+                      renderOrganizationNames={renderOrganizationNames}
+                      organizationNamesCache={organizationNamesCache}
+                    />
+                  </div>
                 ))
               )
             )}
