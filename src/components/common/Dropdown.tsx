@@ -140,11 +140,11 @@ const Dropdown: React.FC<DropdownProps> = ({
             type="button"
             variant={option.value === value ? 'primary' : 'outline'}
             size="sm"
-            className={`w-full text-left px-4 py-2 text-sm !rounded-none !border-0 !border-b last:!border-b-0 !shadow-none !bg-transparent hover:!bg-gray-100 focus:!bg-gray-100 focus:!outline-none ${option.value === value ? '!bg-[#FBBF77] !text-[#0b1320]' : '!text-gray-900'} ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full text-left px-4 py-2 text-sm !justify-start !rounded-none !border-0 !border-b last:!border-b-0 !shadow-none !bg-transparent hover:!bg-gray-100 focus:!bg-gray-100 focus:!outline-none ${option.value === value ? '!bg-[#FBBF77] !text-[#0b1320]' : '!text-gray-900'} ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => !option.disabled && handleOptionClick(option.value)}
             disabled={option.disabled}
           >
-            <span className="block whitespace-normal break-words" title={option.label}>
+            <span className="block w-full text-left whitespace-normal break-words" title={option.label}>
               {option.label}
             </span>
           </Button>

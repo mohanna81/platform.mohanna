@@ -1,22 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Meeting, MeetingAttendee } from '@/lib/api/services/meetings';
 import Button from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import { formatDateTimeRangeWithTimezone } from '@/lib/utils/timezone';
+import { renderMiniMarkdown } from '@/lib/utils/miniMarkdown';
 
 interface PastMeetingCardProps {
   meeting: Meeting;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Auto-opens the "View Minutes" modal — used when a notification deep-links here. */
+  autoOpenMinutes?: boolean;
 }
 
 const isMeetingAttendee = (assignedTo: unknown): assignedTo is MeetingAttendee => {
   return !!assignedTo && typeof assignedTo === 'object' && 'name' in assignedTo;
 };
 
-const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDelete }) => {
+const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDelete, autoOpenMinutes }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenMinutes) setModalOpen(true);
+  }, [autoOpenMinutes]);
   // Format date and time with timezone
   const formatDateTime = (date: string, startTime: string, endTime: string, timezone?: string) => {
     return formatDateTimeRangeWithTimezone(date, startTime, endTime, timezone);
@@ -60,9 +67,9 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
         </div>
         {/* Inline minutes display restored */}
         {meeting.minutes && (
-          <div className="mb-2 text-sm">
+          <div className="mb-2 text-sm" onClick={e => e.stopPropagation()}>
             <span className="font-semibold text-[#0b1320]">Minutes:</span>
-            <div className="ml-2 text-[#222b3a] whitespace-pre-line">{meeting.minutes}</div>
+            <div className="ml-2 text-[#222b3a]">{renderMiniMarkdown(meeting.minutes)}</div>
           </div>
         )}
         {/* Action Items (show summary, details in modal) */}
@@ -209,7 +216,7 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
           {meeting.minutes && (
             <div className="mb-2 text-sm">
               <span className="font-semibold text-[#0b1320]">Minutes:</span>
-              <div className="ml-2 text-[#222b3a] whitespace-pre-line">{meeting.minutes}</div>
+              <div className="ml-2 text-[#222b3a]">{renderMiniMarkdown(meeting.minutes)}</div>
             </div>
           )}
           {/* Links in Past Meeting Modal */}

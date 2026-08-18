@@ -19,6 +19,7 @@ export default function MyRisksPage() {
   const [targetMeasure, setTargetMeasure] = useState<number | null>(null);
 
   const isOrgUser = user?.role === 'Organization User';
+  const isFacilitator = user?.role === 'Facilitator';
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -45,7 +46,7 @@ export default function MyRisksPage() {
           <MyRisksTabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            showMitigationsTab={isOrgUser}
+            showMitigationsTab={isOrgUser || isFacilitator}
           />
           {activeTab === MITIGATION_TAB ? (
             <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} />

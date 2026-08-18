@@ -34,6 +34,28 @@ export default function MeetingsPage() {
   // Complete modal state
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [completingMeeting, setCompletingMeeting] = useState<Meeting | null>(null);
+  // Deep-link target from a notification (e.g. "Meeting Minutes Available")
+  const [targetMeetingId, setTargetMeetingId] = useState<string | null>(null);
+  const [autoOpenMinutes, setAutoOpenMinutes] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'upcoming') setActiveTab('Upcoming');
+    else if (tab === 'past') setActiveTab('Past Meetings');
+    const meetingId = params.get('meetingId');
+    if (meetingId) setTargetMeetingId(meetingId);
+    if (params.get('view') === 'minutes') setAutoOpenMinutes(true);
+  }, []);
+
+  // Scroll to and highlight the meeting a notification deep-linked to.
+  const scrollToTargetRef = (meetingId: string) => (el: HTMLDivElement | null) => {
+    if (el && meetingId === targetMeetingId) {
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+  };
+  const targetHighlightClass = (meetingId: string) =>
+    meetingId === targetMeetingId ? 'ring-2 ring-[#2a9d8f] ring-offset-2 rounded-xl' : '';
 
   // Check if user can schedule meetings (not Organization User role)
   const canScheduleMeetings = user?.role !== 'Organization User';
@@ -413,20 +435,21 @@ export default function MeetingsPage() {
                       meetingEnd.setHours(endHour, endMinute, 0, 0);
                       const isOverdue = meetingEnd.getTime() < now.getTime();
                       return (
-                        <MeetingCard
-                          key={meeting._id}
-                          meeting={meeting}
-                          onEdit={e => {
-                            e.stopPropagation();
-                            if (isOverdue) {
-                              handleCompleteMeeting(meeting);
-                            } else {
-                              handleEditMeeting(meeting);
-                            }
-                          }}
-                          onDelete={handleDeleteMeeting}
-                          currentUserId={user?.id}
-                        />
+                        <div key={meeting._id} ref={scrollToTargetRef(meeting._id)} className={targetHighlightClass(meeting._id)}>
+                          <MeetingCard
+                            meeting={meeting}
+                            onEdit={e => {
+                              e.stopPropagation();
+                              if (isOverdue) {
+                                handleCompleteMeeting(meeting);
+                              } else {
+                                handleEditMeeting(meeting);
+                              }
+                            }}
+                            onDelete={handleDeleteMeeting}
+                            currentUserId={user?.id}
+                          />
+                        </div>
                       );
                     })
                 )}
@@ -443,12 +466,14 @@ export default function MeetingsPage() {
                     </div>
                   ) : (
                     pastMeetings.map(meeting => (
-                      <PastMeetingCard
-                        key={meeting._id}
-                        meeting={meeting}
-                        onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
-                        onDelete={canDeletePastMeeting() ? () => handleDeleteMeeting(meeting._id) : undefined}
-                      />
+                      <div key={meeting._id} ref={scrollToTargetRef(meeting._id)} className={targetHighlightClass(meeting._id)}>
+                        <PastMeetingCard
+                          meeting={meeting}
+                          onEdit={canEditMeeting(meeting) ? () => handleCompleteMeeting(meeting) : undefined}
+                          onDelete={canDeletePastMeeting() ? () => handleDeleteMeeting(meeting._id) : undefined}
+                          autoOpenMinutes={autoOpenMinutes && meeting._id === targetMeetingId}
+                        />
+                      </div>
                     ))
                   );
                 })()}

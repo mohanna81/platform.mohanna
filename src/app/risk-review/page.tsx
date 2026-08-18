@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRef } from "react";
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/common/Layout';
 import Dropdown from '@/components/common/Dropdown';
 import InputField from '@/components/common/InputField';
@@ -55,7 +56,8 @@ const STATUS_OPTIONS = [
 
 export default function RiskReviewPage() {
   const { user } = useAuth();
-  
+  const router = useRouter();
+
   const [allPendingRisks, setAllPendingRisks] = useState<Risk[]>([]);
   const [allApprovedRisks, setAllApprovedRisks] = useState<Risk[]>([]);
   const [allRejectedRisks, setAllRejectedRisks] = useState<Risk[]>([]);
@@ -304,6 +306,10 @@ export default function RiskReviewPage() {
 
   const handleMarkNotificationRead = (notificationId: string) => markNotifRead(notificationId);
   const handleMarkAllNotificationsRead = () => markAllNotifRead();
+  const handleNotificationClick = (notification: AppNotification) => {
+    if (!notification.read) markNotifRead(notification._id);
+    if (notification.link) router.push(notification.link);
+  };
 
   // Dynamically set tab counts
   const tabCounts = {
@@ -324,18 +330,27 @@ export default function RiskReviewPage() {
   const handleToggleTrigger = async (riskId: string, isCurrentlyTriggered: boolean) => {
     const newStatus = isCurrentlyTriggered ? 'Not Triggered' : 'Triggered';
     try {
-      await risksService.updateRisk(riskId, { triggerStatus: newStatus } as unknown as Partial<Risk>);
+      const response = await risksService.updateRisk(riskId, { triggerStatus: newStatus } as unknown as Partial<Risk>);
+      if (!response.success) {
+        showToast.error(response.error || 'Failed to update trigger status');
+        return;
+      }
       showToast.success(`Risk ${newStatus.toLowerCase()} successfully`);
-      refetchAllRisks();
+      refetchAllRisks(true);
     } catch (error) {
       console.error('Error toggling trigger status:', error);
       showToast.error('Failed to update trigger status');
     }
   };
 
-  // Refetch all risks for all tabs
-  const refetchAllRisks = () => {
-    setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
+  // Refetch all risks for all tabs. `silent` skips the full-page loading
+  // state so an in-place edit/status-change doesn't unmount the whole card
+  // list (which would collapse expanded cards and reset scroll position —
+  // forcing the user to re-find the risk they were just looking at).
+  const refetchAllRisks = (silent = false) => {
+    if (!silent) {
+      setLoadingState(prev => ({ ...prev, pendingRisks: true, approvedRisks: true, rejectedRisks: true, closedRisks: true }));
+    }
     Promise.all([
       risksService.getRisksByStatus('Pending'),
       risksService.getRisksByStatus('Approved'),
@@ -347,36 +362,38 @@ export default function RiskReviewPage() {
       } else {
         setAllPendingRisks([]);
       }
-      setLoadingState(prev => ({ ...prev, pendingRisks: false }));
+      if (!silent) setLoadingState(prev => ({ ...prev, pendingRisks: false }));
 
       if (approvedRes.data?.success && approvedRes.data?.data && Array.isArray(approvedRes.data.data)) {
         setAllApprovedRisks(approvedRes.data.data);
       } else {
         setAllApprovedRisks([]);
       }
-      setLoadingState(prev => ({ ...prev, approvedRisks: false }));
+      if (!silent) setLoadingState(prev => ({ ...prev, approvedRisks: false }));
 
       if (rejectedRes.data?.success && rejectedRes.data?.data && Array.isArray(rejectedRes.data.data)) {
         setAllRejectedRisks(rejectedRes.data.data);
       } else {
         setAllRejectedRisks([]);
       }
-      setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
+      if (!silent) setLoadingState(prev => ({ ...prev, rejectedRisks: false }));
 
       if (closedRes.data?.success && closedRes.data?.data && Array.isArray(closedRes.data.data)) {
         setAllClosedRisks(closedRes.data.data);
       } else {
         setAllClosedRisks([]);
       }
-      setLoadingState(prev => ({ ...prev, closedRisks: false }));
+      if (!silent) setLoadingState(prev => ({ ...prev, closedRisks: false }));
     }).catch((error) => {
       console.error('Error fetching risks:', error);
-      setAllPendingRisks([]);
-      setAllApprovedRisks([]);
-      setAllRejectedRisks([]);
-      setAllClosedRisks([]);
       showToast.error('Failed to refresh risks data');
-      setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
+      if (!silent) {
+        setAllPendingRisks([]);
+        setAllApprovedRisks([]);
+        setAllRejectedRisks([]);
+        setAllClosedRisks([]);
+        setLoadingState(prev => ({ ...prev, pendingRisks: false, approvedRisks: false, rejectedRisks: false, closedRisks: false }));
+      }
     });
   };
 
@@ -712,7 +729,11 @@ export default function RiskReviewPage() {
                     {mitigationNotifications.map(notification => (
                       <div
                         key={notification._id}
-                        className={`bg-white border rounded-xl p-4 flex items-start gap-4 transition-colors ${notification.read ? 'border-gray-200 opacity-70' : 'border-teal-300 shadow-sm'}`}
+                        onClick={() => handleNotificationClick(notification)}
+                        role={notification.link ? 'button' : undefined}
+                        tabIndex={notification.link ? 0 : undefined}
+                        onKeyDown={notification.link ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(notification); } } : undefined}
+                        className={`bg-white border rounded-xl p-4 flex items-start gap-4 transition-colors ${notification.read ? 'border-gray-200 opacity-70' : 'border-teal-300 shadow-sm'} ${notification.link ? 'cursor-pointer hover:border-teal-400 hover:shadow-md' : ''}`}
                       >
                         {/* Icon */}
                         <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${notification.read ? 'bg-gray-100' : 'bg-teal-50'}`}>
@@ -734,7 +755,7 @@ export default function RiskReviewPage() {
                         {/* Mark read */}
                         {!notification.read && (
                           <button
-                            onClick={() => handleMarkNotificationRead(notification._id)}
+                            onClick={(e) => { e.stopPropagation(); handleMarkNotificationRead(notification._id); }}
                             className="flex-shrink-0 text-xs text-teal-600 hover:text-teal-800 font-medium mt-1"
                             type="button"
                           >
@@ -758,7 +779,7 @@ export default function RiskReviewPage() {
           }}
           onSubmit={() => setEditModalOpen(false)}
           riskId={selectedRiskId}
-          onUpdated={refetchAllRisks}
+          onUpdated={() => refetchAllRisks(true)}
         />
         <ChangeRiskStatusModal
           isOpen={statusModalOpen}
@@ -766,7 +787,7 @@ export default function RiskReviewPage() {
           onSubmit={() => setStatusModalOpen(false)}
           riskId={selectedRiskForStatus}
           statusOptions={STATUS_OPTIONS}
-          onUpdated={refetchAllRisks}
+          onUpdated={() => refetchAllRisks(true)}
         />
       </div>
     </Layout>

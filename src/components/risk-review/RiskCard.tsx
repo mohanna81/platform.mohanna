@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import MitigationTracker from '@/components/risk-review/MitigationTracker';
+import RiskAuditModal from '@/components/common/RiskAuditModal';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 // Extended Risk type to include additional fields
@@ -124,6 +125,7 @@ export default function RiskCard({
   const statusInfo = statusConfig[status];
   const [showDetails, setShowDetails] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
 
   // Derive consortium IDs from risk
   const riskConsortiumIds: string[] = Array.isArray(risk.consortium)
@@ -190,6 +192,7 @@ export default function RiskCard({
   }, [showDetails]);
 
   return (
+    <>
     <Card
       padding="none"
       shadow="sm"
@@ -296,32 +299,39 @@ export default function RiskCard({
               )}
             </div>
 
-            {/* Trigger Action Button */}
-            {isTriggered ? (
-              <Button
-                variant="danger"
-                size="sm"
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-none"
-                onClick={() => onToggleTrigger(risk._id, isTriggered)}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-                </svg>
-                Deactivate
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-                onClick={() => onToggleTrigger(risk._id, isTriggered)}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Activate
-              </Button>
-            )}
+            {/* Trigger Action Button — only meaningful for approved (live) risks.
+                A closed/rejected/pending risk must be reapproved before it can be activated. */}
+            {status === 'approved' ? (
+              isTriggered ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white border-none"
+                  onClick={() => onToggleTrigger(risk._id, isTriggered)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                  </svg>
+                  Deactivate
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => onToggleTrigger(risk._id, isTriggered)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Activate
+                </Button>
+              )
+            ) : status === 'closed' || status === 'rejected' ? (
+              <span className="text-xs text-gray-400 italic text-right max-w-[200px]">
+                Change status to Approved to activate this risk.
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -347,9 +357,19 @@ export default function RiskCard({
 
           {/* Action Buttons */}
           <div className="flex flex-row gap-3 lg:justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <button
+              title="View audit trail"
+              onClick={() => setAuditOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-[#2a9d8f] hover:bg-teal-50 transition cursor-pointer border border-gray-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+            <Button
+              variant="outline"
+              size="sm"
               className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
               onClick={() => setShowDetails(!showDetails)}
             >
@@ -525,5 +545,7 @@ export default function RiskCard({
         )}
       </div>
     </Card>
+    {auditOpen && <RiskAuditModal risk={risk} onClose={() => setAuditOpen(false)} />}
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByConsortia } from '@/lib/api/services/organizations';
 import { risksService, CreateRiskRequest, Risk } from '@/lib/api/services/risks';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { showToast } from '@/lib/utils/toast';
 
 const riskCategories = [
   { value: '', label: 'Select a risk category' },
@@ -195,7 +196,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         } else if (originalRiskStatus === 'Rejected') {
           newStatus = 'Pending'; // Re-submit after rejection
         }
-        await risksService.updateRisk(riskId, {
+        const response = await risksService.updateRisk(riskId, {
           title,
           category,
           consortium: consortium ? [consortium] : [],
@@ -206,6 +207,11 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           mitigationMeasures: mitigation,
           status: newStatus,
         } as unknown as Partial<Risk>);
+        if (!response.success) {
+          showToast.error(response.error || 'Failed to save risk');
+          setIsSubmitting(false);
+          return;
+        }
         if (onUpdated) onUpdated();
       } else {
         // Create new risk
@@ -224,23 +230,27 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           status: 'Draft',
           triggerStatus: 'Not Triggered',
           orgRoles: consortiumOrganizations.map(org => ({
-            organization: {
-              _id: org._id || '',
-              name: org.name || '',
-              type: 'Schema.Types.ObjectId',
-              ref: 'Organization'
-            },
+            // Backend expects a plain organization ID here — not the
+            // populated { _id, name, ... } object shape the API returns
+            // when reading a risk's orgRoles.
+            organization: org._id || '',
             role: '' // Default empty role, will be filled by backend or user input
           })),
           code: '', // TODO: Add code if needed
           createdBy: user?.id || '',
         };
-        await risksService.createRisk(payload);
+        const response = await risksService.createRisk(payload);
+        if (!response.success) {
+          showToast.error(response.error || 'Failed to create risk');
+          setIsSubmitting(false);
+          return;
+        }
       }
       setIsSubmitting(false);
       onClose(true);
     } catch (error) {
       console.error('Error saving risk:', error);
+      showToast.error('Failed to save risk');
       setIsSubmitting(false);
     }
   };

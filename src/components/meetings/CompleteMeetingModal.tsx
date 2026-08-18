@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
+import FormattedTextArea from '@/components/common/FormattedTextArea';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const selectClass = 'border border-[#e5eaf1] rounded-lg p-2 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77]';
@@ -196,11 +197,11 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-6 text-[#0b1320] max-h-[70vh] overflow-y-auto pr-2">
         <div>
           <label className="block font-semibold mb-1" htmlFor="minutes">Minutes <span className="text-red-500">*</span></label>
-          <textarea
+          <FormattedTextArea
             id="minutes"
-            className="w-full border border-[#e5eaf1] rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-[#FBBF77] resize-vertical min-h-[80px]"
+            minHeight="min-h-[80px]"
             value={minutes}
-            onChange={e => setMinutes(e.target.value)}
+            onChange={setMinutes}
             required
             disabled={isSubmitting}
           />

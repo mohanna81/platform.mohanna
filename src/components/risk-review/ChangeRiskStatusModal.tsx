@@ -46,15 +46,22 @@ const ChangeRiskStatusModal = ({ isOpen, onClose, onSubmit, riskId, statusOption
     }
     
     try {
-      await risksService.updateRisk(riskId, updateData);
+      const response = await risksService.updateRisk(riskId, updateData);
+      if (!response.success) {
+        showToast.error(response.error || 'Failed to update risk status');
+        setSubmitting(false);
+        return;
+      }
       showToast.success(`Risk status updated to ${selectedStatus} successfully`);
       // Refresh the data after successful update
       if (onUpdated) onUpdated();
     } catch (error) {
       console.error('API call failed:', error);
       showToast.error('Failed to update risk status');
+      setSubmitting(false);
+      return;
     }
-    
+
     setSubmitting(false);
     onClose();
     onSubmit();

@@ -528,15 +528,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       const formattedOrgRoles = form.orgRoles
         .filter(role => role.measures.some(m => m.trim()) || role.value.trim())
         .map(role => {
-          const org = consortiumOrganizations.find(org => org._id === role.orgId);
           const measures = role.measures.filter(m => m.trim());
           return {
-            organization: {
-              _id: role.orgId,
-              name: org?.name || role.orgName,
-              type: 'Schema.Types.ObjectId',
-              ref: 'Organization'
-            },
+            // Backend expects a plain organization ID here (it builds the
+            // organizationId FK directly from this value) — not the
+            // populated { _id, name, ... } object shape the API returns
+            // when reading a risk's orgRoles.
+            organization: role.orgId,
             role: measures[0] || role.value,
             measures,
           };
@@ -555,7 +553,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         }
       }
 
-      await risksService.updateRisk(riskId, {
+      const response = await risksService.updateRisk(riskId, {
         title: form.title,
         category: form.category,
         statement: form.statement,
@@ -570,6 +568,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         consortium: form.consortium ? [form.consortium] : [],
         ...(newStatus ? { status: newStatus } : {}),
       } as unknown as Partial<ExtendedRisk>);
+
+      if (!response.success) {
+        setSubmitting(false);
+        setError(response.error || 'Failed to update risk');
+        showToast.error(response.error || 'Failed to update risk');
+        return;
+      }
 
       showToast.success(submitForReview ? 'Risk submitted for review!' : 'Risk updated successfully');
       setSubmitting(false);

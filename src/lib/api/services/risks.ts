@@ -7,6 +7,14 @@ export interface OrgRole {
   measures?: string[];
 }
 
+// Write-side shape: the backend takes a plain organization ID here, unlike
+// the populated object shape returned when reading a risk's orgRoles.
+export interface OrgRoleInput {
+  organization: string;
+  role: string;
+  measures?: string[];
+}
+
 export interface Organization {
   _id: string;
   name: string;
@@ -60,7 +68,7 @@ export interface CreateRiskRequest {
   reactiveMeasures?: string;
   status: string;
   triggerStatus: string;
-  orgRoles: OrgRole[];
+  orgRoles: OrgRoleInput[];
   code?: string;
   createdBy: string;
 }
@@ -119,6 +127,9 @@ export const risksService = {
   },
   async getRisks() {
     return apiClient.get<GetRisksResponse>('/risk');
+  },
+  async getMyRisks() {
+    return apiClient.get<GetRisksResponse>('/risk/my-risks');
   },
   async getRiskById(id: string) {
     return apiClient.get<GetRiskResponse>(`/risk/${id}`);
