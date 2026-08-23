@@ -565,7 +565,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         orgRoles: formattedOrgRoles,
         likelihood: form.likelihood,
         severity: form.severity,
-        consortium: form.consortium ? [form.consortium] : [],
+        consortium: form.consortium,
         ...(newStatus ? { status: newStatus } : {}),
       } as unknown as Partial<ExtendedRisk>);
 

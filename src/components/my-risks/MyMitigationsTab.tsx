@@ -13,7 +13,6 @@ export default function MyMitigationsTab({
   targetMeasure?: number | null;
 } = {}) {
   const { user } = useAuth();
-  const isFacilitator = user?.role === 'Facilitator';
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
@@ -22,19 +21,10 @@ export default function MyMitigationsTab({
   const fetchApprovedRisks = useCallback(async () => {
     setLoading(true);
     try {
-      if (isFacilitator) {
-        // Facilitators aren't tied to a single org — show every approved
-        // risk that has mitigation measures defined, across all orgs.
-        const res = await risksService.getRisksByStatus('Approved');
-        const all: Risk[] = Array.isArray(res.data?.data)
-          ? res.data.data
-          : Array.isArray(res.data)
-          ? (res.data as unknown as Risk[])
-          : [];
-        setRisks(all.filter(risk => !!risk.mitigationMeasures?.trim()));
-        return;
-      }
-
+      // A Facilitator also belongs to their own organization (separately
+      // from the consortia they facilitate), and on "My Risks" they should
+      // only see mitigations assigned to that organization — same as an
+      // Organization User. The cross-org view lives on the Risk Review page.
       const orgId = user?.organizationId;
       if (!orgId) { setLoading(false); return; }
 
@@ -63,7 +53,7 @@ export default function MyMitigationsTab({
     } finally {
       setLoading(false);
     }
-  }, [user?.organizationId, isFacilitator]);
+  }, [user?.organizationId]);
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
 
@@ -111,9 +101,7 @@ export default function MyMitigationsTab({
         </div>
         <p className="text-gray-600 font-medium">No mitigation measures assigned yet</p>
         <p className="text-gray-400 text-sm mt-1">
-          {isFacilitator
-            ? 'Approved risks with mitigation measures will appear here.'
-            : 'Approved risks with measures assigned to your organization will appear here.'}
+          Approved risks with measures assigned to your organization will appear here.
         </p>
       </div>
     );
@@ -122,8 +110,7 @@ export default function MyMitigationsTab({
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        {risks.length} approved risk{risks.length !== 1 ? 's' : ''} with mitigation measures
-        {isFacilitator ? '.' : ' assigned to your organization.'}
+        {risks.length} approved risk{risks.length !== 1 ? 's' : ''} with mitigation measures assigned to your organization.
       </p>
 
       {risks.map(risk => {
@@ -191,10 +178,10 @@ export default function MyMitigationsTab({
                   riskTitle={risk.title}
                   mitigationMeasures={risk.mitigationMeasures}
                   orgRoles={orgRoles}
-                  organizationId={isFacilitator ? undefined : user?.organizationId}
+                  organizationId={user?.organizationId}
                   consortiumId={consortiumId}
                   canUpdate={true}
-                  isFacilitator={isFacilitator}
+                  isFacilitator={false}
                   highlightMeasureIndex={isTarget ? targetMeasure ?? null : null}
                 />
               </div>
