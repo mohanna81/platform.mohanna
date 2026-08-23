@@ -258,14 +258,23 @@ export default function RiskReviewPage() {
     }
   }, [user, fetchFilterData]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+  // Shared by the mount-time URL read below and by in-page notification
+  // clicks — a notification click on this same page is a same-route
+  // router.push (no remount), so the deep-link target must also be applied
+  // directly from the clicked link rather than relying on this effect
+  // re-running.
+  const applyDeepLinkFromSearch = useCallback((search: string) => {
+    const params = new URLSearchParams(search);
     const tab = params.get('tab');
     const tabMap: Record<string, string> = { pending: 'Pending Review', approved: 'Approved', rejected: 'Rejected', closed: 'Closed' };
     if (tab && tabMap[tab]) setActiveTab(tabMap[tab]);
     const riskId = params.get('riskId');
     if (riskId) setTargetRiskId(riskId);
   }, []);
+
+  useEffect(() => {
+    applyDeepLinkFromSearch(window.location.search);
+  }, [applyDeepLinkFromSearch]);
 
   // Scroll to and highlight the risk a notification deep-linked to.
   const scrollToRiskRef = (riskId: string) => (el: HTMLDivElement | null) => {
@@ -328,7 +337,10 @@ export default function RiskReviewPage() {
   const handleMarkAllNotificationsRead = () => markAllNotifRead();
   const handleNotificationClick = (notification: AppNotification) => {
     if (!notification.read) markNotifRead(notification._id);
-    if (notification.link) router.push(notification.link);
+    if (!notification.link) return;
+    const queryIndex = notification.link.indexOf('?');
+    if (queryIndex !== -1) applyDeepLinkFromSearch(notification.link.slice(queryIndex));
+    router.push(notification.link);
   };
 
   // Dynamically set tab counts

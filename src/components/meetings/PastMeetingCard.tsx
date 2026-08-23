@@ -31,15 +31,7 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
 
   return (
     <div
-      className={`bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto${onEdit ? ' cursor-pointer hover:shadow-md transition' : ''}`}
-      onClick={onEdit ? (e) => {
-        // Prevent edit if clicking the View Minutes button
-        if ((e.target as HTMLElement).closest('button')) return;
-        onEdit();
-      } : undefined}
-      tabIndex={onEdit ? 0 : undefined}
-      role={onEdit ? 'button' : undefined}
-      aria-label={onEdit ? 'Edit meeting' : undefined}
+      className="bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto"
     >
       {/* Completed badge top right */}
       <span className="absolute top-4 right-4 bg-white border border-gray-200 text-gray-700 text-sm font-semibold px-4 py-1 rounded-full shadow-none">Completed</span>
@@ -67,7 +59,7 @@ const PastMeetingCard: React.FC<PastMeetingCardProps> = ({ meeting, onEdit, onDe
         </div>
         {/* Inline minutes display restored */}
         {meeting.minutes && (
-          <div className="mb-2 text-sm" onClick={e => e.stopPropagation()}>
+          <div className="mb-2 text-sm">
             <span className="font-semibold text-[#0b1320]">Minutes:</span>
             <div className="ml-2 text-[#222b3a]">{renderMiniMarkdown(meeting.minutes)}</div>
           </div>

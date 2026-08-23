@@ -506,7 +506,15 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
     if (!consortiumId || !orgId) { showToast.error('Missing consortium or organization info.'); return; }
     setSavingTracking(true);
     try {
-      await mitigationTrackingService.upsertTracking({ riskId, organizationId: orgId, consortiumId, measureIndex, status });
+      // apiClient never rejects — a failed HTTP request resolves to
+      // { success: false, error } — so the write must be verified via
+      // response.success rather than assuming the try block only
+      // completes on a real success.
+      const response = await mitigationTrackingService.upsertTracking({ riskId, organizationId: orgId, consortiumId, measureIndex, status });
+      if (!response.success) {
+        showToast.error(response.error || 'Failed to update tracking status.');
+        return;
+      }
       showToast.success(`Status updated to "${status}"`);
       const refreshed = await mitigationTrackingService.getTrackingByRisk(riskId);
       if (refreshed.data?.success) setTrackingData(refreshed.data.data ?? []);
@@ -799,7 +807,6 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
                     </div>
                     {(role.measures.length > 0 ? role.measures : ['']).map((measure, measureIndex) => {
                       const currentStatus = getTrackingStatus(role.orgId, measureIndex);
-                      const currentOpt = STATUS_OPTIONS.find(s => s.value === currentStatus) ?? STATUS_OPTIONS[0];
                       return (
                         <div key={measureIndex} className="rounded-lg border border-gray-100 bg-white p-3 space-y-2">
                           <div className="flex gap-2 items-start">
@@ -821,21 +828,26 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
                             )}
                           </div>
 
-                          {/* Tracking status — only for approved risks */}
+                          {/* Tracking status — only for approved risks. Same
+                              pill style as the Risk Review mitigation
+                              tracker: every status shown side by side, with
+                              the current one filled in — no arrow implying
+                              a fixed next step, since any status can be
+                              picked directly. */}
                           {riskStatus === 'Approved' && (
                             <div className="flex items-center gap-2 flex-wrap pl-7">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${currentOpt.color}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${currentOpt.dot}`} />
-                                {currentOpt.label}
-                              </span>
-                              <span className="text-xs text-gray-400">→</span>
-                              {STATUS_OPTIONS.filter(o => o.value !== currentStatus).map(opt => (
+                              <span className="text-xs text-gray-400">Update:</span>
+                              {STATUS_OPTIONS.map(opt => (
                                 <button
                                   key={opt.value}
                                   type="button"
-                                  disabled={savingTracking}
+                                  disabled={savingTracking || currentStatus === opt.value}
                                   onClick={() => handleUpdateTracking(role.orgId, measureIndex, opt.value)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border bg-white text-gray-500 border-gray-200 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                                    currentStatus === opt.value
+                                      ? `${opt.color} cursor-default`
+                                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                  }`}
                                 >
                                   <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
                                   {opt.label}

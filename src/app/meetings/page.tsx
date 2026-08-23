@@ -322,12 +322,24 @@ export default function MeetingsPage() {
           })
         );
 
-        const failed = creationResults.filter(r => r.status === 'rejected').length;
+        // apiClient never rejects — a failed HTTP request resolves to
+        // { success: false, error }, so checking only r.status === 'rejected'
+        // never caught a real failure and action items could silently fail
+        // to save while the UI reported success.
+        const failedResults = creationResults.filter(r => r.status === 'rejected' || !r.value?.success);
+        const failed = failedResults.length;
         if (failed > 0) {
-          showToast.error(`${failed} action item(s) could not be saved to the system.`);
+          console.error('[CompleteMeeting] action item creation failures:', failedResults.map(r =>
+            r.status === 'rejected' ? r.reason : r.value?.error
+          ));
+          showToast.error(
+            failed === actionItems.length
+              ? 'Meeting completed, but action items could not be saved.'
+              : `Meeting completed, but ${failed} action item(s) could not be saved.`
+          );
+        } else {
+          showToast.success('Meeting completed and action items created!');
         }
-
-        showToast.success('Meeting completed and action items created!');
         setCompleteModalOpen(false);
         setCompletingMeeting(null);
         
