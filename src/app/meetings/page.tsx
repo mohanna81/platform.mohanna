@@ -272,9 +272,15 @@ export default function MeetingsPage() {
 
       const updateData = {
         minutes,
+        // title/deadline round-trip into the meeting's own action item list
+        // so reopening "Edit Minutes" restores them instead of showing
+        // blank/defaulted values — the full ActionItem records created
+        // below are a separate, unlinked copy used by the Action Items page.
         actionItems: actionItems.map(ai => ({
+          title: ai.title,
           description: ai.description,
           assignedTo: resolveIds(ai.assignedTo)[0] || '',
+          deadline: ai.deadline ? new Date(`${ai.deadline}T00:00:00`).toISOString() : undefined,
         })),
         links: links || [],
         status: 'Completed' as const,

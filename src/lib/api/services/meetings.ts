@@ -37,8 +37,10 @@ export interface MeetingAttendee {
 }
 
 export interface ActionItem {
+  title?: string;
   description: string;
   assignedTo: string;
+  deadline?: string;
 }
 
 export interface Consortium {
