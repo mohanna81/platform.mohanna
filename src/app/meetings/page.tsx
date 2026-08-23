@@ -315,7 +315,11 @@ export default function MeetingsPage() {
               additionalAssignees,
               consortium: consortiumId,
               organization: organizationId || undefined,
-              implementationDate: ai.deadline,
+              // Prisma's DateTime column requires a full ISO-8601 datetime —
+              // ai.deadline is a date-only string ("2026-08-23") from a
+              // <input type="date">, which it rejects. Same normalization
+              // used by the action-items edit flow.
+              implementationDate: new Date(`${ai.deadline}T00:00:00`).toISOString(),
               status: 'Draft',
               createdBy: createdById,
             } as any);

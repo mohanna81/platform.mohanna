@@ -497,7 +497,9 @@ export default function ActionItemsPage() {
         assignToModel: 'User',
         organization: form.assignTo,
         organizationUser: form.assignToUsers,
-        implementationDate: form.date,
+        // Prisma's DateTime column requires a full ISO-8601 datetime — a
+        // bare date-only string from the <input type="date"> is rejected.
+        implementationDate: form.date ? new Date(`${form.date}T00:00:00`).toISOString() : form.date,
         status: 'In Progress',
         createdBy: authStorage.getUserId() || '',
         ...(form.relatedRisks && form.relatedRisks.length > 0 && { relatedRisks: form.relatedRisks }),
