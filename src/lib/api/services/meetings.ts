@@ -40,6 +40,10 @@ export interface ActionItem {
   title?: string;
   description: string;
   assignedTo: string;
+  // Write side: array of user ids. Read side: backend returns populated
+  // { _id, name } user objects here (same loose shape as assignedTo
+  // elsewhere in this file) — consumers narrow the shape themselves.
+  additionalAssignees?: unknown[];
   deadline?: string;
 }
 
