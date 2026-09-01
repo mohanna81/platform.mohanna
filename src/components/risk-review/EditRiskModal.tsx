@@ -67,12 +67,17 @@ const SEVERITY_OPTIONS = [
   { value: '5', label: 'Critical: Severe impact; threatens project success' },
 ];
 
-const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
+const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackingUpdated }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
   riskId: string;
   onUpdated?: () => void;
+  // Fired after a tracking status change is saved (separate from onUpdated,
+  // which only fires on Save Changes/Delete) so the risk card behind this
+  // modal — whose own MitigationTracker fetched tracking once on mount and
+  // has no other way to learn it changed — can refetch to match.
+  onTrackingUpdated?: () => void;
 }) => {
   const { user } = useAuth();
   const [form, setForm] = useState<EditRiskFormData>({
@@ -518,6 +523,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       showToast.success(`Status updated to "${status}"`);
       const refreshed = await mitigationTrackingService.getTrackingByRisk(riskId);
       if (refreshed.data?.success) setTrackingData(refreshed.data.data ?? []);
+      onTrackingUpdated?.();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       showToast.error(msg || 'Failed to update tracking status.');

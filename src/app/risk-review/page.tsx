@@ -85,6 +85,7 @@ export default function RiskReviewPage() {
     organizations: true,
   });
   const [selectedRiskId, setSelectedRiskId] = useState<string>('');
+  const [trackingRefreshKey, setTrackingRefreshKey] = useState(0);
   const [selectedRiskForStatus, setSelectedRiskForStatus] = useState<string>('');
   const [organizations, setOrganizations] = useState<Array<{ value: string; label: string }>>([]);
   const [consortia, setConsortia] = useState<Array<{ value: string; label: string }>>([]);
@@ -650,6 +651,7 @@ export default function RiskReviewPage() {
                       renderConsortiumNames={renderConsortiumNames}
                       renderOrganizationNames={renderOrganizationNames}
                       organizationNamesCache={organizationNamesCache}
+                      trackingRefreshKey={trackingRefreshKey}
                     />
                   </div>
                 ))
@@ -676,6 +678,7 @@ export default function RiskReviewPage() {
                       renderConsortiumNames={renderConsortiumNames}
                       renderOrganizationNames={renderOrganizationNames}
                       organizationNamesCache={organizationNamesCache}
+                      trackingRefreshKey={trackingRefreshKey}
                     />
                   </div>
                 ))
@@ -702,6 +705,7 @@ export default function RiskReviewPage() {
                       renderConsortiumNames={renderConsortiumNames}
                       renderOrganizationNames={renderOrganizationNames}
                       organizationNamesCache={organizationNamesCache}
+                      trackingRefreshKey={trackingRefreshKey}
                     />
                   </div>
                 ))
@@ -728,6 +732,7 @@ export default function RiskReviewPage() {
                       renderConsortiumNames={renderConsortiumNames}
                       renderOrganizationNames={renderOrganizationNames}
                       organizationNamesCache={organizationNamesCache}
+                      trackingRefreshKey={trackingRefreshKey}
                     />
                   </div>
                 ))
@@ -816,6 +821,7 @@ export default function RiskReviewPage() {
           onSubmit={() => setEditModalOpen(false)}
           riskId={selectedRiskId}
           onUpdated={() => refetchAllRisks(true)}
+          onTrackingUpdated={() => setTrackingRefreshKey(k => k + 1)}
         />
         <ChangeRiskStatusModal
           isOpen={statusModalOpen}

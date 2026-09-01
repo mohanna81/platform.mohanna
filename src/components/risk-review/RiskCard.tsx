@@ -40,6 +40,7 @@ interface RiskCardProps {
   renderConsortiumNames: (consortium: unknown) => string;
   renderOrganizationNames: (risk: any) => string;
   organizationNamesCache: Record<string, string>;
+  trackingRefreshKey?: number;
 }
 
 // Helper function to render organization roles
@@ -119,6 +120,7 @@ export default function RiskCard({
   onChangeStatus,
   renderConsortiumNames,
   renderOrganizationNames,
+  trackingRefreshKey,
 }: RiskCardProps) {
   const { user } = useAuth();
   const isTriggered = risk.triggerStatus === 'Triggered';
@@ -441,6 +443,7 @@ export default function RiskCard({
                   consortiumId={firstConsortiumId}
                   canUpdate={canUpdateTracking}
                   isFacilitator={isFacilitator || isAdminRole}
+                  refreshSignal={trackingRefreshKey}
                 />
               </div>
             )}

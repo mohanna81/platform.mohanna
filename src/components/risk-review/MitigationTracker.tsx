@@ -21,6 +21,11 @@ interface MitigationTrackerProps {
   canUpdate?: boolean;
   isFacilitator?: boolean;
   highlightMeasureIndex?: number | null;
+  // Bump this (e.g. a counter) whenever tracking for this risk may have
+  // changed elsewhere — the Edit Risk modal updates statuses directly via
+  // the API and has no other way to tell this already-mounted tracker to
+  // refetch, since it only fetches once on mount otherwise.
+  refreshSignal?: number;
 }
 
 const STATUS_OPTIONS: { value: TrackingStatus; label: string; color: string; dot: string }[] = [
@@ -38,6 +43,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
   canUpdate = false,
   isFacilitator = false,
   highlightMeasureIndex = null,
+  refreshSignal,
 }) => {
   const { user } = useAuth();
   const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
@@ -58,7 +64,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
     }
   }, [riskId]);
 
-  useEffect(() => { fetchTracking(); }, [fetchTracking]);
+  useEffect(() => { fetchTracking(); }, [fetchTracking, refreshSignal]);
 
   if (!mitigationMeasures?.trim()) return null;
 
