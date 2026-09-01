@@ -1,9 +1,15 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { risksService, Risk } from '@/lib/api/services/risks';
 import MitigationTracker from '@/components/risk-review/MitigationTracker';
+import Dropdown from '@/components/common/Dropdown';
+
+const ORG_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Organizations' },
+  { value: 'mine', label: 'My Organization' },
+];
 
 export default function MyMitigationsTab({
   targetRiskId,
@@ -17,7 +23,15 @@ export default function MyMitigationsTab({
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
+  const [orgFilter, setOrgFilter] = useState<'all' | 'mine'>('all');
   const highlightedCardRef = useRef<HTMLDivElement | null>(null);
+
+  const touchesOwnOrg = useCallback((risk: Risk) => {
+    const orgId = user?.organizationId;
+    return orgId
+      ? (risk.orgRoles || []).some(r => String(r.organization?._id || (r.organization as unknown as string)) === String(orgId))
+      : false;
+  }, [user?.organizationId]);
 
   const fetchApprovedRisks = useCallback(async () => {
     setLoading(true);
@@ -37,10 +51,6 @@ export default function MyMitigationsTab({
         const withMeasures = all.filter(risk => !!risk.mitigationMeasures?.trim());
 
         const orgId = user?.organizationId;
-        const touchesOwnOrg = (risk: Risk) =>
-          orgId
-            ? (risk.orgRoles || []).some(r => String(r.organization?._id || (r.organization as unknown as string)) === String(orgId))
-            : false;
         const sorted = orgId
           ? [...withMeasures].sort((a, b) => Number(touchesOwnOrg(b)) - Number(touchesOwnOrg(a)))
           : withMeasures;
@@ -77,9 +87,17 @@ export default function MyMitigationsTab({
     } finally {
       setLoading(false);
     }
-  }, [user?.organizationId, isFacilitator]);
+  }, [user?.organizationId, isFacilitator, touchesOwnOrg]);
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
+
+  // Facilitators can narrow the (consortium-wide) list down to just the
+  // organization they belong to; other roles already only ever see their
+  // own org's risks, so the filter has nothing to do for them.
+  const displayedRisks = useMemo(() => {
+    if (!isFacilitator || orgFilter !== 'mine') return risks;
+    return risks.filter(touchesOwnOrg);
+  }, [risks, isFacilitator, orgFilter, touchesOwnOrg]);
 
   // Auto-expand and scroll to the risk referenced by a notification deep link
   useEffect(() => {
@@ -115,6 +133,16 @@ export default function MyMitigationsTab({
     );
   }
 
+  const orgFilterDropdown = isFacilitator && risks.length > 0 && (
+    <Dropdown
+      options={ORG_FILTER_OPTIONS}
+      value={orgFilter}
+      onChange={value => setOrgFilter(value as 'all' | 'mine')}
+      size="sm"
+      className="w-full sm:w-auto sm:min-w-[180px] bg-white"
+    />
+  );
+
   if (risks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -135,12 +163,24 @@ export default function MyMitigationsTab({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">
-        {risks.length} approved risk{risks.length !== 1 ? 's' : ''} with mitigation measures
-        {isFacilitator ? '.' : ' assigned to your organization.'}
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-sm text-gray-500">
+          {displayedRisks.length} approved risk{displayedRisks.length !== 1 ? 's' : ''} with mitigation measures
+          {isFacilitator
+            ? orgFilter === 'mine' ? ' assigned to your organization.' : '.'
+            : ' assigned to your organization.'}
+        </p>
+        {orgFilterDropdown}
+      </div>
 
-      {risks.map(risk => {
+      {displayedRisks.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-gray-600 font-medium">No mitigation measures for your organization</p>
+          <p className="text-gray-400 text-sm mt-1">Switch to &quot;All Organizations&quot; to see the full list.</p>
+        </div>
+      )}
+
+      {displayedRisks.map(risk => {
         const isExpanded = expandedRisk === risk._id;
         const isTarget = targetRiskId === risk._id;
         const consortiumId = getConsortiumId(risk);
