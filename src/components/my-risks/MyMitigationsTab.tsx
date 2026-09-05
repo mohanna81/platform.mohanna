@@ -120,9 +120,11 @@ export default function MyMitigationsTab({
       const items = Array.isArray(res.data?.data) ? res.data.data : [];
       const ids = new Set<string>();
       items.forEach(item => {
+        const orgUserIds = (item.organizationUser || []).map(getEntityId).filter(Boolean);
         const isAssignedToMe =
           (item.assignToModel === 'User' && getEntityId(item.assignTo) === user.id) ||
-          getEntityId(item.assignToUser) === user.id;
+          getEntityId(item.assignToUser) === user.id ||
+          orgUserIds.includes(user.id);
         if (!isAssignedToMe) return;
         if (item.relatedRisk) ids.add(getEntityId(item.relatedRisk));
         (item.relatedRisks || []).forEach(r => ids.add(getEntityId(r)));
