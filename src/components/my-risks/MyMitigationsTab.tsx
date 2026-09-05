@@ -28,9 +28,18 @@ export default function MyMitigationsTab({
 
   const touchesOwnOrg = useCallback((risk: Risk) => {
     const orgId = user?.organizationId;
-    return orgId
+    const result = orgId
       ? (risk.orgRoles || []).some(r => String(r.organization?._id || (r.organization as unknown as string)) === String(orgId))
       : false;
+    // TEMP DEBUG — remove after diagnosing the "My Organization" filter bug
+    console.debug('[touchesOwnOrg]', {
+      riskId: risk._id,
+      riskTitle: risk.title,
+      myOrgId: orgId,
+      riskOrgRoleIds: (risk.orgRoles || []).map(r => r.organization?._id || r.organization),
+      result,
+    });
+    return result;
   }, [user?.organizationId]);
 
   const fetchApprovedRisks = useCallback(async () => {
@@ -90,6 +99,11 @@ export default function MyMitigationsTab({
   }, [user?.organizationId, isFacilitator, touchesOwnOrg]);
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
+
+  // TEMP DEBUG — remove after diagnosing the "My Organization" filter bug
+  useEffect(() => {
+    console.debug('[MyMitigationsTab] user', { id: user?.id, role: user?.role, organizationId: user?.organizationId });
+  }, [user]);
 
   // Facilitators can narrow the (consortium-wide) list down to just the
   // organization they belong to; other roles already only ever see their
