@@ -3,8 +3,14 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { risksService, Risk } from '@/lib/api/services/risks';
+import { actionItemsService } from '@/lib/api/services/actionitems';
 import MitigationTracker from '@/components/risk-review/MitigationTracker';
 import Dropdown from '@/components/common/Dropdown';
+
+const getEntityId = (v: unknown): string => {
+  if (!v) return '';
+  return typeof v === 'object' ? String((v as { _id?: string })._id || '') : String(v);
+};
 
 const ORG_FILTER_OPTIONS = [
   { value: 'all', label: 'All Organizations' },
@@ -24,6 +30,9 @@ export default function MyMitigationsTab({
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
   const [orgFilter, setOrgFilter] = useState<'all' | 'mine'>('all');
+  const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
+  const [assignedRiskIds, setAssignedRiskIds] = useState<Set<string> | null>(null);
+  const [loadingAssigned, setLoadingAssigned] = useState(false);
   const highlightedCardRef = useRef<HTMLDivElement | null>(null);
 
   const touchesOwnOrg = useCallback((risk: Risk) => {
@@ -100,6 +109,36 @@ export default function MyMitigationsTab({
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
 
+  // Risks that have an Action Item assigned directly to this user (as opposed
+  // to just touching their organization broadly). Fetched lazily the first
+  // time the "My Mitigation" checkbox is turned on, then cached.
+  const fetchAssignedRiskIds = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingAssigned(true);
+    try {
+      const res = await actionItemsService.getActionItems();
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      const ids = new Set<string>();
+      items.forEach(item => {
+        const isAssignedToMe =
+          (item.assignToModel === 'User' && getEntityId(item.assignTo) === user.id) ||
+          getEntityId(item.assignToUser) === user.id;
+        if (!isAssignedToMe) return;
+        if (item.relatedRisk) ids.add(getEntityId(item.relatedRisk));
+        (item.relatedRisks || []).forEach(r => ids.add(getEntityId(r)));
+      });
+      setAssignedRiskIds(ids);
+    } catch (err) {
+      console.error('[MyMitigationsTab] fetch assigned action items failed:', err);
+    } finally {
+      setLoadingAssigned(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (assignedToMeOnly && assignedRiskIds === null) fetchAssignedRiskIds();
+  }, [assignedToMeOnly, assignedRiskIds, fetchAssignedRiskIds]);
+
   // TEMP DEBUG — remove after diagnosing the "My Organization" filter bug
   useEffect(() => {
     console.debug('[MyMitigationsTab] user', { id: user?.id, role: user?.role, organizationId: user?.organizationId });
@@ -109,9 +148,11 @@ export default function MyMitigationsTab({
   // organization they belong to; other roles already only ever see their
   // own org's risks, so the filter has nothing to do for them.
   const displayedRisks = useMemo(() => {
-    if (!isFacilitator || orgFilter !== 'mine') return risks;
-    return risks.filter(touchesOwnOrg);
-  }, [risks, isFacilitator, orgFilter, touchesOwnOrg]);
+    let result = risks;
+    if (isFacilitator && orgFilter === 'mine') result = result.filter(touchesOwnOrg);
+    if (assignedToMeOnly) result = result.filter(r => (assignedRiskIds ?? new Set()).has(r._id));
+    return result;
+  }, [risks, isFacilitator, orgFilter, touchesOwnOrg, assignedToMeOnly, assignedRiskIds]);
 
   // Auto-expand and scroll to the risk referenced by a notification deep link
   useEffect(() => {
@@ -157,6 +198,21 @@ export default function MyMitigationsTab({
     />
   );
 
+  const assignedToMeCheckbox = risks.length > 0 && (
+    <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer whitespace-nowrap">
+      <input
+        type="checkbox"
+        checked={assignedToMeOnly}
+        onChange={e => setAssignedToMeOnly(e.target.checked)}
+        className="w-4 h-4 rounded border-gray-300 text-[#2a9d8f] focus:ring-[#2a9d8f] cursor-pointer"
+      />
+      My Mitigation
+      {loadingAssigned && (
+        <span className="w-3 h-3 border-2 border-[#2a9d8f] border-t-transparent rounded-full animate-spin" />
+      )}
+    </label>
+  );
+
   if (risks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -180,17 +236,28 @@ export default function MyMitigationsTab({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-sm text-gray-500">
           {displayedRisks.length} approved risk{displayedRisks.length !== 1 ? 's' : ''} with mitigation measures
-          {isFacilitator
+          {assignedToMeOnly
+            ? ' assigned directly to you.'
+            : isFacilitator
             ? orgFilter === 'mine' ? ' assigned to your organization.' : '.'
             : ' assigned to your organization.'}
         </p>
-        {orgFilterDropdown}
+        <div className="flex items-center gap-3">
+          {assignedToMeCheckbox}
+          {orgFilterDropdown}
+        </div>
       </div>
 
       {displayedRisks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-gray-600 font-medium">No mitigation measures for your organization</p>
-          <p className="text-gray-400 text-sm mt-1">Switch to &quot;All Organizations&quot; to see the full list.</p>
+          <p className="text-gray-600 font-medium">
+            {assignedToMeOnly ? 'No mitigation measures assigned directly to you' : 'No mitigation measures for your organization'}
+          </p>
+          <p className="text-gray-400 text-sm mt-1">
+            {assignedToMeOnly
+              ? 'Uncheck "My Mitigation" to see measures assigned to your organization.'
+              : 'Switch to "All Organizations" to see the full list.'}
+          </p>
         </div>
       )}
 
