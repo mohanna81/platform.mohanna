@@ -219,7 +219,7 @@ export default function MyMitigationsTab({
       value={orgFilter}
       onChange={value => setOrgFilter(value as 'all' | 'mine')}
       size="sm"
-      className="w-full sm:w-auto sm:min-w-[180px] bg-white"
+      className="w-full min-w-0 sm:w-auto sm:min-w-[180px] sm:max-w-[220px] bg-white"
     />
   );
 
@@ -232,7 +232,7 @@ export default function MyMitigationsTab({
       value={consortiumFilter}
       onChange={value => setConsortiumFilter(value)}
       size="sm"
-      className="w-full sm:w-auto sm:min-w-[180px] bg-white"
+      className="w-full min-w-0 sm:w-auto sm:min-w-[180px] sm:max-w-[220px] bg-white"
     />
   );
 
@@ -280,7 +280,7 @@ export default function MyMitigationsTab({
             ? orgFilter === 'mine' ? ' assigned to your organization.' : '.'
             : ' assigned to your organization.'}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           {assignedToMeCheckbox}
           {consortiumFilterDropdown}
           {orgFilterDropdown}

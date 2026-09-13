@@ -134,54 +134,14 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
     return null;
   }, []);
 
-  // Helper function to map orgRoles from API format to form format
-  const mapOrgRolesFromAPI = useCallback(async (orgRoles: OrgRole[] | undefined, consortium: Consortium[] | undefined) => {
-    
-    // Get organizations from all consortia that the risk belongs to
-    const consortiumOrgs: Array<{ _id?: string; id?: string; name?: string }> = [];
-    
-    if (consortium && Array.isArray(consortium)) {
-      
-      for (const consortiumItem of consortium) {
-        
-        if (consortiumItem.organizations && Array.isArray(consortiumItem.organizations)) {
-          
-          for (const org of consortiumItem.organizations) {
-            
-            // Handle both string IDs and Organization objects
-            if (typeof org === 'object' && org !== null) {
-              // Check if organization is already in the list to avoid duplicates
-              const exists = consortiumOrgs.some(existing => {
-                const existingId = existing._id || existing.id;
-                const orgId = org._id || org.id;
-                return existingId === orgId;
-              });
-              if (!exists) {
-                consortiumOrgs.push(org);
-              }
-            } else if (typeof org === 'string') {
-              // Handle string IDs - fetch organization details
-              const exists = consortiumOrgs.some(existing => {
-                const existingId = existing._id || existing.id;
-                return existingId === org;
-              });
-              if (!exists) {
-                const orgDetails = await fetchOrganizationDetails(org);
-                if (orgDetails) {
-                  consortiumOrgs.push(orgDetails);
-                } else {
-                  // Fallback if API call fails
-                  const fallbackOrg = { _id: org, id: org, name: `Organization ${org.slice(-4)}` };
-                  consortiumOrgs.push(fallbackOrg);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    
+  // Helper function to map orgRoles from API format to form format.
+  // `consortiumOrgs` must be the already-resolved, complete list of
+  // organizations for the risk's consortium(s) (from
+  // fetchConsortiumOrganizations) — not `risk.consortium` itself, whose
+  // `.organizations` sub-array isn't reliably populated by GET /risk/:id,
+  // which used to silently drop every org that didn't already have a saved
+  // role/measure on this risk.
+  const mapOrgRolesFromAPI = useCallback((orgRoles: OrgRole[] | undefined, consortiumOrgs: Array<{ _id?: string; id?: string; name?: string }>) => {
     // Create a map of existing orgRoles for quick lookup
     const existingOrgRolesMap = new Map();
     if (orgRoles && Array.isArray(orgRoles)) {
@@ -229,7 +189,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
     });
 
     return mappedOrgRoles;
-  }, [fetchOrganizationDetails]);
+  }, []);
 
   // Fetch consortia based on user role
   const fetchConsortia = useCallback(async () => {
@@ -246,27 +206,30 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
     }
   }, [user]);
 
-  // Fetch organizations for the risk's consortia
-  const fetchConsortiumOrganizations = useCallback(async (consortiumIds: string[]) => {
+  // Fetch organizations for the risk's consortia. Returns the resolved list
+  // (in addition to storing it in state) so callers that need it
+  // immediately — e.g. to build the full Organization Roles list — don't
+  // have to wait on a re-render to read it back out of state.
+  const fetchConsortiumOrganizations = useCallback(async (consortiumIds: string[]): Promise<Organization[]> => {
     if (!consortiumIds || consortiumIds.length === 0) {
       setConsortiumOrganizations([]);
-      return;
+      return [];
     }
 
     setLoadingOrganizations(true);
     try {
-      
+
       // Get all consortia to find the specific consortia and their organizations
       const allConsortia = await fetchConsortiaByRole(user);
-      
+
       // Find all consortia that the risk belongs to
-      const riskConsortia = allConsortia.filter(c => 
+      const riskConsortia = allConsortia.filter(c =>
         consortiumIds.includes(c._id || c.id || '')
       );
-      
+
       if (riskConsortia.length === 0) {
         setConsortiumOrganizations([]);
-        return;
+        return [];
       }
 
       // Extract organizations from all consortia that the risk belongs to
@@ -319,10 +282,12 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
       }
 
       setConsortiumOrganizations(consortiumOrgs);
+      return consortiumOrgs;
     } catch (error) {
       console.error('Error fetching consortium organizations:', error);
       showToast.error('Failed to load consortium organizations');
       setConsortiumOrganizations([]);
+      return [];
     } finally {
       setLoadingOrganizations(false);
     }
@@ -339,15 +304,12 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
       const response = await risksService.getRiskById(riskId);
       if (response.data?.success && response.data?.data) {
         const risk = response.data.data as ExtendedRisk;
-        const riskConsortia = risk.consortium as unknown as Consortium[];
         const consortiumIds = risk.consortium ? risk.consortium.map(c => c._id || '').filter(Boolean) : [];
 
-        const [mappedOrgRoles] = await Promise.all([
-          mapOrgRolesFromAPI(risk.orgRoles, riskConsortia),
-          consortiumIds.length > 0
-            ? fetchConsortiumOrganizations(consortiumIds)
-            : Promise.resolve(),
-        ]);
+        const orgs = consortiumIds.length > 0
+          ? await fetchConsortiumOrganizations(consortiumIds)
+          : [];
+        const mappedOrgRoles = mapOrgRolesFromAPI(risk.orgRoles, orgs);
 
         isInitialConsortiumSet.current = true;
         setRiskStatus(risk.status || '');
@@ -361,8 +323,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
           preventive: risk.preventiveMeasures || '',
           reactive: risk.reactiveMeasures || '',
           orgRoles: mappedOrgRoles,
-          likelihood: risk.likelihood || '',
-          severity: risk.severity || '',
+          // The API returns these as numbers (Prisma Int columns), but the
+          // Likelihood/Severity dropdown options use string values ('1'-'5')
+          // — without this the Dropdown's strict `option.value === value`
+          // match never fires, so it silently falls back to its placeholder
+          // even though a value is set.
+          likelihood: risk.likelihood != null ? String(risk.likelihood) : '',
+          severity: risk.severity != null ? String(risk.severity) : '',
           consortium: risk.consortium ? risk.consortium.map(c => c._id || '').filter(id => id) : [],
         });
 

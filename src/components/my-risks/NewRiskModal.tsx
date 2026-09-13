@@ -80,8 +80,13 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         setStatement(risk.statement || '');
         setTrigger(risk.triggerIndicator || '');
         setMitigation(risk.mitigationMeasures || '');
-        setLikelihood(risk.likelihood || '');
-        setSeverity(risk.severity || '');
+        // The API returns these as numbers (Prisma Int columns), but the
+        // Likelihood/Severity dropdown options use string values ('1'-'5')
+        // — without this the Dropdown's strict `option.value === value`
+        // match never fires, so it silently falls back to its placeholder
+        // even though a value is set.
+        setLikelihood(risk.likelihood != null ? String(risk.likelihood) : '');
+        setSeverity(risk.severity != null ? String(risk.severity) : '');
         setConsortium(risk.consortium && risk.consortium.length > 0 ? risk.consortium[0]._id || '' : '');
         setOriginalRiskStatus(risk.status || '');
       }
