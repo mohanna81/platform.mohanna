@@ -30,6 +30,14 @@ const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
+function getId(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'object' && '_id' in (val as Record<string, unknown>)) {
+    return String((val as { _id?: unknown })._id ?? '');
+  }
+  return String(val);
+}
+
 function getMeetingDotColor(m: Meeting): string {
   const now = new Date();
   if (m.status === "Cancelled") return "bg-red-500";
@@ -91,6 +99,41 @@ export default function CalendarPage() {
     }).finally(() => setLoading(false));
   }, [user?.id]);
 
+  /* ── scope action items to the consortium(s)/organization the logged-in
+     user belongs to — a Facilitator only oversees their own consortia, and
+     an Organization User only their own org, so the calendar shouldn't
+     surface every action item on the platform. Admins see everything.
+     (Meetings need no extra filtering here: getAttendeeMeetings is already
+     scoped server-side to meetings the user actually attends.) ── */
+  const isFacilitator = user?.role === 'Facilitator';
+  const isOrgUser = user?.role === 'Organization User';
+
+  const scopedActionItems = useMemo(() => {
+    if (isFacilitator) {
+      const myConsortiumIds = new Set((user?.consortia || []).map(String));
+      if (myConsortiumIds.size === 0) return actionItems;
+      return actionItems.filter(a => {
+        const consortiumIds = (Array.isArray(a.consortium) ? a.consortium : [a.consortium])
+          .map(getId)
+          .filter(Boolean);
+        return consortiumIds.some(id => myConsortiumIds.has(id));
+      });
+    }
+    if (isOrgUser) {
+      const userId = user?.id;
+      const orgId = user?.organizationId ? String(user.organizationId) : undefined;
+      return actionItems.filter(a => {
+        if (userId && (getId(a.assignTo) === userId || getId(a.assignToUser) === userId)) return true;
+        const orgUserIds = (a.organizationUser || []).map(getId).filter(Boolean);
+        if (userId && orgUserIds.includes(userId)) return true;
+        const orgIds = (a.organization || []).map(getId).filter(Boolean);
+        if (orgId && orgIds.includes(orgId)) return true;
+        return false;
+      });
+    }
+    return actionItems;
+  }, [actionItems, isFacilitator, isOrgUser, user?.consortia, user?.organizationId, user?.id]);
+
   /* ── build calendar grid ── */
   const calendarDays = useMemo<CalendarDay[]>(() => {
     const firstOfMonth = new Date(currentYear, currentMonth, 1);
@@ -115,7 +158,7 @@ export default function CalendarPage() {
       }
 
       if (filter !== "meetings") {
-        actionItems.forEach((a) => {
+        scopedActionItems.forEach((a) => {
           if (a.implementationDate && sameDay(new Date(a.implementationDate), day)) {
             events.push({ kind: "action", date: new Date(a.implementationDate), data: a });
           }
@@ -130,7 +173,7 @@ export default function CalendarPage() {
       });
     }
     return days;
-  }, [currentMonth, currentYear, meetings, actionItems, filter]);
+  }, [currentMonth, currentYear, meetings, scopedActionItems, filter]);
 
   /* ── upcoming events (side panel) ── */
   const upcomingEvents = useMemo<CalendarEvent[]>(() => {
@@ -146,7 +189,7 @@ export default function CalendarPage() {
     }
 
     if (filter !== "meetings") {
-      actionItems
+      scopedActionItems
         .filter((a) => a.status !== "Complete" && new Date(a.implementationDate) >= now)
         .sort((a, b) => new Date(a.implementationDate).getTime() - new Date(b.implementationDate).getTime())
         .slice(0, 5)
@@ -154,7 +197,7 @@ export default function CalendarPage() {
     }
 
     return results.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 8);
-  }, [meetings, actionItems, filter]);
+  }, [meetings, scopedActionItems, filter]);
 
   const formatEventDate = (d: Date) =>
     d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });

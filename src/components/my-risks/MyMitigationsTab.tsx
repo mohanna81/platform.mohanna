@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/lib/auth/AuthContext';
 import { risksService, Risk } from '@/lib/api/services/risks';
 import { actionItemsService } from '@/lib/api/services/actionitems';
+import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import MitigationTracker from '@/components/risk-review/MitigationTracker';
 import Dropdown from '@/components/common/Dropdown';
 
@@ -30,6 +31,8 @@ export default function MyMitigationsTab({
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
   const [orgFilter, setOrgFilter] = useState<'all' | 'mine'>('all');
+  const [myConsortia, setMyConsortia] = useState<{ _id: string; name: string }[]>([]);
+  const [consortiumFilter, setConsortiumFilter] = useState<string>('all');
   const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
   const [assignedRiskIds, setAssignedRiskIds] = useState<Set<string> | null>(null);
   const [loadingAssigned, setLoadingAssigned] = useState(false);
@@ -55,11 +58,12 @@ export default function MyMitigationsTab({
     setLoading(true);
     try {
       if (isFacilitator) {
-        // Facilitators oversee every organization in their consortia, so
-        // they see every approved risk with mitigation measures — but risks
-        // touching their own organization (they also belong to one, same as
-        // an Organization User) are sorted first since that's the org
-        // they're most likely acting on.
+        // Facilitators oversee every organization in their own consortia —
+        // not every organization on the platform — so "All Organizations"
+        // here means all organizations within the consortium(s) this
+        // facilitator belongs to. Risks touching their own organization
+        // (they also belong to one, same as an Organization User) are
+        // sorted first since that's the org they're most likely acting on.
         const res = await risksService.getRisksByStatus('Approved');
         const all: Risk[] = Array.isArray(res.data?.data)
           ? res.data.data
@@ -68,10 +72,16 @@ export default function MyMitigationsTab({
           : [];
         const withMeasures = all.filter(risk => !!risk.mitigationMeasures?.trim());
 
+        const myConsortiumIds = new Set((user?.consortia || []).map(String));
+        const inMyConsortia = myConsortiumIds.size > 0
+          ? withMeasures.filter(risk =>
+              (risk.consortium || []).some(c => myConsortiumIds.has(String(c._id))))
+          : withMeasures;
+
         const orgId = user?.organizationId;
         const sorted = orgId
-          ? [...withMeasures].sort((a, b) => Number(touchesOwnOrg(b)) - Number(touchesOwnOrg(a)))
-          : withMeasures;
+          ? [...inMyConsortia].sort((a, b) => Number(touchesOwnOrg(b)) - Number(touchesOwnOrg(a)))
+          : inMyConsortia;
 
         setRisks(sorted);
         return;
@@ -105,9 +115,19 @@ export default function MyMitigationsTab({
     } finally {
       setLoading(false);
     }
-  }, [user?.organizationId, isFacilitator, touchesOwnOrg]);
+  }, [user?.organizationId, user?.consortia, isFacilitator, touchesOwnOrg]);
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
+
+  // Facilitators assigned to more than one consortium get an extra dropdown
+  // to narrow the list down to a single consortium instead of seeing all of
+  // theirs combined.
+  useEffect(() => {
+    if (!isFacilitator || !user) return;
+    fetchConsortiaByRole(user)
+      .then(list => setMyConsortia(list.map(c => ({ _id: c._id, name: c.name }))))
+      .catch(err => console.error('[MyMitigationsTab] fetch consortia failed:', err));
+  }, [isFacilitator, user]);
 
   // Risks that have an Action Item assigned directly to this user (as opposed
   // to just touching their organization broadly). Fetched lazily the first
@@ -151,10 +171,13 @@ export default function MyMitigationsTab({
   // own org's risks, so the filter has nothing to do for them.
   const displayedRisks = useMemo(() => {
     let result = risks;
+    if (isFacilitator && consortiumFilter !== 'all') {
+      result = result.filter(risk => (risk.consortium || []).some(c => String(c._id) === consortiumFilter));
+    }
     if (isFacilitator && orgFilter === 'mine') result = result.filter(touchesOwnOrg);
     if (assignedToMeOnly) result = result.filter(r => (assignedRiskIds ?? new Set()).has(r._id));
     return result;
-  }, [risks, isFacilitator, orgFilter, touchesOwnOrg, assignedToMeOnly, assignedRiskIds]);
+  }, [risks, isFacilitator, orgFilter, consortiumFilter, touchesOwnOrg, assignedToMeOnly, assignedRiskIds]);
 
   // Auto-expand and scroll to the risk referenced by a notification deep link
   useEffect(() => {
@@ -195,6 +218,19 @@ export default function MyMitigationsTab({
       options={ORG_FILTER_OPTIONS}
       value={orgFilter}
       onChange={value => setOrgFilter(value as 'all' | 'mine')}
+      size="sm"
+      className="w-full sm:w-auto sm:min-w-[180px] bg-white"
+    />
+  );
+
+  const consortiumFilterDropdown = isFacilitator && risks.length > 0 && myConsortia.length > 1 && (
+    <Dropdown
+      options={[
+        { value: 'all', label: 'All Consortiums' },
+        ...myConsortia.map(c => ({ value: c._id, label: c.name })),
+      ]}
+      value={consortiumFilter}
+      onChange={value => setConsortiumFilter(value)}
       size="sm"
       className="w-full sm:w-auto sm:min-w-[180px] bg-white"
     />
@@ -246,6 +282,7 @@ export default function MyMitigationsTab({
         </p>
         <div className="flex items-center gap-3">
           {assignedToMeCheckbox}
+          {consortiumFilterDropdown}
           {orgFilterDropdown}
         </div>
       </div>

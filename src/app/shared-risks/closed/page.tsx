@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Layout from '@/components/common/Layout';
 import Pagination from '@/components/common/Pagination';
 import PageSizeSelector from '@/components/common/PageSizeSelector';
@@ -47,7 +47,25 @@ export default function ClosedRisksPage() {
 
   useEffect(() => { setCurrentPage(1); }, [search]);
 
-  const filteredRisks = risks.filter(r =>
+  // Facilitators only oversee the consortium(s) they're assigned to, so
+  // closed risks here should be scoped to those consortia (and, in turn,
+  // the organizations that belong to them) — not every closed risk on the
+  // platform. Organization Users are likewise scoped to their own org.
+  const scopedRisks = useMemo(() => {
+    if (user?.role === 'Facilitator') {
+      const myConsortiumIds = new Set((user.consortia || []).map(String));
+      if (myConsortiumIds.size === 0) return risks;
+      return risks.filter(risk =>
+        (risk.consortium || []).some(c => myConsortiumIds.has(String(c._id))));
+    }
+    if (user?.role === 'Organization User' && user.organizationId) {
+      return risks.filter(risk =>
+        (risk.orgRoles || []).some(r => String(r.organization?._id) === String(user.organizationId)));
+    }
+    return risks;
+  }, [risks, user]);
+
+  const filteredRisks = scopedRisks.filter(r =>
     !search || r.title.toLowerCase().includes(search.toLowerCase())
   );
 
