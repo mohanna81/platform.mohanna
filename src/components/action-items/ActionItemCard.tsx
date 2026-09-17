@@ -294,6 +294,15 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     });
   };
 
+  // Prisma's @updatedAt stamps a timestamp on create too, not just on a
+  // later edit, so a brand-new comment/reply already has updatedAt set —
+  // it isn't null the way we first assumed. The real "was this actually
+  // edited" signal is updatedAt being LATER than createdAt, not merely present.
+  const wasEdited = (item: { createdAt: string; updatedAt?: string | null }) => {
+    if (!item.updatedAt) return false;
+    return new Date(item.updatedAt).getTime() > new Date(item.createdAt).getTime();
+  };
+
   return (
     <div
       ref={cardRef}
@@ -388,7 +397,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                 </div>
                 <span className="text-xs text-gray-500">
                   {formatDate(comment.createdAt)}
-                  {comment.updatedAt && <span className="italic text-gray-400"> (edited)</span>}
+                  {wasEdited(comment) && <span className="italic text-gray-400"> (edited)</span>}
                 </span>
               </div>
               
@@ -505,7 +514,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                     </div>
                     <span className="text-xs text-gray-500">
                       {formatDate(reply.createdAt)}
-                      {reply.updatedAt && <span className="italic text-gray-400"> (edited)</span>}
+                      {wasEdited(reply) && <span className="italic text-gray-400"> (edited)</span>}
                     </span>
                   </div>
 
