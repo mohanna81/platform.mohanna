@@ -157,15 +157,20 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
           <Image src="/Images/logo.png" alt="Risk Sharing Platform Logo" width={160} height={56} priority className="object-contain" />
         )}
       </div>
-      {/* Collapse/expand toggle — desktop only; the mobile drawer is closed
-          by the X button above instead. */}
+      {/* Collapse/expand toggle — a small round button straddling the
+          sidebar/content boundary, on the shared header line (desktop
+          only; the mobile drawer is closed by the X button above
+          instead). Fixed positioning + a left offset matching the current
+          sidebar width means it doesn't need `aside` itself to become a
+          positioning context (that would fight the fixed/md:static
+          classes above), and it stays put regardless of page scroll. */}
       {onToggleCollapse && (
         <button
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`hidden md:flex items-center gap-2 px-4 py-2 border-b text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0 ${isCompact ? "justify-center" : "justify-start"}`}
+          className={`hidden md:flex fixed z-50 top-5 -translate-x-1/2 items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-300 shadow-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 ${isCompact ? "left-20" : "left-64"}`}
         >
-          {isCompact ? <ChevronRight className="w-4 h-4" /> : (<><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>)}
+          {isCompact ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
       )}
       <div className="flex-1 flex flex-col overflow-y-auto">
