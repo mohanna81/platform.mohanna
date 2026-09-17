@@ -74,7 +74,8 @@ export function useNotifications() {
   const markAsRead = useCallback(
     async (notificationId: string) => {
       if (!user?.id) return;
-      await notificationsService.markAsRead(notificationId, user.id);
+      const res = await notificationsService.markAsRead(notificationId, user.id);
+      if (!res.success) return;
       setNotifications((prev) =>
         prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       );

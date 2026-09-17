@@ -162,9 +162,21 @@ const NotificationBell: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleNavigate = (link: string, id: string) => {
-    markAsRead(id);
+  const handleNavigate = async (link: string, id: string) => {
     setOpen(false);
+    // Layout/Header/NotificationBell aren't a persistent Next.js layout —
+    // every page wraps itself in a fresh instance, so navigating fully
+    // unmounts this hook and the destination page mounts a brand-new one
+    // that immediately re-fetches notifications from the server. If we
+    // don't wait for the mark-as-read PATCH to land first, that fresh
+    // fetch can race ahead of it and load the still-unread row, and
+    // nothing ever refetches again to correct it.
+    try {
+      await markAsRead(id);
+    } catch {
+      // Navigate regardless — the user's intent was to open the linked
+      // item, not to wait on this; worst case it's still unread.
+    }
     router.push(link);
   };
 
