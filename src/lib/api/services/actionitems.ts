@@ -32,7 +32,8 @@ export interface Comment {
   userName: string;
   comment: string;
   createdAt: string;
-  updatedAt: string;
+  // Null until the comment is actually edited — doubles as the "(edited)" flag.
+  updatedAt?: string | null;
   replies?: Reply[];
 }
 
@@ -42,7 +43,8 @@ export interface Reply {
   userName: string;
   reply: string;
   createdAt: string;
-  updatedAt: string;
+  // Null until the reply is actually edited — doubles as the "(edited)" flag.
+  updatedAt?: string | null;
 }
 
 export interface CreateCommentRequest {
@@ -164,13 +166,13 @@ export const actionItemsService = {
   },
   
   // Reply methods
-  async createReply(actionItemId: string, commentIndex: number, replyData: CreateReplyRequest) {
-    return apiClient.post<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies`, replyData);
+  async createReply(actionItemId: string, commentId: string, replyData: CreateReplyRequest) {
+    return apiClient.post<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentId}/replies`, replyData);
   },
-  async updateReply(actionItemId: string, commentIndex: number, replyIndex: number, replyData: UpdateReplyRequest) {
-    return apiClient.patch<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies/${replyIndex}`, replyData);
+  async updateReply(actionItemId: string, commentId: string, replyId: string, replyData: UpdateReplyRequest) {
+    return apiClient.patch<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentId}/replies/${replyId}`, replyData);
   },
-  async deleteReply(actionItemId: string, commentIndex: number, replyIndex: number) {
-    return apiClient.delete<{ message: string; success: boolean }>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies/${replyIndex}`);
+  async deleteReply(actionItemId: string, commentId: string, replyId: string) {
+    return apiClient.delete<{ message: string; success: boolean }>(`/actionitem/${actionItemId}/comments/${commentId}/replies/${replyId}`);
   },
 }; 

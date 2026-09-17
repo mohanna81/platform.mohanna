@@ -287,11 +287,16 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
 
       {viewMode === 'table' ? (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto -mx-2 sm:mx-0">
+          {/* Bounded height so the horizontal scrollbar sits at the bottom
+              of this box (always on-screen) instead of after however many
+              rows there are — the table scrolls internally, with the
+              header pinned via sticky positioning so it stays visible
+              while scrolling down through rows. */}
+          <div className="overflow-auto max-h-[65vh] -mx-2 sm:mx-0">
             <div className="inline-block min-w-full align-middle">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th scope="col" className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Risk</th>
                       <th scope="col" className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Category</th>

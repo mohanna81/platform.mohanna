@@ -27,6 +27,13 @@ interface ActionItemCardProps {
   commentCount?: number;
   onEdit?: () => void;
   onDelete?: () => void;
+  // Set when this card is the one a notification deep-link pointed at —
+  // scrolls it into view and highlights it, same pattern as the risk card
+  // in MyMitigationsTab. openComments additionally expands the Comments
+  // section, since that's the whole point of an "action_item_comment"
+  // notification.
+  isTarget?: boolean;
+  openComments?: boolean;
 }
 
 const statusStyles: Record<string, string> = {
@@ -50,15 +57,18 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   commentCount: initialCommentCount = 0,
   onEdit,
   onDelete,
+  isTarget = false,
+  openComments = false,
 }) => {
   const { user } = useAuth();
+  const cardRef = React.useRef<HTMLDivElement | null>(null);
   const [comments, setComments] = React.useState<Comment[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
-  const [replyingTo, setReplyingTo] = React.useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
   const [replyText, setReplyText] = React.useState('');
   const [editingComment, setEditingComment] = React.useState<string | null>(null);
-  const [editingReply, setEditingReply] = React.useState<{ commentIndex: number; replyIndex: number } | null>(null);
+  const [editingReply, setEditingReply] = React.useState<{ commentId: string; replyId: string } | null>(null);
   const [editCommentText, setEditCommentText] = React.useState('');
   const [editReplyText, setEditReplyText] = React.useState('');
   const [apiAvailable, setApiAvailable] = React.useState(true);
@@ -113,6 +123,17 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   }, [showComments, commentsLoaded, fetchComments]);
 
+  // Scroll to and highlight this card when a notification deep-link points
+  // at it; auto-expand Comments too when it was a comment notification.
+  React.useEffect(() => {
+    if (!isTarget) return;
+    if (openComments) setShowComments(true);
+    const timer = setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isTarget, openComments]);
+
   const handleAddComment = async () => {
     if (!commentText.trim() || !user) return;
 
@@ -130,7 +151,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to add comment');
+        showToast.error(response.error || 'Failed to add comment');
       }
     } catch (error: unknown) {
       console.error('Error adding comment:', error);
@@ -145,7 +166,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleAddReply = async (commentIndex: number) => {
+  const handleAddReply = async (commentId: string) => {
     if (!replyText.trim() || !user) return;
 
     try {
@@ -155,7 +176,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         reply: replyText.trim(),
       };
 
-      const response = await actionItemsService.createReply(actionItemId, commentIndex, replyData);
+      const response = await actionItemsService.createReply(actionItemId, commentId, replyData);
       if (response.success) {
         setReplyText('');
         setReplyingTo(null);
@@ -163,7 +184,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to add reply');
+        showToast.error(response.error || 'Failed to add reply');
       }
     } catch (error) {
       console.error('Error adding reply:', error);
@@ -187,7 +208,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to update comment');
+        showToast.error(response.error || 'Failed to update comment');
       }
     } catch (error) {
       console.error('Error updating comment:', error);
@@ -195,7 +216,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleEditReply = async (commentIndex: number, replyIndex: number) => {
+  const handleEditReply = async (commentId: string, replyId: string) => {
     if (!editReplyText.trim()) return;
 
     try {
@@ -203,7 +224,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         reply: editReplyText.trim(),
       };
 
-      const response = await actionItemsService.updateReply(actionItemId, commentIndex, replyIndex, updateData);
+      const response = await actionItemsService.updateReply(actionItemId, commentId, replyId, updateData);
       if (response.success) {
         setEditReplyText('');
         setEditingReply(null);
@@ -211,7 +232,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to update reply');
+        showToast.error(response.error || 'Failed to update reply');
       }
     } catch (error) {
       console.error('Error updating reply:', error);
@@ -229,7 +250,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to delete comment');
+        showToast.error(response.error || 'Failed to delete comment');
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
@@ -237,17 +258,17 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleDeleteReply = async (commentIndex: number, replyIndex: number) => {
+  const handleDeleteReply = async (commentId: string, replyId: string) => {
     if (!confirm('Are you sure you want to delete this reply?')) return;
 
     try {
-      const response = await actionItemsService.deleteReply(actionItemId, commentIndex, replyIndex);
+      const response = await actionItemsService.deleteReply(actionItemId, commentId, replyId);
       if (response.success) {
         showToast.success('Reply deleted successfully');
         // Refresh comments from server
         await fetchComments();
       } else {
-        showToast.error(response.message || 'Failed to delete reply');
+        showToast.error(response.error || 'Failed to delete reply');
       }
     } catch (error) {
       console.error('Error deleting reply:', error);
@@ -274,7 +295,10 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   };
 
   return (
-    <div className={`bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto ${status === 'At Risk' ? 'border-orange-400' : status === 'Complete' ? 'border-green-400' : status === 'In Progress' ? 'border-blue-400' : ''}`}>
+    <div
+      ref={cardRef}
+      className={`bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto transition-shadow ${status === 'At Risk' ? 'border-orange-400' : status === 'Complete' ? 'border-green-400' : status === 'In Progress' ? 'border-blue-400' : ''} ${isTarget ? 'ring-2 ring-[#2a9d8f]/40' : ''}`}
+    >
       <div className="flex items-center gap-3 flex-wrap mb-2 justify-between">
         <div className="text-xl sm:text-2xl font-bold text-[#0b1320] flex items-center gap-2">
           {title}
@@ -362,7 +386,10 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                   </div>
                   <span className="font-semibold text-gray-800">{comment.userName || 'Unknown User'}</span>
                 </div>
-                <span className="text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
+                <span className="text-xs text-gray-500">
+                  {formatDate(comment.createdAt)}
+                  {comment.updatedAt && <span className="italic text-gray-400"> (edited)</span>}
+                </span>
               </div>
               
                              {editingComment === comment._id ? (
@@ -400,7 +427,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                  <Button
                    variant="ghost"
                    size="sm"
-                   onClick={() => setReplyingTo(commentIndex)}
+                   onClick={() => setReplyingTo(comment._id)}
                    className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center !p-0"
                  >
                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -437,7 +464,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                </div>
 
                              {/* Reply Input */}
-               {replyingTo === commentIndex && (
+               {replyingTo === comment._id && (
                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                    <div className="flex gap-2 items-end">
                      <div className="flex-1">
@@ -451,7 +478,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                      <Button
                        variant="primary"
                        size="sm"
-                       onClick={() => handleAddReply(commentIndex)}
+                       onClick={() => handleAddReply(comment._id)}
                      >
                        Send
                      </Button>
@@ -476,10 +503,13 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                       </div>
                       <span className="font-medium text-gray-800 text-sm">{reply.userName || 'Unknown User'}</span>
                     </div>
-                    <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(reply.createdAt)}
+                      {reply.updatedAt && <span className="italic text-gray-400"> (edited)</span>}
+                    </span>
                   </div>
-                  
-                  {editingReply?.commentIndex === commentIndex && editingReply?.replyIndex === replyIndex ? (
+
+                  {editingReply?.commentId === comment._id && editingReply?.replyId === reply._id ? (
                     <div className="mb-2">
                       <TextArea
                         value={editReplyText}
@@ -492,7 +522,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                         <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => handleEditReply(commentIndex, replyIndex)}
+                          onClick={() => handleEditReply(comment._id, reply._id)}
                         >
                           Save
                         </Button>
@@ -515,7 +545,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => { setEditingReply({ commentIndex, replyIndex }); setEditReplyText(reply.reply); }}
+                        onClick={() => { setEditingReply({ commentId: comment._id, replyId: reply._id }); setEditReplyText(reply.reply); }}
                         className="text-gray-600 hover:text-gray-700 text-xs font-medium flex items-center !p-0"
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -526,7 +556,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteReply(commentIndex, replyIndex)}
+                        onClick={() => handleDeleteReply(comment._id, reply._id)}
                         className="text-red-600 hover:text-red-700 text-xs font-medium flex items-center !p-0"
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

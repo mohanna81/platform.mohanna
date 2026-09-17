@@ -33,9 +33,19 @@ export default function ActionItemsPage() {
   });
   const [userConsortia, setUserConsortia] = useState<string[]>([]);
   const { user, loading: authLoading } = useAuth();
-  
+
   const isFullyLoaded = !loadingState.actionItems && !loadingState.userConsortia && !loadingState.consortia && !loadingState.organizations;
-  
+
+  // Deep link from a notification (e.g. /action-items?actionItemId=...&openComments=1)
+  const [targetActionItemId, setTargetActionItemId] = useState<string | null>(null);
+  const [targetOpenComments, setTargetOpenComments] = useState(false);
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const actionItemId = params.get('actionItemId');
+    if (actionItemId) setTargetActionItemId(actionItemId);
+    setTargetOpenComments(params.get('openComments') === '1');
+  }, []);
+
   // Helper function to check if an item should be marked as "At Risk"
   const shouldBeAtRisk = (item: ActionItem): boolean => {
     if (item.status === 'Complete') return false;
@@ -793,6 +803,8 @@ export default function ActionItemsPage() {
                 commentCount={item.comments?.length ?? 0}
                 onEdit={!authLoading && canAssignOrEdit ? () => handleEdit(item) : undefined}
                 onDelete={!authLoading && isCreatedBy(item, userId) ? () => { setItemToDelete(item); setConfirmDeleteOpen(true); } : undefined}
+                isTarget={targetActionItemId === item._id}
+                openComments={targetActionItemId === item._id && targetOpenComments}
               />
               );
             })

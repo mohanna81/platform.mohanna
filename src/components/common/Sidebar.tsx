@@ -18,7 +18,9 @@ import {
   CheckSquare,
   Bookmark,
   Settings,
-  X as CloseIcon
+  X as CloseIcon,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Image from "next/image";
 
@@ -54,16 +56,23 @@ interface SidebarProps {
   className?: string;
   open?: boolean;
   onClose?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const Facilitator_COLOR = "#3B82F6"; // blue
 const Admin_COLOR = "#F97316"; // orange
 const GRAY_ICON = "#BDBDBD";
 
-const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose, collapsed = false, onToggleCollapse }) => {
   const pathname = usePathname();
   const { user } = useAuth();
-  
+  // The mobile drawer (position: fixed, slides over the page) always shows
+  // full labels regardless of the desktop collapse preference — an
+  // icon-only overlay menu makes little sense on a touch screen where it
+  // isn't sharing horizontal space with page content anyway.
+  const isCompact = collapsed && !open;
+
   // Filter sections and pages based on user role
   const filterSectionsByRole = (sections: SidebarSection[]) => {
     if (!user) return sections;
@@ -125,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
   return (
     <aside
       className={`
-        fixed z-40 inset-y-0 left-0 w-64 bg-white border-r shadow-md flex flex-col transition-transform duration-200
+        fixed z-40 inset-y-0 left-0 ${isCompact ? "w-20" : "w-64"} bg-white border-r shadow-md flex flex-col transition-all duration-200
         md:static md:translate-x-0 md:flex
         ${open ? "translate-x-0" : "-translate-x-full"}
         ${className}
@@ -138,17 +147,37 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
           <CloseIcon className="w-6 h-6 text-gray-500" />
         </button>
       </div>
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-center h-17 border-b bg-[#FFF9E5] px-3">
+      {/* Logo — height matches the main Header bar (h-14 sm:h-16) exactly
+          so the two border-b lines land on the same row instead of the
+          sidebar's sitting lower. */}
+      <div className="flex items-center justify-center h-14 sm:h-16 border-b bg-[#FFF9E5] px-3 flex-shrink-0">
+        {isCompact ? (
+          <Image src="/Images/logo-icon.png" alt="Risk Sharing Platform" width={32} height={32} priority className="object-contain" />
+        ) : (
           <Image src="/Images/logo.png" alt="Risk Sharing Platform Logo" width={160} height={56} priority className="object-contain" />
-        </div>
+        )}
+      </div>
+      {/* Collapse/expand toggle — desktop only; the mobile drawer is closed
+          by the X button above instead. */}
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={`hidden md:flex items-center gap-2 px-4 py-2 border-b text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0 ${isCompact ? "justify-center" : "justify-start"}`}
+        >
+          {isCompact ? <ChevronRight className="w-4 h-4" /> : (<><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>)}
+        </button>
+      )}
+      <div className="flex-1 flex flex-col overflow-y-auto">
         <nav className="mt-4 px-2 flex-1 flex flex-col">
           <div>
             {filteredMainSections.map(section => (
               <div key={section.section} className="mb-6">
-                <div className="text-xs font-semibold text-[#BDBDBD] uppercase px-4 mb-2 tracking-wider whitespace-nowrap">
-                  {section.section}
-                </div>
+                {!isCompact && (
+                  <div className="text-xs font-semibold text-[#BDBDBD] uppercase px-4 mb-2 tracking-wider whitespace-nowrap">
+                    {section.section}
+                  </div>
+                )}
                 <ul>
                   {section.pages.map((page: SidebarPage) => {
                     const isActive = pathname === page.path;
@@ -159,16 +188,18 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
                       <li key={page.name}>
                         <Link
                           href={page.path}
-                          className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap relative
+                          title={isCompact ? page.name : undefined}
+                          className={`flex items-center rounded-lg text-sm font-medium transition whitespace-nowrap relative
+                            ${isCompact ? "justify-center px-2 py-2.5" : "gap-3 px-4 py-2"}
                             ${isActive ? "bg-[#FFF9E5] text-[#1A2343] font-semibold shadow-sm" : "text-[#2D2D2D] hover:bg-[#F5F5F5]"}
                           `}
                           onClick={onClose}
                         >
-                          {isFacilitator && (
+                          {isFacilitator && !isCompact && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded bg-[#3B82F6]" />
                           )}
                           <span className="relative z-10">{iconMap[page.icon]?.(iconColor) || <span className="w-5 h-5" />}</span>
-                          <span className="relative z-10">{page.name}</span>
+                          {!isCompact && <span className="relative z-10">{page.name}</span>}
                         </Link>
                       </li>
                     );
@@ -183,7 +214,8 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
               href="https://risksharinghub.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-[#2D2D2D] hover:bg-[#F5F5F5] whitespace-nowrap"
+              title={isCompact ? "Risk Sharing Hub" : undefined}
+              className={`flex items-center rounded-lg text-sm font-medium transition text-[#2D2D2D] hover:bg-[#F5F5F5] whitespace-nowrap ${isCompact ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"}`}
               onClick={onClose}
             >
               <Image
@@ -193,21 +225,27 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
                 height={30}
                 className="object-contain flex-shrink-0"
               />
-              <span>
-                <span className="font-bold text-[#2B4EAE]">Risk Sharing </span>
-                <span className="font-bold text-[#F5A623]">Hub</span>
-              </span>
-              <svg className="w-3 h-3 ml-auto text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              {!isCompact && (
+                <>
+                  <span>
+                    <span className="font-bold text-[#2B4EAE]">Risk Sharing </span>
+                    <span className="font-bold text-[#F5A623]">Hub</span>
+                  </span>
+                  <svg className="w-3 h-3 ml-auto text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </>
+              )}
             </a>
           </div>
 
           {filteredAdminSection && filteredAdminSection.pages.length > 0 && (
             <div className="mt-8 pt-2 border-t border-gray-100">
-              <div className="text-xs font-semibold text-[#BDBDBD] uppercase px-4 mb-2 tracking-wider whitespace-nowrap">
-                {filteredAdminSection.section}
-              </div>
+              {!isCompact && (
+                <div className="text-xs font-semibold text-[#BDBDBD] uppercase px-4 mb-2 tracking-wider whitespace-nowrap">
+                  {filteredAdminSection.section}
+                </div>
+              )}
               <ul>
                 {filteredAdminSection.pages.map((page: SidebarPage) => {
                   const isActive = pathname === page.path;
@@ -217,14 +255,16 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
                     <li key={page.name}>
                       <Link
                         href={page.path}
-                        className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap relative
+                        title={isCompact ? page.name : undefined}
+                        className={`flex items-center rounded-lg text-sm font-medium transition whitespace-nowrap relative
+                          ${isCompact ? "justify-center px-2 py-2.5" : "gap-3 px-4 py-2"}
                           ${isActive ? "bg-[#FFF9E5] text-[#1A2343] font-semibold shadow-sm" : "text-[#2D2D2D] hover:bg-[#F5F5F5]"}
                         `}
                         onClick={onClose}
                       >
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded bg-[#F97316]" />
+                        {!isCompact && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded bg-[#F97316]" />}
                         <span className="relative z-10">{iconMap[page.icon]?.(iconColor) || <span className="w-5 h-5" />}</span>
-                        <span className="relative z-10">{page.name}</span>
+                        {!isCompact && <span className="relative z-10">{page.name}</span>}
                       </Link>
                     </li>
                   );
