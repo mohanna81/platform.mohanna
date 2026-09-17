@@ -18,9 +18,7 @@ import {
   CheckSquare,
   Bookmark,
   Settings,
-  X as CloseIcon,
-  ChevronLeft,
-  ChevronRight
+  X as CloseIcon
 } from "lucide-react";
 import Image from "next/image";
 
@@ -57,14 +55,13 @@ interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
   collapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 const Facilitator_COLOR = "#3B82F6"; // blue
 const Admin_COLOR = "#F97316"; // orange
 const GRAY_ICON = "#BDBDBD";
 
-const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose, collapsed = false, onToggleCollapse }) => {
+const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose, collapsed = false }) => {
   const pathname = usePathname();
   const { user } = useAuth();
   // The mobile drawer (position: fixed, slides over the page) always shows
@@ -157,22 +154,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
           <Image src="/Images/logo.png" alt="Risk Sharing Platform Logo" width={160} height={56} priority className="object-contain" />
         )}
       </div>
-      {/* Collapse/expand toggle — a small round button straddling the
-          sidebar/content boundary, on the shared header line (desktop
-          only; the mobile drawer is closed by the X button above
-          instead). Fixed positioning + a left offset matching the current
-          sidebar width means it doesn't need `aside` itself to become a
-          positioning context (that would fight the fixed/md:static
-          classes above), and it stays put regardless of page scroll. */}
-      {onToggleCollapse && (
-        <button
-          onClick={onToggleCollapse}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`hidden md:flex fixed z-50 top-[18px] -translate-x-1/2 items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-gray-400 shadow-md text-gray-600 hover:bg-gray-100 hover:border-gray-500 hover:text-gray-900 transition-all duration-200 ${isCompact ? "left-20" : "left-64"}`}
-        >
-          {isCompact ? <ChevronRight className="w-4 h-4" strokeWidth={2.5} /> : <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />}
-        </button>
-      )}
+      {/* The collapse/expand toggle button lives in Layout.tsx, not here —
+          this `aside` has translate-x transform classes (for the mobile
+          slide-in drawer), which makes it a stacking-context root, so a
+          `position: fixed` child here has its z-index compared only
+          within that local context. Header (same z-40, later in the DOM
+          at the Layout level) would then paint over anything the button
+          drew past the sidebar's own edge. Rendering the button as a
+          sibling of both Sidebar and Header in Layout avoids that trap. */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         <nav className="mt-4 px-2 flex-1 flex flex-col">
           <div>

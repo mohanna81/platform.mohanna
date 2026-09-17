@@ -5,6 +5,7 @@ import Header from "./Header";
 import { usePathname } from "next/navigation";
 import sidebarPages from "./sidebarPages.json";
 import ToastContainer from './ToastContainer';
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebarCollapsed";
 
@@ -41,6 +42,9 @@ const Layout: React.FC<{ title?: string; children: React.ReactNode }> = ({ title
   };
   const pathname = usePathname();
   const pageTitle = title || getPageTitle(pathname);
+  // Mirrors Sidebar's own isCompact: the mobile drawer always shows full
+  // labels, so the toggle only reflects "collapsed" once that's not in play.
+  const isCompact = collapsed && !sidebarOpen;
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar: hidden on mobile, visible on md+ */}
@@ -49,8 +53,23 @@ const Layout: React.FC<{ title?: string; children: React.ReactNode }> = ({ title
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={collapsed}
-        onToggleCollapse={toggleCollapsed}
       />
+      {/* Collapse/expand toggle — a small round button straddling the
+          sidebar/content boundary, on the shared header line. Rendered
+          here (a sibling of both Sidebar and Header, not nested inside
+          Sidebar's <aside>) because that <aside> has translate-x transform
+          classes for its mobile slide-in drawer, which makes it a
+          stacking-context root — a position:fixed child there would have
+          its z-index compared only within that local context, so Header
+          (same z-40, later in the DOM at this level) would paint over
+          anything the button drew past the sidebar's own edge. */}
+      <button
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={`hidden md:flex fixed z-50 top-[18px] -translate-x-1/2 items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-gray-400 shadow-md text-gray-600 hover:bg-gray-100 hover:border-gray-500 hover:text-gray-900 transition-all duration-200 ${isCompact ? "left-20" : "left-64"}`}
+      >
+        {isCompact ? <ChevronRight className="w-4 h-4" strokeWidth={2.5} /> : <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />}
+      </button>
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} />
