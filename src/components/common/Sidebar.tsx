@@ -168,9 +168,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "", open = false, onClose
         <button
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`hidden md:flex fixed z-50 top-5 -translate-x-1/2 items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-300 shadow-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 ${isCompact ? "left-20" : "left-64"}`}
+          className={`hidden md:flex fixed z-50 top-[18px] -translate-x-1/2 items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-gray-400 shadow-md text-gray-600 hover:bg-gray-100 hover:border-gray-500 hover:text-gray-900 transition-all duration-200 ${isCompact ? "left-20" : "left-64"}`}
         >
-          {isCompact ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          {isCompact ? <ChevronRight className="w-4 h-4" strokeWidth={2.5} /> : <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />}
         </button>
       )}
       <div className="flex-1 flex flex-col overflow-y-auto">
