@@ -330,7 +330,12 @@ export default function MeetingsPage() {
               // <input type="date">, which it rejects. Same normalization
               // used by the action-items edit flow.
               implementationDate: new Date(`${ai.deadline}T00:00:00`).toISOString(),
-              status: 'Draft',
+              // 'Draft' isn't a real status on the Action Items board (its
+              // tabs are In Progress / At Risk / Complete, and the overdue
+              // auto-escalation only looks at 'In Progress') — items created
+              // here need to start actionable, same as the standalone
+              // "Assign Action" flow in action-items/page.tsx.
+              status: 'In Progress',
               createdBy: createdById,
             } as any);
           })

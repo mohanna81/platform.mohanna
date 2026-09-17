@@ -637,6 +637,25 @@ export default function ActionItemsPage() {
     return String(val || '');
   }
 
+  // Action items assigned to a whole org (organizationUser) list every
+  // member of that org; items assigned to individuals instead carry a
+  // single primary assignee (assignTo) plus zero or more additionalAssignees
+  // (e.g. action items created from a meeting, which can name several
+  // people at once) — fold all of these into one de-duplicated name list.
+  function getAssignedToNames(item: ActionItem): string[] {
+    if (item.organizationUser && item.organizationUser.length > 0) {
+      return item.organizationUser.map(u => isNamedObject(u) ? u.name : String(u)).filter(Boolean);
+    }
+    const names: string[] = [];
+    const primaryName = isNamedObject(item.assignTo) ? item.assignTo.name : (item.assignTo ? String(item.assignTo) : '');
+    if (primaryName) names.push(primaryName);
+    (item.additionalAssignees || []).forEach(a => {
+      const name = isNamedObject(a) ? a.name : String(a);
+      if (name && !names.includes(name)) names.push(name);
+    });
+    return names;
+  }
+
   function formatDate(dateStr: string) {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -739,11 +758,7 @@ export default function ActionItemsPage() {
                 id={(idx + 1).toString()}
                 actionItemId={item._id}
                 daysRemaining={statusInfo.daysRemaining}
-                assignedTo={
-                  item.organizationUser && item.organizationUser.length > 0
-                    ? item.organizationUser.map(u => isNamedObject(u) ? u.name : String(u)).join(', ')
-                    : isNamedObject(item.assignTo) ? item.assignTo.name : String(item.assignTo || '')
-                }
+                assignedTo={getAssignedToNames(item).join(', ') || 'Unassigned'}
                 consortium={Array.isArray(item.consortium)
                   ? item.consortium.map((c) => {
                       if (isNamedObject(c)) {

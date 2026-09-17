@@ -101,6 +101,7 @@ export interface ActionItem {
   assignToUserModel?: string;
   organization?: Array<string | { _id: string; name: string }>;
   organizationUser?: Array<string | { _id: string; name: string }>;
+  additionalAssignees?: Array<string | { _id: string; name: string }>;
   comments?: { _id?: string }[];
 }
 
