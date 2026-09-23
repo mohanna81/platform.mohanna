@@ -240,7 +240,8 @@ export default function ActionItemsPage() {
         }
       }
 
-      // Check if user is in the organizationUser array
+      // Check if user is in the organizationUser array (one of several
+      // specific people this item was assigned to)
       if (item.organizationUser && Array.isArray(item.organizationUser)) {
         const orgUserIds = item.organizationUser.map((orgUser: string | { _id: string; name: string } | null) => getId(orgUser)).filter(Boolean);
         if (orgUserIds.includes(userId)) {
@@ -248,13 +249,11 @@ export default function ActionItemsPage() {
         }
       }
 
-      // Check if user's organization is in the organization array
-      if (item.organization && Array.isArray(item.organization)) {
-        const orgIds = item.organization.map((org: string | { _id: string; name: string } | null) => getId(org)).filter(Boolean);
-        if (userOrganizationId && orgIds.includes(userOrganizationId)) {
-          return true;
-        }
-      }
+      // Deliberately NOT matching on item.organization[] alone — that array
+      // can carry broader/incidental org tagging (e.g. from meeting-created
+      // action items) that doesn't mean this item was actually assigned to
+      // the user or their org; only assignTo/assignToUser/assignToModel
+      // 'Organization'/organizationUser above represent real assignment.
 
       return false;
     });
