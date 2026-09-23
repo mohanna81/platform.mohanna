@@ -120,19 +120,19 @@ export default function CalendarPage() {
       });
     }
     if (isOrgUser) {
+      // Only items actually assigned to this specific person — not every
+      // item visible to their organization broadly — mirroring "meetings
+      // he is included in" rather than "meetings for his consortium".
       const userId = user?.id;
-      const orgId = user?.organizationId ? String(user.organizationId) : undefined;
+      if (!userId) return [];
       return actionItems.filter(a => {
-        if (userId && (getId(a.assignTo) === userId || getId(a.assignToUser) === userId)) return true;
+        if (getId(a.assignTo) === userId || getId(a.assignToUser) === userId) return true;
         const orgUserIds = (a.organizationUser || []).map(getId).filter(Boolean);
-        if (userId && orgUserIds.includes(userId)) return true;
-        const orgIds = (a.organization || []).map(getId).filter(Boolean);
-        if (orgId && orgIds.includes(orgId)) return true;
-        return false;
+        return orgUserIds.includes(userId);
       });
     }
     return actionItems;
-  }, [actionItems, isFacilitator, isOrgUser, user?.consortia, user?.organizationId, user?.id]);
+  }, [actionItems, isFacilitator, isOrgUser, user?.consortia, user?.id]);
 
   /* ── build calendar grid ── */
   const calendarDays = useMemo<CalendarDay[]>(() => {
