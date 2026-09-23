@@ -115,6 +115,12 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   // Check if user is a facilitator or admin (both can update tracking)
   const isFacilitator = user?.role === 'Facilitator' || user?.role === 'Admin' || user?.role === 'Super_user';
 
+  // Organization Users can only edit a risk while it's still a Draft
+  // (enforced server-side too) — once submitted, the Mitigation/Preventive/
+  // Reactive fields below (the only ones they're allowed to touch at all)
+  // become read-only for them. Facilitators/Admins are unaffected.
+  const orgUserLocked = user?.role === 'Organization User' && riskStatus !== 'Draft';
+
   // Helper function to fetch organization details by ID
   const fetchOrganizationDetails = useCallback(async (orgId: string): Promise<{ _id: string; name: string } | null> => {
     try {
@@ -521,17 +527,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
           };
         });
 
-      // Determine new status for org users
+      // Determine new status for org users — they can only edit/save while
+      // still a Draft (enforced server-side too); Rejected/Pending/Approved
+      // are read-only to them from here on.
       let newStatus: string | undefined;
       const isOrgUser = user?.role === 'Organization User';
-      if (isOrgUser) {
-        if (submitForReview) {
-          newStatus = 'Pending'; // submit for facilitator review
-        } else if (riskStatus === 'Draft') {
-          newStatus = 'Draft'; // save draft
-        } else if (riskStatus === 'Rejected') {
-          newStatus = 'Pending'; // re-submit on any save after rejection
-        }
+      if (isOrgUser && riskStatus === 'Draft') {
+        newStatus = submitForReview ? 'Pending' : 'Draft';
       }
 
       const response = await risksService.updateRisk(riskId, {
@@ -712,6 +714,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
               value={form.mitigation}
               onChange={val => handleChange('mitigation', val)}
               rows={3}
+              disabled={orgUserLocked}
             />
           </div>
 
@@ -724,13 +727,15 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
               value={form.preventive}
               onChange={val => handleChange('preventive', val)}
               rows={3}
+              disabled={orgUserLocked}
             />
-            
+
             <TextArea
               label="Reactive Measures"
               value={form.reactive}
               onChange={val => handleChange('reactive', val)}
               rows={3}
+              disabled={orgUserLocked}
             />
           </div>
 
@@ -863,17 +868,17 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
               </Button>
             )}
             <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
-            {user?.role === 'Organization User' && (riskStatus === 'Draft' || riskStatus === 'Rejected') ? (
-              <>
-                {riskStatus === 'Draft' && (
+            {user?.role === 'Organization User' ? (
+              riskStatus === 'Draft' ? (
+                <>
                   <Button type="submit" variant="outline" disabled={submitting} onClick={(e) => handleSubmit(e, false)}>
                     {submitting ? 'Saving...' : 'Save as Draft'}
                   </Button>
-                )}
-                <Button type="button" variant="primary" disabled={submitting} onClick={(e) => handleSubmit(e, true)}>
-                  {submitting ? 'Submitting...' : riskStatus === 'Rejected' ? 'Edit & Re-submit' : 'Submit for Review'}
-                </Button>
-              </>
+                  <Button type="button" variant="primary" disabled={submitting} onClick={(e) => handleSubmit(e, true)}>
+                    {submitting ? 'Submitting...' : 'Submit for Review'}
+                  </Button>
+                </>
+              ) : null /* Pending/Approved/Rejected/Closed — nothing to save, fields are locked above */
             ) : (
               <Button type="submit" variant="primary" disabled={submitting}>{submitting ? 'Saving...' : 'Save Changes'}</Button>
             )}

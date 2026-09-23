@@ -35,7 +35,13 @@ const DetailRow = ({ label, value }: { label: string; value?: string }) =>
 const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () => void; userRole?: string }> = ({ risk, onViewDetails, onEdit, userRole }) => {
   const [auditOpen, setAuditOpen] = useState(false);
   const styles = statusStyle[risk.status] || statusStyle.Draft;
-  const canEdit = onEdit && (userRole === 'Organization User' || userRole === 'Facilitator');
+  // Organization Users can only edit a risk while it's still a Draft —
+  // once submitted (Pending/Approved/Rejected/Closed) it's out of their
+  // hands. Facilitators are a separate, unrestricted permission path.
+  const canEdit = onEdit && (
+    (userRole === 'Organization User' && risk.status === 'Draft') ||
+    userRole === 'Facilitator'
+  );
 
   return (
     <>

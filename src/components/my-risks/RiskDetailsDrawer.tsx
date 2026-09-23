@@ -60,7 +60,11 @@ const RiskDetailsDrawer = ({ open, onClose, risk, onUpdated }: {
   const isDraft    = risk?.status === 'Draft';
   const isRejected = risk?.status === 'Rejected';
   const isOrgUser  = user?.role === 'Organization User';
-  const showFooter = isDraft || (isRejected && isOrgUser);
+  // Organization Users can only edit a risk while it's still a Draft —
+  // the Rejected "Edit & Re-submit" affordance below has been removed
+  // accordingly; once submitted (Pending/Approved/Rejected/Closed) it's
+  // out of their hands.
+  const showFooter = isDraft;
 
   return (
     <div
@@ -205,46 +209,31 @@ const RiskDetailsDrawer = ({ open, onClose, risk, onUpdated }: {
           </p>
         </div>
 
-        {/* ── Footer actions ── */}
+        {/* ── Footer actions (Draft only) ── */}
         {showFooter && (
           <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-white border-t border-gray-100 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
-            {isDraft ? (
-              <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] font-semibold py-2.5 rounded-xl transition"
+                type="button"
+                onClick={handleSubmitForReview}
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting…' : 'Submit for Review'}
+              </Button>
+              {isOrgUser && (
                 <Button
-                  className="w-full bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] font-semibold py-2.5 rounded-xl transition"
-                  type="button"
-                  onClick={handleSubmitForReview}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Submitting…' : 'Submit for Review'}
-                </Button>
-                {isOrgUser && (
-                  <Button
-                    className="w-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2"
-                    type="button"
-                    onClick={() => setEditModalOpen(true)}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    Edit
-                  </Button>
-                )}
-              </div>
-            ) : (
-              isRejected && isOrgUser && (
-                <Button
-                  className="w-full bg-[#FBBF77] hover:bg-[#f9b15c] text-[#0b1320] font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2"
+                  className="w-full border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2"
                   type="button"
                   onClick={() => setEditModalOpen(true)}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                   </svg>
-                  Edit & Re-submit
+                  Edit
                 </Button>
-              )
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
