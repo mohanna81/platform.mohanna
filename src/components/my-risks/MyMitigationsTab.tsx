@@ -27,6 +27,7 @@ export default function MyMitigationsTab({
 } = {}) {
   const { user } = useAuth();
   const isFacilitator = user?.role === 'Facilitator';
+  const isOrgUser = user?.role === 'Organization User';
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRisk, setExpandedRisk] = useState<string | null>(null);
@@ -119,15 +120,15 @@ export default function MyMitigationsTab({
 
   useEffect(() => { fetchApprovedRisks(); }, [fetchApprovedRisks]);
 
-  // Facilitators assigned to more than one consortium get an extra dropdown
-  // to narrow the list down to a single consortium instead of seeing all of
-  // theirs combined.
+  // Facilitators/Organization Users assigned to more than one consortium
+  // get an extra dropdown to narrow the list down to a single consortium
+  // instead of seeing all of theirs combined.
   useEffect(() => {
-    if (!isFacilitator || !user) return;
+    if ((!isFacilitator && !isOrgUser) || !user) return;
     fetchConsortiaByRole(user)
       .then(list => setMyConsortia(list.map(c => ({ _id: c._id, name: c.name }))))
       .catch(err => console.error('[MyMitigationsTab] fetch consortia failed:', err));
-  }, [isFacilitator, user]);
+  }, [isFacilitator, isOrgUser, user]);
 
   // Risks that have an Action Item assigned directly to this user (as opposed
   // to just touching their organization broadly). Fetched lazily the first
@@ -168,16 +169,18 @@ export default function MyMitigationsTab({
 
   // Facilitators can narrow the (consortium-wide) list down to just the
   // organization they belong to; other roles already only ever see their
-  // own org's risks, so the filter has nothing to do for them.
+  // own org's risks, so that filter has nothing to do for them. Both
+  // Facilitators and Organization Users can narrow down to a single
+  // consortium when they belong to more than one.
   const displayedRisks = useMemo(() => {
     let result = risks;
-    if (isFacilitator && consortiumFilter !== 'all') {
+    if ((isFacilitator || isOrgUser) && consortiumFilter !== 'all') {
       result = result.filter(risk => (risk.consortium || []).some(c => String(c._id) === consortiumFilter));
     }
     if (isFacilitator && orgFilter === 'mine') result = result.filter(touchesOwnOrg);
     if (assignedToMeOnly) result = result.filter(r => (assignedRiskIds ?? new Set()).has(r._id));
     return result;
-  }, [risks, isFacilitator, orgFilter, consortiumFilter, touchesOwnOrg, assignedToMeOnly, assignedRiskIds]);
+  }, [risks, isFacilitator, isOrgUser, orgFilter, consortiumFilter, touchesOwnOrg, assignedToMeOnly, assignedRiskIds]);
 
   // Auto-expand and scroll to the risk referenced by a notification deep link
   useEffect(() => {
@@ -223,7 +226,7 @@ export default function MyMitigationsTab({
     />
   );
 
-  const consortiumFilterDropdown = isFacilitator && risks.length > 0 && myConsortia.length > 1 && (
+  const consortiumFilterDropdown = (isFacilitator || isOrgUser) && risks.length > 0 && myConsortia.length > 1 && (
     <Dropdown
       options={[
         { value: 'all', label: 'All Consortiums' },
@@ -236,7 +239,11 @@ export default function MyMitigationsTab({
     />
   );
 
-  const assignedToMeCheckbox = risks.length > 0 && (
+  // Organization Users only ever see mitigations already assigned to their
+  // own organization, so a "just the ones assigned to me" toggle has
+  // nothing left to narrow down — only Facilitators (who see every org in
+  // their consortia at once) get it.
+  const assignedToMeCheckbox = isFacilitator && risks.length > 0 && (
     <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer whitespace-nowrap">
       <input
         type="checkbox"
