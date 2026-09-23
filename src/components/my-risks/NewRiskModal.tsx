@@ -177,7 +177,6 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
     if (!statement.trim()) newErrors.statement = 'Risk statement is required.';
     if (!likelihood) newErrors.likelihood = 'Likelihood is required.';
     if (!severity) newErrors.severity = 'Severity is required.';
-    if (!trigger.trim()) newErrors.trigger = 'Trigger indicator is required.';
     if (!mitigation.trim()) newErrors.mitigation = 'Mitigation measure is required.';
     return newErrors;
   };
