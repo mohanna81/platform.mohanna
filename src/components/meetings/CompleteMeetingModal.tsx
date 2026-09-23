@@ -106,6 +106,10 @@ interface CompleteMeetingModalProps {
   initialMinutes?: string;
   initialActionItems?: ActionItem[];
   initialLinks?: MeetingLink[];
+  // Action item deadlines only need to be on/after the meeting itself, not
+  // today — this modal is also used to edit minutes for a meeting that
+  // already happened in the past. Falls back to today if not provided.
+  meetingDate?: string;
 }
 
 const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
@@ -117,7 +121,9 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   initialMinutes = '',
   initialActionItems = [{ title: '', description: '', assignedTo: attendees[0]?.id ? [attendees[0].id] : [], deadline: todayStr() }],
   initialLinks = [],
+  meetingDate,
 }) => {
+  const minDeadline = meetingDate ? meetingDate.split('T')[0] : todayStr();
   const [minutes, setMinutes] = useState(initialMinutes);
   const [actionItems, setActionItems] = useState<ActionItem[]>(initialActionItems);
   const [links, setLinks] = useState<MeetingLink[]>(initialLinks);
@@ -126,7 +132,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   useEffect(() => {
     if (open) {
       setMinutes(initialMinutes || '');
-      setActionItems(initialActionItems.length > 0 ? initialActionItems : [{ title: '', description: '', assignedTo: attendees[0]?.id ? [attendees[0].id] : [], deadline: todayStr() }]);
+      setActionItems(initialActionItems.length > 0 ? initialActionItems : [{ title: '', description: '', assignedTo: attendees[0]?.id ? [attendees[0].id] : [], deadline: minDeadline }]);
       setLinks(initialLinks || []);
       setErrors(null);
     }
@@ -138,7 +144,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
   };
 
   const handleAddActionItem = () => {
-    setActionItems(items => [...items, { title: '', description: '', assignedTo: attendees[0]?.id ? [attendees[0].id] : [], deadline: todayStr() }]);
+    setActionItems(items => [...items, { title: '', description: '', assignedTo: attendees[0]?.id ? [attendees[0].id] : [], deadline: minDeadline }]);
   };
 
   const handleToggleAssignee = (idx: number, attendeeId: string) => {
@@ -257,7 +263,7 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
                     type="date"
                     className={selectClass + ' w-full'}
                     value={item.deadline}
-                    min={todayStr()}
+                    min={minDeadline}
                     onChange={e => handleActionItemChange(idx, 'deadline', e.target.value)}
                     required
                     disabled={isSubmitting}

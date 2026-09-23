@@ -578,6 +578,7 @@ export default function MeetingsPage() {
               };
             })}
             initialLinks={completingMeeting.links || []}
+            meetingDate={completingMeeting.date}
           />
         )}
       </div>
