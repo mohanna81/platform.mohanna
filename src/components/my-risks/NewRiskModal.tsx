@@ -171,7 +171,6 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
     if (!statement.trim()) newErrors.statement = 'Risk statement is required.';
     if (!likelihood) newErrors.likelihood = 'Likelihood is required.';
     if (!severity) newErrors.severity = 'Severity is required.';
-    if (!trigger.trim()) newErrors.trigger = 'Trigger indicator is required.';
     if (!mitigation.trim()) newErrors.mitigation = 'Mitigation measures are required.';
     return newErrors;
   };
@@ -209,7 +208,7 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         if (onUpdated) onUpdated();
       } else {
         // Create new risk
-        const payload: CreateRiskRequest = {
+        const payload = {
           title,
           category,
           consortium: consortium ? [consortium] : [],
@@ -224,18 +223,17 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           status: 'Draft',
           triggerStatus: 'Not Triggered',
           orgRoles: consortiumOrganizations.map(org => ({
-            organization: {
-              _id: org._id || '',
-              name: org.name || '',
-              type: 'Schema.Types.ObjectId',
-              ref: 'Organization'
-            },
+            // Backend expects a plain organization ID here (it builds the
+            // organizationId FK directly from this value) — not the
+            // populated { _id, name, ... } object shape OrgRole uses for
+            // reading a risk's orgRoles back from the API.
+            organization: org._id || '',
             role: '' // Default empty role, will be filled by backend or user input
           })),
           code: '', // TODO: Add code if needed
           createdBy: user?.id || '',
         };
-        await risksService.createRisk(payload);
+        await risksService.createRisk(payload as unknown as CreateRiskRequest);
       }
       setIsSubmitting(false);
       onClose(true);

@@ -415,18 +415,14 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
       // Only include orgRoles that contain data (non-empty role values)
       const formattedOrgRoles = form.orgRoles
         .filter(role => role.value && role.value.trim() !== '')
-        .map(role => {
-          const org = consortiumOrganizations.find(org => org._id === role.orgId);
-          return {
-            organization: {
-              _id: role.orgId,
-              name: org?.name || role.orgName,
-              type: 'Schema.Types.ObjectId',
-              ref: 'Organization'
-            },
-            role: role.value
-          };
-        });
+        .map(role => ({
+          // Backend expects a plain organization ID here (it builds the
+          // organizationId FK directly from this value) — not the
+          // populated { _id, name, ... } object shape the API returns
+          // when reading a risk's orgRoles.
+          organization: role.orgId,
+          role: role.value
+        }));
 
       await risksService.updateRisk(riskId, {
         title: form.title,
