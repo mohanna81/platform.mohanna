@@ -136,16 +136,9 @@ export default function ConsortiumDetailPage() {
     setViewUsersOrg(org);
     setOrgUsersLoading(true);
     try {
-      const response = await userService.getUsers();
-      if (response.success && response.data) {
-        const orgId = org._id || org.id;
-        const filtered = response.data.filter((u: User) =>
-          (u.organizations || []).some((o: unknown) =>
-            typeof o === 'string' ? o === orgId : (o as { _id?: string; id?: string })?._id === orgId || (o as { _id?: string; id?: string })?.id === orgId
-          )
-        );
-        setOrgUsers(filtered);
-      }
+      const orgId = org._id || org.id || '';
+      const response = await userService.getUsersByOrganization(orgId);
+      setOrgUsers(response.success ? response.data : []);
     } catch {
       setOrgUsers([]);
     } finally {

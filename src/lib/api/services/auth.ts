@@ -211,6 +211,19 @@ export const userService = {
     };
   },
 
+  // Scoped to one organization server-side (GET /users returns every user
+  // on the platform — don't use that plus a client-side filter for this).
+  async getUsersByOrganization(organizationId: string) {
+    const response = await apiClient.get<{ success: boolean; data: User[]; message?: string }>(
+      `/users/organization/${organizationId}`
+    );
+    return {
+      success: !!response.success && !!response.data?.success,
+      data: response.data?.data || [],
+      error: response.error
+    };
+  },
+
   async updateProfile(id: string, data: object) {
     return apiClient.patch(`/users/${id}`, data);
   },
