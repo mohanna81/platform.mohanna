@@ -317,8 +317,14 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           preventive: risk.preventiveMeasures || '',
           reactive: risk.reactiveMeasures || '',
           orgRoles: mappedOrgRoles,
-          likelihood: risk.likelihood || '',
-          severity: risk.severity || '',
+          // The API returns these as numbers (Prisma Int columns), but the
+          // Likelihood/Severity dropdown options use string values ('1'-'5')
+          // — without this the Dropdown's strict `option.value === value`
+          // match never fires, so it silently falls back to its placeholder
+          // even though a value is set (Risk Score below still computed
+          // correctly since that coerces with Number(...) regardless).
+          likelihood: risk.likelihood != null ? String(risk.likelihood) : '',
+          severity: risk.severity != null ? String(risk.severity) : '',
           consortium: consortiumIds,
         });
       } else {
@@ -424,7 +430,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
           role: role.value
         }));
 
-      await risksService.updateRisk(riskId, {
+      const response = await risksService.updateRisk(riskId, {
         title: form.title,
         category: form.category,
         statement: form.statement,
@@ -436,8 +442,25 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated }: {
         orgRoles: formattedOrgRoles,
         likelihood: form.likelihood,
         severity: form.severity,
-        consortium: form.consortium ? [form.consortium] : [],
+        // form.consortium is already string[] — wrapping it again here
+        // produced a nested array (string[][]), which the backend passed
+        // straight through to Prisma as the join row's consortiumId,
+        // failing with "Expected String, provided (String)".
+        consortium: form.consortium,
       } as unknown as Partial<ExtendedRisk>);
+
+      // apiClient never rejects — a failed request (e.g. the above) resolves
+      // to { success: false, error }, not a thrown exception, so this check
+      // is required or a failed save silently shows "updated successfully"
+      // and closes the modal with nothing actually persisted.
+      if (!response.success) {
+        setSubmitting(false);
+        const message = response.error || 'Failed to update risk';
+        setError(message);
+        showToast.error(message);
+        return;
+      }
+
       showToast.success('Risk updated successfully');
       setSubmitting(false);
       onClose();
