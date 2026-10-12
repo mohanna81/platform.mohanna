@@ -138,7 +138,18 @@ export default function ConsortiumDetailPage() {
     try {
       const orgId = org._id || org.id || '';
       const response = await userService.getUsersByOrganization(orgId);
-      setOrgUsers(response.success ? response.data : []);
+      const users = response.success ? response.data : [];
+      // This org can belong to more than one consortium — the popup is
+      // opened from a specific consortium's page, so it should only show
+      // this org's members who are actually part of THIS consortium, same
+      // as the Facilitators/Organization Users lists shown elsewhere on
+      // this same page.
+      const consortiumId = consortium?._id || consortium?.id;
+      setOrgUsers(
+        consortiumId
+          ? users.filter(u => (u.consortia || []).includes(consortiumId))
+          : users
+      );
     } catch {
       setOrgUsers([]);
     } finally {
