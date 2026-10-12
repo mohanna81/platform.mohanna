@@ -375,17 +375,20 @@ export default function RiskReviewPage() {
 
 
 
-  // Helper function to render the organization(s) involved in mitigating
-  // this risk — i.e. the ones named in its Organization Roles, which is
-  // already fully populated by the API (unlike risk.createdBy.organizations,
-  // which the backend never selects and was always undefined, hence every
-  // card showing "No Organization" regardless of the risk's actual data).
+  // Helper function to render the single organization that identifies this
+  // risk — the risk creator's own organization. Deliberately NOT derived
+  // from risk.orgRoles: that array spans every organization in the
+  // consortium (each defines its own mitigation role for a shared risk),
+  // so using it here showed every consortium org on the card instead of
+  // the one that actually submitted the risk. risk.createdBy.organizations
+  // used to always be undefined (the backend never selected it), which is
+  // why this previously showed "No Organization" regardless of the risk's
+  // actual data — now populated server-side.
   const renderOrganizationNames = (risk: Risk) => {
-    const names = (risk.orgRoles || [])
-      .map(orgRole => orgRole?.organization?.name)
-      .filter((name): name is string => !!name);
-    if (names.length === 0) return 'No Organization';
-    return Array.from(new Set(names)).join(', ');
+    const orgs = risk.createdBy?.organizations;
+    if (!Array.isArray(orgs) || orgs.length === 0) return 'No Organization';
+    const first = orgs[0];
+    return typeof first === 'object' && first !== null ? first.name : String(first);
   };
 
 

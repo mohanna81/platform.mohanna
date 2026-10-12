@@ -38,7 +38,7 @@ export interface User {
   role?: string;
   profilePhoto?: string;
   status?: string;
-  organizations?: string[];
+  organizations?: Array<string | { _id: string; name: string }>;
   consortia?: string[];
   createdAt?: string;
   updatedAt?: string;
