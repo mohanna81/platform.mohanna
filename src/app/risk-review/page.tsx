@@ -75,8 +75,6 @@ export default function RiskReviewPage() {
   const [selectedRiskForStatus, setSelectedRiskForStatus] = useState<string>('');
   const [organizations, setOrganizations] = useState<Array<{ value: string; label: string }>>([]);
   const [consortia, setConsortia] = useState<Array<{ value: string; label: string }>>([]);
-  const [organizationNamesCache, setOrganizationNamesCache] = useState<Record<string, string>>({});
-  const organizationNamesCacheRef = useRef<Record<string, string>>({});
   const isInitialLoad = useRef(true);
   
   const isFullyLoaded = !loadingState.pendingRisks && !loadingState.approvedRisks && !loadingState.rejectedRisks && !loadingState.consortia && !loadingState.organizations;
@@ -244,53 +242,6 @@ export default function RiskReviewPage() {
     }
   }, [user, fetchFilterData]);
 
-  // Fetch organization names for all risks when they load
-  useEffect(() => {
-    const fetchAllOrganizationNames = async () => {
-      const allRisks = [...allPendingRisks, ...allApprovedRisks, ...allRejectedRisks];
-      const orgIdsToFetch = new Set<string>();
-
-      // Use ref to check cache — avoids re-triggering this effect when cache state updates
-      allRisks.forEach(risk => {
-        if (risk.createdBy?.organizations) {
-          risk.createdBy.organizations.forEach(orgId => {
-            if (!organizationNamesCacheRef.current[orgId]) {
-              orgIdsToFetch.add(orgId);
-            }
-          });
-        }
-      });
-
-      if (orgIdsToFetch.size === 0) return;
-
-      // Fetch all uncached org names in parallel
-      const entries = await Promise.all(
-        Array.from(orgIdsToFetch).map(async orgId => {
-          try {
-            const response = await organizationsService.getOrganizationById(orgId);
-            const name = response?.data?.data?.name;
-            if (name) return [orgId, name] as [string, string];
-          } catch (error) {
-            console.error(`Error fetching organization name for ID ${orgId}:`, error);
-          }
-          return null;
-        })
-      );
-
-      const newEntries = entries.filter((e): e is [string, string] => e !== null);
-      if (newEntries.length > 0) {
-        const newCache = Object.fromEntries(newEntries);
-        // Update ref first so re-render doesn't re-trigger fetches
-        organizationNamesCacheRef.current = { ...organizationNamesCacheRef.current, ...newCache };
-        setOrganizationNamesCache(prev => ({ ...prev, ...newCache }));
-      }
-    };
-
-    if (allPendingRisks.length > 0 || allApprovedRisks.length > 0 || allRejectedRisks.length > 0) {
-      fetchAllOrganizationNames();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allPendingRisks, allApprovedRisks, allRejectedRisks]);
 
   // Dynamically set tab counts
   const tabCounts = {
@@ -424,28 +375,17 @@ export default function RiskReviewPage() {
 
 
 
-  // Helper function to render organization names from the risk creator
-  // This shows the organization(s) that the risk creator belongs to
+  // Helper function to render the organization(s) involved in mitigating
+  // this risk — i.e. the ones named in its Organization Roles, which is
+  // already fully populated by the API (unlike risk.createdBy.organizations,
+  // which the backend never selects and was always undefined, hence every
+  // card showing "No Organization" regardless of the risk's actual data).
   const renderOrganizationNames = (risk: Risk) => {
-    if (!risk.createdBy?.organizations || !Array.isArray(risk.createdBy.organizations) || risk.createdBy.organizations.length === 0) {
-      return 'No Organization';
-    }
-    
-    
-    // Get organization IDs from the risk creator
-    const organizationIds = risk.createdBy.organizations;
-    
-    // Use cached names if available, otherwise show IDs temporarily
-    const displayNames = organizationIds.map(orgId => organizationNamesCache[orgId] || orgId);
-    
-    if (organizationIds.length === 1) {
-      return displayNames[0];
-    } else {
-      return displayNames.join(', ');
-    }
-    
-    // TODO: In the future, fetch organization names by ID to show actual names instead of IDs
-    // This would require an API call to get organization details or storing organization names in the risk data
+    const names = (risk.orgRoles || [])
+      .map(orgRole => orgRole?.organization?.name)
+      .filter((name): name is string => !!name);
+    if (names.length === 0) return 'No Organization';
+    return Array.from(new Set(names)).join(', ');
   };
 
 
@@ -553,7 +493,6 @@ export default function RiskReviewPage() {
                     onChangeStatus={handleChangeStatus}
                     renderConsortiumNames={renderConsortiumNames}
                     renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
                   />
                 ))
           )
@@ -578,7 +517,6 @@ export default function RiskReviewPage() {
                     onChangeStatus={handleChangeStatus}
                     renderConsortiumNames={renderConsortiumNames}
                     renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
                   />
                 ))
           )
@@ -603,7 +541,6 @@ export default function RiskReviewPage() {
                     onChangeStatus={handleChangeStatus}
                     renderConsortiumNames={renderConsortiumNames}
                     renderOrganizationNames={renderOrganizationNames}
-                    organizationNamesCache={organizationNamesCache}
                   />
                 ))
               )

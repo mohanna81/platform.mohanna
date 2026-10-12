@@ -88,73 +88,16 @@ export async function fetchOrganizationsByRole(user: AuthUser | null) {
   
   
   if (user.role === 'Facilitator' && user.id) {
-    
+
     const facilitatorOrganizations: Organization[] = [];
     const seenOrganizationIds = new Set<string>();
-    
-    // API Call 1: Get all organizations and check createdBy
-    const allOrganizationsResponse = await organizationsService.getOrganizations();
-    if (allOrganizationsResponse.success && Array.isArray(allOrganizationsResponse.data?.data)) {
-      const allOrganizations = allOrganizationsResponse.data.data;
-      
-      // Get all consortia to check facilitator assignment
-      const consortiaResponse = await consortiaService.getConsortia();
-      if (consortiaResponse.success && Array.isArray(consortiaResponse.data?.data)) {
-        const allConsortia = consortiaResponse.data.data;
-        
-        // Filter organizations based on facilitator being the creator
-        allOrganizations.forEach((organization: Organization) => {
-          // Check if facilitator created this organization directly
-          let isOrganizationCreator = false;
-          if (organization.createdBy) {
-            if (typeof organization.createdBy === 'string') {
-              isOrganizationCreator = organization.createdBy === user.id;
-            } else if (typeof organization.createdBy === 'object' && organization.createdBy !== null) {
-              isOrganizationCreator = organization.createdBy._id === user.id || organization.createdBy.id === user.id;
-            }
-          }
-          
-          // Find consortiums that contain this organization
-          const relevantConsortia = allConsortia.filter((consortium: Consortium) => {
-            if (consortium.organizations && Array.isArray(consortium.organizations)) {
-              return consortium.organizations.some((org: string | Organization) => {
-                if (typeof org === 'string') {
-                  return org === organization._id || org === organization.id;
-                } else if (typeof org === 'object' && org !== null) {
-                  return org._id === organization._id || org.id === organization.id;
-                }
-                return false;
-              });
-            }
-            return false;
-          });
-          
-          // Check if facilitator created any of these consortiums
-          const isConsortiumCreator = relevantConsortia.some((consortium: Consortium) => {
-            const createdByMatch = consortium.createdBy === user.id;
-            console.log(`fetchOrganizationsByRole - Consortium ${consortium.name}:`, {
-              consortiumId: consortium._id || consortium.id,
-              createdBy: consortium.createdBy,
-              userID: user.id,
-              isCreator: createdByMatch
-            });
-            return createdByMatch;
-          });
-          
-          // Include organization if facilitator created either the organization or the consortium
-          if (isOrganizationCreator || isConsortiumCreator) {
-            const orgId = organization._id || organization.id;
-            if (!seenOrganizationIds.has(orgId)) {
-              facilitatorOrganizations.push(organization);
-              seenOrganizationIds.add(orgId);
-            }
-          } else {
-          }
-        });
-      }
-    }
-    
-    // API Call 2: Get user-specific organizations using user ID endpoint
+
+    // Organizations from the consortia this facilitator actually belongs
+    // to — the only reliable source. A prior "did this facilitator create
+    // the org/consortium" heuristic lived here instead, but Consortium has
+    // no createdBy field at all, so that check was always false and never
+    // contributed anything; it also cost a platform-wide organizations
+    // fetch for nothing. Removed.
     const userConsortiaResponse = await consortiaService.getUserConsortium(user.id);
     const userData = userConsortiaResponse.data?.data;
     if (userConsortiaResponse.success && userData && typeof userData === 'object' && !Array.isArray(userData) && 'consortia' in userData) {

@@ -36,7 +36,6 @@ interface RiskCardProps {
   onChangeStatus: (riskId: string) => void;
   renderConsortiumNames: (consortium: unknown) => string;
   renderOrganizationNames: (risk: any) => string;
-  organizationNamesCache: Record<string, string>;
 }
 
 // Helper function to render organization roles
