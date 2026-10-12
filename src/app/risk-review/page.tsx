@@ -145,14 +145,15 @@ export default function RiskReviewPage() {
         }
       }
 
-      // Filter by organization (skip for Admins and Super users)
+      // Filter by organization (skip for Admins and Super users). Matches
+      // against risk.createdBy.organizations — the same single "risk
+      // identifier" organization shown on the card — not orgRoles, which
+      // deliberately spans every org in the consortium and would make this
+      // filter show risks whose card doesn't even display the org picked.
       if (!isAdminOrSuper && organization && organization !== '') {
-        // Check if risk has the selected organization in orgRoles
-        const hasOrganization = risk.orgRoles?.some(orgRole => {
-          // Add defensive checks for orgRole structure
-          if (!orgRole || typeof orgRole !== 'object') return false;
-          if (!orgRole.organization || typeof orgRole.organization !== 'object') return false;
-          return orgRole.organization._id === organization;
+        const hasOrganization = (risk.createdBy?.organizations || []).some(org => {
+          const orgId = typeof org === 'object' && org !== null ? org._id : org;
+          return orgId === organization;
         });
         if (!hasOrganization) {
           return false;
