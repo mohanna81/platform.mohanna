@@ -7,6 +7,7 @@ import PageSizeSelector from '@/components/common/PageSizeSelector';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { canViewUser, normalizeRole } from '@/lib/utils/roleHierarchy';
 import EditUserModal from './EditUserModal';
+import ReassignActionItemsModal from './ReassignActionItemsModal';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organizations';
@@ -29,6 +30,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [roleOptions, setRoleOptions] = useState<{ value: string; label: string }[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<{ value: string; label: string }[]>([]);
   const [consortiumOptions, setConsortiumOptions] = useState<{ value: string; label: string }[]>([]);
@@ -179,12 +181,19 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
     setIsDeleting(true);
     try {
       const response = await userService.deleteUser(userToDelete._id);
-      
+
       if (response.success) {
         showToast.success('User deleted successfully');
         setDeleteModalOpen(false);
         setUserToDelete(null);
         fetchUsers(); // Refresh the users list
+      } else if (response.error?.includes('sole assignee on one or more Action Items')) {
+        // Deletion is blocked by a DB constraint: this user is the only
+        // assignee on some Action Items, which can't be left unassigned.
+        // Keep userToDelete set and open the reassign modal on top instead
+        // of just showing the error with no way to act on it.
+        setDeleteModalOpen(false);
+        setReassignModalOpen(true);
       } else {
         showToast.error(response.error || 'Failed to delete user');
       }
@@ -435,6 +444,23 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         confirmText="Delete"
         cancelText="Cancel"
         loading={isDeleting}
+      />
+
+      {/* Reassign Action Items Modal -- shown when delete is blocked because
+          this user is the sole assignee on one or more Action Items */}
+      <ReassignActionItemsModal
+        isOpen={reassignModalOpen}
+        onClose={() => {
+          setReassignModalOpen(false);
+          setUserToDelete(null);
+        }}
+        userToDelete={userToDelete}
+        allUsers={users}
+        onDeleted={() => {
+          setReassignModalOpen(false);
+          setUserToDelete(null);
+          fetchUsers();
+        }}
       />
     </>
   );

@@ -136,6 +136,9 @@ export const actionItemsService = {
   async getActionItems() {
     return apiClient.get<GetActionItemsResponse>('/actionitem');
   },
+  async getActionItemsAssignedToUser(userId: string) {
+    return apiClient.get<GetActionItemsResponse>(`/actionitem/assigned-user/${userId}`);
+  },
   async updateActionItem(id: string, data: UpdateActionItemRequest) {
     return apiClient.patch<UpdateActionItemResponse>(`/actionitem/${id}`, data);
   },
