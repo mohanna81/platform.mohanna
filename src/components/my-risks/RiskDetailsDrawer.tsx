@@ -3,6 +3,7 @@ import Button from '../common/Button';
 import { risksService } from '@/lib/api/services/risks';
 import NewRiskModal from './NewRiskModal';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { showToast } from '@/lib/utils/toast';
 
 interface Risk {
   _id: string;
@@ -30,8 +31,17 @@ const RiskDetailsDrawer = ({ open, onClose, risk, onUpdated }: {
   const handleSubmitForReview = async () => {
     if (!risk?._id) return;
     setSubmitting(true);
-    await risksService.updateRisk(risk._id, { status: 'Pending' });
+    // apiClient never rejects on an HTTP error -- it resolves to
+    // {success: false, error} -- the result was previously discarded
+    // entirely, so a failed submit (e.g. permission denied) silently
+    // closed the drawer with the risk still in Draft and no feedback.
+    const response = await risksService.updateRisk(risk._id, { status: 'Pending' });
     setSubmitting(false);
+    if (!response.success) {
+      showToast.error(response.error || response.message || 'Failed to submit risk for review');
+      return;
+    }
+    showToast.success('Risk submitted for review');
     onClose();
     if (onUpdated) onUpdated();
   };

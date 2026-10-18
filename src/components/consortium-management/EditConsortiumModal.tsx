@@ -5,6 +5,7 @@ import TextArea from '../common/TextArea';
 import Modal from '../common/Modal';
 import Loader from '../common/Loader';
 import { consortiaService } from '@/lib/api';
+import { showToast } from '@/lib/utils/toast';
 
 interface EditConsortiumModalProps {
   isOpen: boolean;
@@ -92,12 +93,22 @@ const EditConsortiumModal: React.FC<EditConsortiumModalProps> = ({ isOpen, onClo
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      await consortiaService.patchConsortiumById(consortiumId, { name, start_date: startDate, end_date: endDate, description });
+      // apiClient never rejects on an HTTP error -- it resolves to
+      // {success: false, error} -- so this needs an explicit check;
+      // otherwise a failed update (validation error, permission denied)
+      // silently closed the modal with nothing actually changed and no
+      // feedback to the user at all.
+      const response = await consortiaService.patchConsortiumById(consortiumId, { name, start_date: startDate, end_date: endDate, description });
+      if (!response.success) {
+        showToast.error(response.error || response.message || 'Failed to update consortium');
+        return;
+      }
       setErrors({});
+      showToast.success('Consortium updated successfully');
       onUpdated();
       onClose();
     } catch {
-      // Error handling is done in the parent component
+      showToast.error('Failed to update consortium');
     } finally {
       setIsSubmitting(false);
     }

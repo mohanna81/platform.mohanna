@@ -8,6 +8,7 @@ import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByConsortia } from '@/lib/api/services/organizations';
 import { risksService, CreateRiskRequest, Risk } from '@/lib/api/services/risks';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { showToast } from '@/lib/utils/toast';
 
 const riskCategories = [
   { value: '', label: 'Select a risk category' },
@@ -79,8 +80,11 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         setStatement(risk.statement || '');
         setTrigger(risk.triggerIndicator || '');
         setMitigation(risk.mitigationMeasures || '');
-        setLikelihood(risk.likelihood || '');
-        setSeverity(risk.severity || '');
+        // Likelihood/severity are Prisma Int columns; the Dropdown does a
+        // strict option.value === value match against its string option
+        // values, so a bare number here left the dropdown showing blank.
+        setLikelihood(risk.likelihood !== undefined && risk.likelihood !== null ? String(risk.likelihood) : '');
+        setSeverity(risk.severity !== undefined && risk.severity !== null ? String(risk.severity) : '');
         setConsortium(risk.consortium && risk.consortium.length > 0 ? risk.consortium[0]._id || '' : '');
         setOriginalRiskStatus(risk.status || '');
       }
@@ -194,7 +198,11 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
         } else if (originalRiskStatus === 'Rejected') {
           newStatus = 'Pending'; // Re-submit after rejection
         }
-        await risksService.updateRisk(riskId, {
+        // apiClient never rejects on an HTTP error -- it resolves to
+        // {success: false, error} -- so without this check a failed
+        // save/submit silently closed the modal with nothing actually
+        // saved and no feedback to the user at all.
+        const response = await risksService.updateRisk(riskId, {
           title,
           category,
           consortium: consortium ? [consortium] : [],
@@ -205,6 +213,12 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           mitigationMeasures: mitigation,
           status: newStatus,
         } as unknown as Partial<Risk>);
+        if (!response.success) {
+          showToast.error(response.error || response.message || 'Failed to save risk');
+          setIsSubmitting(false);
+          return;
+        }
+        showToast.success(newStatus === 'Draft' ? 'Risk saved as draft' : 'Risk submitted for review');
         if (onUpdated) onUpdated();
       } else {
         // Create new risk
@@ -233,12 +247,19 @@ const NewRiskModal: React.FC<NewRiskModalProps> = ({ isOpen, onClose, editMode =
           code: '', // TODO: Add code if needed
           createdBy: user?.id || '',
         };
-        await risksService.createRisk(payload as unknown as CreateRiskRequest);
+        const response = await risksService.createRisk(payload as unknown as CreateRiskRequest);
+        if (!response.success) {
+          showToast.error(response.error || response.message || 'Failed to create risk');
+          setIsSubmitting(false);
+          return;
+        }
+        showToast.success('Risk saved as draft');
       }
       setIsSubmitting(false);
       onClose(true);
     } catch (error) {
       console.error('Error saving risk:', error);
+      showToast.error('Failed to save risk');
       setIsSubmitting(false);
     }
   };

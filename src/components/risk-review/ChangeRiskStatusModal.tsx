@@ -40,15 +40,26 @@ const ChangeRiskStatusModal = ({ isOpen, onClose, onSubmit, riskId, statusOption
     }
     
     try {
-      await risksService.updateRisk(riskId, updateData);
+      // apiClient never rejects on an HTTP error -- it resolves to
+      // {success: false, error} -- so without this check a failed status
+      // change (e.g. permission denied, validation error) still showed
+      // "updated successfully" and closed the modal with nothing actually
+      // changed on the risk.
+      const response = await risksService.updateRisk(riskId, updateData);
+      if (!response.success) {
+        showToast.error(response.error || response.message || 'Failed to update risk status');
+        setSubmitting(false);
+        return;
+      }
       showToast.success(`Risk status updated to ${selectedStatus} successfully`);
-      // Refresh the data after successful update
       if (onUpdated) onUpdated();
     } catch (error) {
       console.error('API call failed:', error);
       showToast.error('Failed to update risk status');
+      setSubmitting(false);
+      return;
     }
-    
+
     setSubmitting(false);
     onClose();
     onSubmit();
