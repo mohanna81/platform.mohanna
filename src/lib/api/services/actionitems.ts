@@ -157,14 +157,15 @@ export const actionItemsService = {
     return apiClient.delete<{ message: string; success: boolean }>(`/actionitem/${actionItemId}/comments/${commentId}`);
   },
   
-  // Reply methods
-  async createReply(actionItemId: string, commentIndex: number, replyData: CreateReplyRequest) {
-    return apiClient.post<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies`, replyData);
+  // Reply methods -- comments/replies are addressed by their actual (UUID)
+  // id, not an array position; see matching ActionItemCard.tsx fix.
+  async createReply(actionItemId: string, commentId: string, replyData: CreateReplyRequest) {
+    return apiClient.post<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentId}/replies`, replyData);
   },
-  async updateReply(actionItemId: string, commentIndex: number, replyIndex: number, replyData: UpdateReplyRequest) {
-    return apiClient.patch<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies/${replyIndex}`, replyData);
+  async updateReply(actionItemId: string, commentId: string, replyId: string, replyData: UpdateReplyRequest) {
+    return apiClient.patch<ReplyResponse>(`/actionitem/${actionItemId}/comments/${commentId}/replies/${replyId}`, replyData);
   },
-  async deleteReply(actionItemId: string, commentIndex: number, replyIndex: number) {
-    return apiClient.delete<{ message: string; success: boolean }>(`/actionitem/${actionItemId}/comments/${commentIndex}/replies/${replyIndex}`);
+  async deleteReply(actionItemId: string, commentId: string, replyId: string) {
+    return apiClient.delete<{ message: string; success: boolean }>(`/actionitem/${actionItemId}/comments/${commentId}/replies/${replyId}`);
   },
 }; 

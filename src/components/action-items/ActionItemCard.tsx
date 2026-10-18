@@ -42,10 +42,10 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   const [comments, setComments] = React.useState<Comment[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [commentText, setCommentText] = React.useState('');
-  const [replyingTo, setReplyingTo] = React.useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
   const [replyText, setReplyText] = React.useState('');
   const [editingComment, setEditingComment] = React.useState<string | null>(null);
-  const [editingReply, setEditingReply] = React.useState<{ commentIndex: number; replyIndex: number } | null>(null);
+  const [editingReply, setEditingReply] = React.useState<{ commentId: string; replyId: string } | null>(null);
   const [editCommentText, setEditCommentText] = React.useState('');
   const [editReplyText, setEditReplyText] = React.useState('');
   const [apiAvailable, setApiAvailable] = React.useState(true);
@@ -132,7 +132,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleAddReply = async (commentIndex: number) => {
+  const handleAddReply = async (commentId: string) => {
     if (!replyText.trim() || !user) return;
 
     try {
@@ -142,7 +142,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         reply: replyText.trim(),
       };
 
-      const response = await actionItemsService.createReply(actionItemId, commentIndex, replyData);
+      const response = await actionItemsService.createReply(actionItemId, commentId, replyData);
       if (response.success) {
         setReplyText('');
         setReplyingTo(null);
@@ -182,7 +182,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleEditReply = async (commentIndex: number, replyIndex: number) => {
+  const handleEditReply = async (commentId: string, replyId: string) => {
     if (!editReplyText.trim()) return;
 
     try {
@@ -190,7 +190,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
         reply: editReplyText.trim(),
       };
 
-      const response = await actionItemsService.updateReply(actionItemId, commentIndex, replyIndex, updateData);
+      const response = await actionItemsService.updateReply(actionItemId, commentId, replyId, updateData);
       if (response.success) {
         setEditReplyText('');
         setEditingReply(null);
@@ -224,11 +224,11 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
     }
   };
 
-  const handleDeleteReply = async (commentIndex: number, replyIndex: number) => {
+  const handleDeleteReply = async (commentId: string, replyId: string) => {
     if (!confirm('Are you sure you want to delete this reply?')) return;
 
     try {
-      const response = await actionItemsService.deleteReply(actionItemId, commentIndex, replyIndex);
+      const response = await actionItemsService.deleteReply(actionItemId, commentId, replyId);
       if (response.success) {
         showToast.success('Reply deleted successfully');
         // Refresh comments from server
@@ -369,9 +369,9 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
 
                              {/* Comment Actions */}
                <div className="flex gap-3 mb-3">
-                 <button 
+                 <button
                    className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center transition-colors"
-                   onClick={() => setReplyingTo(commentIndex)}
+                   onClick={() => setReplyingTo(comment._id)}
                  >
                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -406,7 +406,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                </div>
 
                              {/* Reply Input */}
-               {replyingTo === commentIndex && (
+               {replyingTo === comment._id && (
                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                    <div className="flex gap-2">
                      <input
@@ -418,13 +418,13 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                        onKeyDown={(e) => {
                          if (e.key === 'Enter' && !e.shiftKey) {
                            e.preventDefault();
-                           handleAddReply(commentIndex);
+                           handleAddReply(comment._id);
                          }
                        }}
                      />
-                     <button 
+                     <button
                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                       onClick={() => handleAddReply(commentIndex)}
+                       onClick={() => handleAddReply(comment._id)}
                      >
                        Send
                      </button>
@@ -454,7 +454,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                     <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
                   </div>
                   
-                  {editingReply?.commentIndex === commentIndex && editingReply?.replyIndex === replyIndex ? (
+                  {editingReply?.commentId === comment._id && editingReply?.replyId === reply._id ? (
                     <div className="mb-2">
                       <textarea
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-900"
@@ -464,9 +464,9 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                         placeholder="Edit your reply..."
                       />
                       <div className="flex gap-2 mt-2">
-                        <button 
+                        <button
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                          onClick={() => handleEditReply(commentIndex, replyIndex)}
+                          onClick={() => handleEditReply(comment._id, reply._id)}
                         >
                           Save
                         </button>
@@ -491,7 +491,7 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                       <button 
                         className="text-gray-600 hover:text-gray-700 text-xs font-medium flex items-center transition-colors"
                         onClick={() => {
-                          setEditingReply({ commentIndex, replyIndex });
+                          setEditingReply({ commentId: comment._id, replyId: reply._id });
                           setEditReplyText(reply.reply);
                         }}
                       >
@@ -500,9 +500,9 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
                         </svg>
                         Edit
                       </button>
-                      <button 
+                      <button
                         className="text-red-600 hover:text-red-700 text-xs font-medium flex items-center transition-colors"
-                        onClick={() => handleDeleteReply(commentIndex, replyIndex)}
+                        onClick={() => handleDeleteReply(comment._id, reply._id)}
                       >
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
