@@ -18,6 +18,7 @@ export interface LoginResponse {
     email: string;
     status: string;
     role: string;
+    organizationId?: string;
     organizations: string[];
     consortia: string[];
     createdAt: string;

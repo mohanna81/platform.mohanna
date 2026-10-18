@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: userData.email,
           name: userData.name,
           role: userData.role as UserRole,
-          organizationId: undefined // Add if available in your response
+          organizationId: userData.organizationId
         };
         
         // Store in cookies (7 days)
