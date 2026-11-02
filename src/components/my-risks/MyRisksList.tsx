@@ -6,6 +6,7 @@ import EditRiskModal from '@/components/risk-review/EditRiskModal';
 import { showToast } from '@/lib/utils/toast';
 import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import RiskAuditModal from '@/components/common/RiskAuditModal';
+import Dropdown from '@/components/common/Dropdown';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 const getOrgId = (org?: { _id?: string; id?: string } | null) => org?._id || org?.id;
@@ -192,7 +193,7 @@ const RiskCard: React.FC<{
   );
 };
 
-const MyRisksList = ({ statusFilter, refreshKey, targetRiskId }: { statusFilter: string; refreshKey?: number; targetRiskId?: string | null }) => {
+const MyRisksList = ({ statusFilter, refreshKey, targetRiskId, initialOwnedFilter }: { statusFilter: string; refreshKey?: number; targetRiskId?: string | null; initialOwnedFilter?: boolean }) => {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loadingState, setLoadingState] = useState({
     isLoading: true,
@@ -205,8 +206,15 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId }: { statusFilter:
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRiskForEdit, setSelectedRiskForEdit] = useState<Risk | null>(null);
   const [newRiskEditOpen, setNewRiskEditOpen] = useState(false); // for Draft/Rejected via NewRiskModal
+  // Ownership dropdown (Organization User only) -- applies on top of
+  // whichever status tab is active, rather than being its own tab.
+  const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'owned'>(initialOwnedFilter ? 'owned' : 'all');
   const { user } = useAuth();
   const isOrgUser = user?.role === 'Organization User';
+
+  useEffect(() => {
+    if (initialOwnedFilter) setOwnershipFilter('owned');
+  }, [initialOwnedFilter]);
 
   const isOwnedByUser = useCallback((risk: Risk) => {
     const ownerId = getOrgId(risk.ownerOrganization);
@@ -215,14 +223,17 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId }: { statusFilter:
 
   const filterRisks = useCallback((risks: Risk[]) => {
     // Apply status filter
-    if (statusFilter === 'All Risks') return risks;
-    if (statusFilter === 'Draft') return risks.filter(r => r.status === 'Draft');
-    if (statusFilter === 'Under Review') return risks.filter(r => r.status === 'Pending');
-    if (statusFilter === 'Rejected') return risks.filter(r => r.status === 'Rejected');
-    if (statusFilter === 'Shared') return risks.filter(r => r.status === 'Approved');
-    if (statusFilter === 'Owned') return risks.filter(isOwnedByUser);
-    return risks;
-  }, [statusFilter, isOwnedByUser]);
+    let filtered = risks;
+    if (statusFilter === 'Draft') filtered = filtered.filter(r => r.status === 'Draft');
+    else if (statusFilter === 'Under Review') filtered = filtered.filter(r => r.status === 'Pending');
+    else if (statusFilter === 'Rejected') filtered = filtered.filter(r => r.status === 'Rejected');
+    else if (statusFilter === 'Shared') filtered = filtered.filter(r => r.status === 'Approved');
+
+    // Ownership dropdown applies on top of the status filter above.
+    if (ownershipFilter === 'owned') filtered = filtered.filter(isOwnedByUser);
+
+    return filtered;
+  }, [statusFilter, ownershipFilter, isOwnedByUser]);
 
   const refreshRisks = useCallback(async () => {
     setLoadingState({
@@ -343,6 +354,20 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId }: { statusFilter:
 
   return (
     <div>
+      {isOrgUser && (
+        <div className="mb-4 max-w-xs">
+          <Dropdown
+            label="Ownership"
+            options={[
+              { value: 'all', label: 'All Risks' },
+              { value: 'owned', label: 'Owned by My Organization' },
+            ]}
+            value={ownershipFilter}
+            onChange={(v) => setOwnershipFilter(v as 'all' | 'owned')}
+            fullWidth
+          />
+        </div>
+      )}
       {filteredRisks.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl min-h-[100px] flex items-center justify-center text-gray-500 text-lg">
           {risks.length === 0 ? 'No risks created yet.' : 'No risks found in this category.'}

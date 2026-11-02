@@ -3,21 +3,15 @@ import React from 'react';
 
 export const RISK_TABS = ['All Risks', 'Draft', 'Under Review', 'Shared', 'Rejected'];
 export const MITIGATION_TAB = 'My Mitigations';
-export const OWNED_TAB = 'Owned';
 
 interface MyRisksTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   showMitigationsTab?: boolean;
-  showOwnedTab?: boolean;
 }
 
-const MyRisksTabs = ({ activeTab, setActiveTab, showMitigationsTab = false, showOwnedTab = false }: MyRisksTabsProps) => {
-  const tabs = [
-    ...RISK_TABS,
-    ...(showOwnedTab ? [OWNED_TAB] : []),
-    ...(showMitigationsTab ? [MITIGATION_TAB] : []),
-  ];
+const MyRisksTabs = ({ activeTab, setActiveTab, showMitigationsTab = false }: MyRisksTabsProps) => {
+  const tabs = showMitigationsTab ? [...RISK_TABS, MITIGATION_TAB] : RISK_TABS;
 
   return (
     <div className="mb-6">

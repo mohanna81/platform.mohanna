@@ -1,7 +1,7 @@
 "use client";
 
 import MyRisksHeader from '@/components/my-risks/MyRisksHeader';
-import MyRisksTabs, { MITIGATION_TAB, OWNED_TAB } from '@/components/my-risks/MyRisksTabs';
+import MyRisksTabs, { MITIGATION_TAB } from '@/components/my-risks/MyRisksTabs';
 import MyRisksList from '@/components/my-risks/MyRisksList';
 import MyMitigationsTab from '@/components/my-risks/MyMitigationsTab';
 import NewRiskModal from '@/components/my-risks/NewRiskModal';
@@ -17,6 +17,10 @@ export default function MyRisksPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
   const [targetMeasure, setTargetMeasure] = useState<number | null>(null);
+  // A risk_owner_assigned/risk_triggered notification deep-links here with
+  // ?tab=owned -- there's no separate "Owned" tab, so that just pre-selects
+  // the ownership dropdown inside MyRisksList instead.
+  const [initialOwnedFilter, setInitialOwnedFilter] = useState(false);
 
   const isOrgUser = user?.role === 'Organization User';
   const isFacilitator = user?.role === 'Facilitator';
@@ -26,7 +30,7 @@ export default function MyRisksPage() {
     if (params.get('tab') === 'mitigations') {
       setActiveTab(MITIGATION_TAB);
     } else if (params.get('tab') === 'owned') {
-      setActiveTab(OWNED_TAB);
+      setInitialOwnedFilter(true);
     }
     const riskId = params.get('riskId');
     if (riskId) setTargetRiskId(riskId);
@@ -49,12 +53,16 @@ export default function MyRisksPage() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             showMitigationsTab={isOrgUser || isFacilitator}
-            showOwnedTab={isOrgUser}
           />
           {activeTab === MITIGATION_TAB ? (
             <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} />
           ) : (
-            <MyRisksList statusFilter={activeTab} refreshKey={refreshKey} targetRiskId={targetRiskId} />
+            <MyRisksList
+              statusFilter={activeTab}
+              refreshKey={refreshKey}
+              targetRiskId={targetRiskId}
+              initialOwnedFilter={initialOwnedFilter}
+            />
           )}
           <NewRiskModal isOpen={showNewRiskModal} onClose={handleCloseNewRisk} />
         </div>
