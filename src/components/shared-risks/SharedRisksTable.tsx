@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Risk, Consortium } from '@/lib/api/services/risks';
 import Button from '@/components/common/Button';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
@@ -28,6 +28,47 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+
+  // Table no longer scrolls vertically inside its own box (the page scrolls
+  // instead), so its horizontal scrollbar can end up well below the fold.
+  // This mirrors it into a slim bar pinned to the bottom of the table's own
+  // box (sticky, not fixed, so it only shows while the table itself is in
+  // view) and keeps both scroll positions in sync.
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const [tableScrollWidth, setTableScrollWidth] = useState(0);
+  const syncingFrom = useRef<'table' | 'bottom' | null>(null);
+
+  useEffect(() => {
+    const el = tableScrollRef.current;
+    if (!el || viewMode !== 'table') return;
+    const updateWidth = () => setTableScrollWidth(el.scrollWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [risks, viewMode]);
+
+  const handleTableScroll = () => {
+    if (syncingFrom.current === 'bottom') {
+      syncingFrom.current = null;
+      return;
+    }
+    if (tableScrollRef.current && bottomScrollRef.current) {
+      syncingFrom.current = 'table';
+      bottomScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
+    }
+  };
+  const handleBottomScroll = () => {
+    if (syncingFrom.current === 'table') {
+      syncingFrom.current = null;
+      return;
+    }
+    if (tableScrollRef.current && bottomScrollRef.current) {
+      syncingFrom.current = 'bottom';
+      tableScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!riskToDelete) return;
@@ -287,16 +328,16 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
 
       {viewMode === 'table' ? (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {/* Bounded height so the horizontal scrollbar sits at the bottom
-              of this box (always on-screen) instead of after however many
-              rows there are — the table scrolls internally, with the
-              header pinned via sticky positioning so it stays visible
-              while scrolling down through rows. */}
-          <div className="overflow-auto max-h-[65vh] -mx-2 sm:mx-0">
+          {/* No vertical scroll inside this box — the page scrolls normally
+              and the table grows to fit its rows. Only horizontal overflow
+              is scrollable here; its scrollbar is mirrored below, pinned to
+              the bottom of this box, so it stays reachable without first
+              scrolling the page down past the table. */}
+          <div ref={tableScrollRef} onScroll={handleTableScroll} className="overflow-x-auto -mx-2 sm:mx-0">
             <div className="inline-block min-w-full align-middle">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
+                  <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Risk</th>
                       <th scope="col" className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Category</th>
@@ -387,6 +428,16 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
               </div>
             </div>
           </div>
+          {tableScrollWidth > 0 && (
+            <div
+              ref={bottomScrollRef}
+              onScroll={handleBottomScroll}
+              className="sticky bottom-0 overflow-x-auto overflow-y-hidden border-t border-gray-100 bg-white"
+              style={{ height: 16 }}
+            >
+              <div style={{ width: tableScrollWidth, height: 1 }} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
