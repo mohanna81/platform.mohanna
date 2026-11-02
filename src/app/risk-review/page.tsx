@@ -508,28 +508,28 @@ export default function RiskReviewPage() {
 
 
 
-  // Helper function to render organization names from the risk creator
-  // This shows the organization(s) that the risk creator belongs to
+  // Helper function to render organization names for a risk card.
+  // Primarily the organization(s) the risk's creator belongs to, but that's
+  // sometimes empty -- the creator's own org membership can change after
+  // the risk was created, or createdBy can come back null entirely if that
+  // user was since deleted -- in which case this fell straight through to
+  // "No Organization" even though the risk clearly has real organizational
+  // context via orgRoles (and now ownerOrganization). Falls back to those.
   const renderOrganizationNames = (risk: Risk) => {
-    if (!risk.createdBy?.organizations || !Array.isArray(risk.createdBy.organizations) || risk.createdBy.organizations.length === 0) {
-      return 'No Organization';
-    }
-    
-    
-    // Get organization IDs from the risk creator
-    const organizationIds = risk.createdBy.organizations;
-    
-    // Use cached names if available, otherwise show IDs temporarily
-    const displayNames = organizationIds.map(orgId => organizationNamesCache[orgId] || orgId);
-    
-    if (organizationIds.length === 1) {
-      return displayNames[0];
-    } else {
-      return displayNames.join(', ');
-    }
-    
-    // TODO: In the future, fetch organization names by ID to show actual names instead of IDs
-    // This would require an API call to get organization details or storing organization names in the risk data
+    const creatorOrgs = Array.isArray(risk.createdBy?.organizations) ? risk.createdBy!.organizations : [];
+    const creatorNames = creatorOrgs
+      .map((orgId) => organizationNamesCache[orgId] || null)
+      .filter((name): name is string => !!name);
+    if (creatorNames.length > 0) return creatorNames.join(', ');
+
+    const orgRoleNames = (risk.orgRoles || [])
+      .map((r) => r.organization?.name)
+      .filter((name): name is string => !!name);
+    if (orgRoleNames.length > 0) return orgRoleNames.join(', ');
+
+    if (risk.ownerOrganization?.name) return risk.ownerOrganization.name;
+
+    return 'No Organization';
   };
 
 
