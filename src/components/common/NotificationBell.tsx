@@ -71,6 +71,13 @@ const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
       </svg>
     </span>
   ),
+  new_mitigation_measure: (
+    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100">
+      <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v6m3-3H9m11 0c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+      </svg>
+    </span>
+  ),
 };
 
 // ─── Time formatting ─────────────────────────────────────────────────────────
