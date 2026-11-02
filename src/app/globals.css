@@ -50,6 +50,16 @@ body {
   background-color: #2a9d8f;
 }
 
+/* Hides the native scrollbar on an otherwise-scrollable element — used
+   where a custom/mirrored scrollbar replaces it, so only one is visible. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Line clamp utilities for text truncation */
 .line-clamp-2 {
   display: -webkit-box;

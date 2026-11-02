@@ -330,10 +330,10 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           {/* No vertical scroll inside this box — the page scrolls normally
               and the table grows to fit its rows. Only horizontal overflow
-              is scrollable here; its scrollbar is mirrored below, pinned to
-              the bottom of this box, so it stays reachable without first
-              scrolling the page down past the table. */}
-          <div ref={tableScrollRef} onScroll={handleTableScroll} className="overflow-x-auto -mx-2 sm:mx-0">
+              is scrollable here; its native scrollbar is hidden (see
+              .no-scrollbar below) in favor of the single sticky mirror
+              scrollbar rendered after this card. */}
+          <div ref={tableScrollRef} onScroll={handleTableScroll} className="overflow-x-auto -mx-2 sm:mx-0 no-scrollbar">
             <div className="inline-block min-w-full align-middle">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -428,16 +428,6 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
               </div>
             </div>
           </div>
-          {tableScrollWidth > 0 && (
-            <div
-              ref={bottomScrollRef}
-              onScroll={handleBottomScroll}
-              className="sticky bottom-0 overflow-x-auto overflow-y-hidden border-t border-gray-100 bg-white"
-              style={{ height: 16 }}
-            >
-              <div style={{ width: tableScrollWidth, height: 1 }} />
-            </div>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -503,7 +493,28 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
           })}
         </div>
       )}
-      
+
+      {/* Mirrored horizontal scrollbar for the table above, kept in sync via
+          handleTableScroll/handleBottomScroll. Deliberately a sibling here,
+          not nested inside the table's own overflow-hidden card — that
+          would clip position: sticky to just that card's height, which for
+          a short (e.g. 10-row) table meant it never looked "stuck" at all,
+          just redundant right under the table's native scrollbar (now
+          hidden via .no-scrollbar). As a sibling with no clipping ancestor
+          between it and the page's normal scroll flow, it stays pinned to
+          the bottom of the viewport for as long as the page keeps
+          scrolling, not just while the table box itself is in view. */}
+      {viewMode === 'table' && tableScrollWidth > 0 && (
+        <div
+          ref={bottomScrollRef}
+          onScroll={handleBottomScroll}
+          className="sticky bottom-0 overflow-x-auto overflow-y-hidden bg-white border border-gray-200 rounded-lg shadow-sm"
+          style={{ height: 14 }}
+        >
+          <div style={{ width: tableScrollWidth, height: 1 }} />
+        </div>
+      )}
+
       {/* View Risk Modal */}
       {selectedRisk && (
         <Modal isOpen={viewModalOpen} onClose={handleCloseViewModal} title="Risk Details" size="2xl" showCloseButton>
