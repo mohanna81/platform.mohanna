@@ -103,6 +103,10 @@ export interface Risk {
   closingComment?: string;
   mitigationSuccess?: string | number;
   lastEditedBy?: User;
+  // The organization a Facilitator has designated as this risk's owner --
+  // independent of createdBy and of orgRoles (the orgs with mitigation
+  // measures). Null/undefined means no owner has been assigned.
+  ownerOrganization?: { _id: string; id?: string; name: string } | null;
   __v?: number;
 }
 

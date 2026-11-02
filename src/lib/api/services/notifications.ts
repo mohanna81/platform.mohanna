@@ -10,7 +10,9 @@ export type NotificationType =
   | 'action_item_comment'
   | 'meeting_minutes'
   | 'mitigation_status_change'
-  | 'new_mitigation_measure';
+  | 'new_mitigation_measure'
+  | 'risk_owner_assigned'
+  | 'risk_triggered';
 
 export interface AppNotification {
   _id: string;

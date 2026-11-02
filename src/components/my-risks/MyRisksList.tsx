@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { risksService, Risk } from '@/lib/api/services/risks';
 import RiskDetailsDrawer from './RiskDetailsDrawer';
 import NewRiskModal from './NewRiskModal';
@@ -7,6 +7,8 @@ import { showToast } from '@/lib/utils/toast';
 import RotatingMessageLoader from '@/components/common/RotatingMessageLoader';
 import RiskAuditModal from '@/components/common/RiskAuditModal';
 import { useAuth } from '@/lib/auth/AuthContext';
+
+const getOrgId = (org?: { _id?: string; id?: string } | null) => org?._id || org?.id;
 
 const getConsortiumNames = (consortium: unknown) => {
   if (!Array.isArray(consortium)) return '';
@@ -32,8 +34,17 @@ const DetailRow = ({ label, value }: { label: string; value?: string }) =>
   ) : null;
 
 // ── Risk card ─────────────────────────────────────────────────────────────────
-const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () => void; userRole?: string }> = ({ risk, onViewDetails, onEdit, userRole }) => {
+const RiskCard: React.FC<{
+  risk: Risk;
+  onViewDetails: () => void;
+  onEdit?: () => void;
+  userRole?: string;
+  isOwned?: boolean;
+  isTarget?: boolean;
+  onToggleTrigger?: (riskId: string, isCurrentlyTriggered: boolean) => void;
+}> = ({ risk, onViewDetails, onEdit, userRole, isOwned, isTarget, onToggleTrigger }) => {
   const [auditOpen, setAuditOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const styles = statusStyle[risk.status] || statusStyle.Draft;
   // Organization Users can only edit a risk while it's still a Draft —
   // once submitted (Pending/Approved/Rejected/Closed) it's out of their
@@ -42,10 +53,23 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
     (userRole === 'Organization User' && risk.status === 'Draft') ||
     userRole === 'Facilitator'
   );
+  const isTriggered = risk.triggerStatus === 'Triggered';
+  // Owning-org Organization Users can trigger/un-trigger an Approved risk
+  // even though they can no longer edit its content once it leaves Draft.
+  const canTrigger = onToggleTrigger && userRole === 'Organization User' && isOwned && risk.status === 'Approved';
+
+  useEffect(() => {
+    if (isTarget && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [isTarget]);
 
   return (
     <>
-      <div className={`bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow mb-4 overflow-hidden ${styles.card}`}>
+      <div
+        ref={cardRef}
+        className={`bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow mb-4 overflow-hidden ${styles.card} ${isTarget ? 'ring-2 ring-[#2a9d8f]/40' : ''}`}
+      >
 
         {/* ── Card header ── */}
         <div className="px-6 pt-5 pb-4 border-b border-gray-100">
@@ -67,6 +91,11 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
               {risk.consortium && Array.isArray(risk.consortium) && risk.consortium.length > 0 && (
                 <span className="text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-100 px-2.5 py-0.5 rounded-full">
                   {getConsortiumNames(risk.consortium)}
+                </span>
+              )}
+              {risk.ownerOrganization?.name && (
+                <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full">
+                  Owner: {risk.ownerOrganization.name}
                 </span>
               )}
             </div>
@@ -142,6 +171,19 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
               {risk.status === 'Rejected' ? 'Edit & Re-submit' : 'Edit'}
             </button>
           )}
+          {canTrigger && (
+            <button
+              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                isTriggered ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' : 'bg-red-500 hover:bg-red-600 text-white'
+              }`}
+              onClick={() => onToggleTrigger!(risk._id, isTriggered)}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              {isTriggered ? 'Mark Not Triggered' : 'Mark Triggered'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -150,7 +192,7 @@ const RiskCard: React.FC<{ risk: Risk; onViewDetails: () => void; onEdit?: () =>
   );
 };
 
-const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refreshKey?: number }) => {
+const MyRisksList = ({ statusFilter, refreshKey, targetRiskId }: { statusFilter: string; refreshKey?: number; targetRiskId?: string | null }) => {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loadingState, setLoadingState] = useState({
     isLoading: true,
@@ -166,6 +208,11 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
   const { user } = useAuth();
   const isOrgUser = user?.role === 'Organization User';
 
+  const isOwnedByUser = useCallback((risk: Risk) => {
+    const ownerId = getOrgId(risk.ownerOrganization);
+    return !!ownerId && ownerId === user?.organizationId;
+  }, [user?.organizationId]);
+
   const filterRisks = useCallback((risks: Risk[]) => {
     // Apply status filter
     if (statusFilter === 'All Risks') return risks;
@@ -173,8 +220,9 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
     if (statusFilter === 'Under Review') return risks.filter(r => r.status === 'Pending');
     if (statusFilter === 'Rejected') return risks.filter(r => r.status === 'Rejected');
     if (statusFilter === 'Shared') return risks.filter(r => r.status === 'Approved');
+    if (statusFilter === 'Owned') return risks.filter(isOwnedByUser);
     return risks;
-  }, [statusFilter]);
+  }, [statusFilter, isOwnedByUser]);
 
   const refreshRisks = useCallback(async () => {
     setLoadingState({
@@ -236,6 +284,22 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
     }
   };
 
+  const handleToggleTrigger = async (riskId: string, isCurrentlyTriggered: boolean) => {
+    const newStatus = isCurrentlyTriggered ? 'Not Triggered' : 'Triggered';
+    try {
+      const response = await risksService.updateRisk(riskId, { triggerStatus: newStatus } as unknown as Partial<Risk>);
+      if (!response.success) {
+        showToast.error(response.error || 'Failed to update trigger status');
+        return;
+      }
+      showToast.success(`Risk marked as ${newStatus.toLowerCase()}`);
+      refreshRisks();
+    } catch (error) {
+      console.error('Error toggling trigger status:', error);
+      showToast.error('Failed to update trigger status');
+    }
+  };
+
   const handleRetry = () => {
     refreshRisks();
   };
@@ -294,6 +358,9 @@ const MyRisksList = ({ statusFilter, refreshKey }: { statusFilter: string; refre
             }}
             onEdit={() => handleEditRisk(risk)}
             userRole={user?.role}
+            isOwned={isOwnedByUser(risk)}
+            isTarget={!!targetRiskId && targetRiskId === risk._id}
+            onToggleTrigger={handleToggleTrigger}
           />
         ))
       )}

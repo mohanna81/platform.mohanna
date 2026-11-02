@@ -103,6 +103,9 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   const [consortiumOrganizations, setConsortiumOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [riskStatus, setRiskStatus] = useState<string>('');
+  // Facilitator-only: which organization (from this risk's consortium) owns
+  // it. Independent of orgRoles/consortium selection above.
+  const [ownerOrganizationId, setOwnerOrganizationId] = useState<string>('');
   const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
   const [savingTracking, setSavingTracking] = useState(false);
   const hasFetchedData = useRef(false);
@@ -319,6 +322,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
 
         isInitialConsortiumSet.current = true;
         setRiskStatus(risk.status || '');
+        setOwnerOrganizationId(risk.ownerOrganization?._id || risk.ownerOrganization?.id || '');
         setForm({
           title: risk.title || '',
           category: risk.category || '',
@@ -550,6 +554,9 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
         severity: form.severity,
         consortium: form.consortium,
         ...(newStatus ? { status: newStatus } : {}),
+        // Backend rejects this field outright for any non-Facilitator/Admin
+        // role, so it's only ever included for the roles allowed to set it.
+        ...(isFacilitator ? { ownerOrganization: ownerOrganizationId } : {}),
       } as unknown as Partial<ExtendedRisk>);
 
       if (!response.success) {
@@ -741,6 +748,23 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
 
           {/* Organization Roles Section */}
           <div className="space-y-4">
+            {isFacilitator && (
+              <div className="pb-2">
+                <Dropdown
+                  label="Owner Organization"
+                  options={[
+                    { value: '', label: 'No owner assigned' },
+                    ...consortiumOrganizations.map((org) => ({ value: org._id || org.id || '', label: org.name })),
+                  ]}
+                  value={ownerOrganizationId}
+                  onChange={setOwnerOrganizationId}
+                  fullWidth
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The owning organization&apos;s users can see this risk under &quot;Owned&quot; and trigger it once it&apos;s Approved.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between border-b border-gray-200 pb-2">
               <h3 className="text-lg font-semibold text-gray-900">Organization Roles</h3>
               {riskStatus === 'Approved' && (

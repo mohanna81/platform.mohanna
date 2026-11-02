@@ -1,7 +1,7 @@
 "use client";
 
 import MyRisksHeader from '@/components/my-risks/MyRisksHeader';
-import MyRisksTabs, { MITIGATION_TAB } from '@/components/my-risks/MyRisksTabs';
+import MyRisksTabs, { MITIGATION_TAB, OWNED_TAB } from '@/components/my-risks/MyRisksTabs';
 import MyRisksList from '@/components/my-risks/MyRisksList';
 import MyMitigationsTab from '@/components/my-risks/MyMitigationsTab';
 import NewRiskModal from '@/components/my-risks/NewRiskModal';
@@ -25,6 +25,8 @@ export default function MyRisksPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'mitigations') {
       setActiveTab(MITIGATION_TAB);
+    } else if (params.get('tab') === 'owned') {
+      setActiveTab(OWNED_TAB);
     }
     const riskId = params.get('riskId');
     if (riskId) setTargetRiskId(riskId);
@@ -47,11 +49,12 @@ export default function MyRisksPage() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             showMitigationsTab={isOrgUser || isFacilitator}
+            showOwnedTab={isOrgUser}
           />
           {activeTab === MITIGATION_TAB ? (
             <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} />
           ) : (
-            <MyRisksList statusFilter={activeTab} refreshKey={refreshKey} />
+            <MyRisksList statusFilter={activeTab} refreshKey={refreshKey} targetRiskId={targetRiskId} />
           )}
           <NewRiskModal isOpen={showNewRiskModal} onClose={handleCloseNewRisk} />
         </div>
