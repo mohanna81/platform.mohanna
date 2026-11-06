@@ -15,6 +15,7 @@ interface EmailPreferences {
   newMeeting: boolean;
   newActionItem: boolean;
   actionItemComplete: boolean;
+  weeklyUpdate: boolean;
 }
 
 const DEFAULT_PREFS: EmailPreferences = {
@@ -24,9 +25,10 @@ const DEFAULT_PREFS: EmailPreferences = {
   newMeeting: true,
   newActionItem: true,
   actionItemComplete: true,
+  weeklyUpdate: true,
 };
 
-// The backend stores these as 6 flat boolean columns, not a nested object --
+// The backend stores these as flat boolean columns, not a nested object --
 // this maps the raw user record's field names back to the short keys this
 // page uses everywhere else.
 const EMAIL_PREF_FLAT_FIELD_MAP: Record<keyof EmailPreferences, string> = {
@@ -36,6 +38,7 @@ const EMAIL_PREF_FLAT_FIELD_MAP: Record<keyof EmailPreferences, string> = {
   newMeeting: "emailPrefNewMeeting",
   newActionItem: "emailPrefNewActionItem",
   actionItemComplete: "emailPrefActionItemComplete",
+  weeklyUpdate: "emailPrefWeeklyUpdate",
 };
 
 const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: string; icon: React.ReactNode }[] = [
@@ -107,6 +110,18 @@ const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: st
       <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-50">
         <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    ),
+  },
+  {
+    key: "weeklyUpdate",
+    label: "Weekly summary",
+    description: "A weekly digest of overdue action items, triggered risks, and platform activity",
+    icon: (
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50">
+        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </span>
     ),
