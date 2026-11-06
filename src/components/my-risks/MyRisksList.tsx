@@ -261,8 +261,11 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId, initialOwnedFilte
     else if (statusFilter === 'Rejected') filtered = filtered.filter(r => r.status === 'Rejected');
     else if (statusFilter === 'Shared') filtered = filtered.filter(r => r.status === 'Approved');
 
-    // Ownership dropdown applies on top of the status filter above.
-    if (ownershipFilter === 'owned') filtered = filtered.filter(isOwnedByUser);
+    // Ownership dropdown only exists on All Risks/Shared -- don't let a
+    // value picked there silently keep filtering other tabs that have no
+    // visible control to explain why.
+    const showOwnershipFilter = statusFilter === 'All Risks' || statusFilter === 'Shared';
+    if (showOwnershipFilter && ownershipFilter === 'owned') filtered = filtered.filter(isOwnedByUser);
 
     return filtered;
   }, [statusFilter, ownershipFilter, isOwnedByUser]);
@@ -386,7 +389,7 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId, initialOwnedFilte
 
   return (
     <div>
-      {isOrgUser && (
+      {isOrgUser && (statusFilter === 'All Risks' || statusFilter === 'Shared') && (
         <div className="mb-4 max-w-xs">
           <Dropdown
             label="Ownership"
