@@ -122,6 +122,31 @@ export interface GetRiskResponse {
   data: Risk;
 }
 
+export type RiskAuditAction =
+  | 'Edited'
+  | 'MitigationUpdated'
+  | 'Approved'
+  | 'Rejected'
+  | 'Closed'
+  | 'Triggered'
+  | 'Deactivated';
+
+export interface RiskAuditLogEntry {
+  _id: string;
+  action: RiskAuditAction;
+  fromValue?: string | null;
+  toValue?: string | null;
+  actor?: { _id: string; name?: string; email?: string } | null;
+  organization?: { _id: string; name?: string } | null;
+  measureIndex?: number | null;
+  createdAt: string;
+}
+
+export interface GetRiskAuditLogResponse {
+  success: boolean;
+  data: RiskAuditLogEntry[];
+}
+
 export const risksService = {
   async createRisk(riskData: CreateRiskRequest) {
     return apiClient.post<CreateRiskResponse>(
@@ -137,6 +162,9 @@ export const risksService = {
   },
   async getRiskById(id: string) {
     return apiClient.get<GetRiskResponse>(`/risk/${id}`);
+  },
+  async getRiskAuditLog(id: string) {
+    return apiClient.get<GetRiskAuditLogResponse>(`/risk/${id}/audit`);
   },
   async updateRisk(id: string, data: Partial<Risk>) {
     return apiClient.patch<CreateRiskResponse>(`/risk/${id}`, data);
