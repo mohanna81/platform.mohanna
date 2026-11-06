@@ -26,6 +26,18 @@ const DEFAULT_PREFS: EmailPreferences = {
   actionItemComplete: true,
 };
 
+// The backend stores these as 6 flat boolean columns, not a nested object --
+// this maps the raw user record's field names back to the short keys this
+// page uses everywhere else.
+const EMAIL_PREF_FLAT_FIELD_MAP: Record<keyof EmailPreferences, string> = {
+  riskApproved: "emailPrefRiskApproved",
+  riskRejected: "emailPrefRiskRejected",
+  riskClosed: "emailPrefRiskClosed",
+  newMeeting: "emailPrefNewMeeting",
+  newActionItem: "emailPrefNewActionItem",
+  actionItemComplete: "emailPrefActionItemComplete",
+};
+
 const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: string; icon: React.ReactNode }[] = [
   {
     key: "riskApproved",
@@ -253,10 +265,27 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => {
-    if ((user as any)?.emailPreferences) {
-      setEmailPrefs({ ...DEFAULT_PREFS, ...(user as any).emailPreferences });
-    }
-  }, [user]);
+    // user (from AuthContext) is the lightweight login payload and never
+    // carries these -- the backend stores them as flat columns on the full
+    // user record, which this page doesn't otherwise fetch, so without this
+    // the toggles always silently showed DEFAULT_PREFS (all on) regardless
+    // of what was actually saved.
+    if (!user?.id) return;
+    userService.getUserById(user.id)
+      .then((res) => {
+        const record = (res as { data?: { user?: Record<string, unknown> } })?.data?.user;
+        if (!record) return;
+        const loaded = { ...DEFAULT_PREFS };
+        for (const key of Object.keys(EMAIL_PREF_FLAT_FIELD_MAP) as (keyof EmailPreferences)[]) {
+          const value = record[EMAIL_PREF_FLAT_FIELD_MAP[key]];
+          if (typeof value === "boolean") loaded[key] = value;
+        }
+        setEmailPrefs(loaded);
+      })
+      .catch(() => {
+        // Keep DEFAULT_PREFS on failure -- better than an empty/broken panel.
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.name) setNameValue(user.name);
@@ -318,7 +347,15 @@ export default function SettingsPage() {
     if (!user?.id) return;
     setSavingPrefs(true);
     try {
-      await userService.updateUser(user.id, { emailPreferences: emailPrefs } as any);
+      // apiClient never rejects on an HTTP error -- it resolves to
+      // {success: false, error} -- so without this check a failed save
+      // (e.g. the backend rejecting an unrecognized field) still showed
+      // "preferences saved" with nothing actually persisted.
+      const response = await userService.updateUser(user.id, { emailPreferences: emailPrefs } as any);
+      if (!response.success) {
+        showToast.error((response as { error?: string }).error || "Failed to save preferences.");
+        return;
+      }
       showToast.success("Notification preferences saved.");
     } catch {
       showToast.error("Failed to save preferences.");
