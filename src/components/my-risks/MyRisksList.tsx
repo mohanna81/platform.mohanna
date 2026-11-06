@@ -99,6 +99,14 @@ const RiskCard: React.FC<{
                   Owner: {risk.ownerOrganization.name}
                 </span>
               )}
+              {isTriggered && (
+                <span className="flex items-center gap-1 text-[11px] font-semibold bg-red-100 text-red-800 border border-red-200 px-2.5 py-0.5 rounded-full">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  TRIGGERED
+                </span>
+              )}
             </div>
           </div>
 
@@ -127,6 +135,20 @@ const RiskCard: React.FC<{
           <DetailRow label="Trigger Indicator" value={risk.triggerIndicator} />
           {(risk as unknown as { mitigationMeasures?: string }).mitigationMeasures && (
             <DetailRow label="Mitigation Measures" value={(risk as unknown as { mitigationMeasures?: string }).mitigationMeasures} />
+          )}
+
+          {/* Triggered alert -- same wording/style as the Facilitator's Risk
+              Review card */}
+          {isTriggered && (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <svg className="w-6 h-6 text-red-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-semibold text-red-900 mb-0.5">Risk Triggered</p>
+                <p className="text-sm text-red-800">This risk has been triggered and requires immediate attention!</p>
+              </div>
+            </div>
           )}
 
           {/* Rejection reason banner */}
@@ -173,16 +195,26 @@ const RiskCard: React.FC<{
             </button>
           )}
           {canTrigger && (
+            // Same wording/styling as the Facilitator's Activate/Deactivate
+            // button on the Risk Review card.
             <button
               className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                isTriggered ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' : 'bg-red-500 hover:bg-red-600 text-white'
+                isTriggered
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'border border-blue-200 text-blue-700 hover:bg-blue-50'
               }`}
               onClick={() => onToggleTrigger!(risk._id, isTriggered)}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {isTriggered ? 'Mark Not Triggered' : 'Mark Triggered'}
+              {isTriggered ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              {isTriggered ? 'Deactivate' : 'Activate'}
             </button>
           )}
         </div>
@@ -303,7 +335,7 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId, initialOwnedFilte
         showToast.error(response.error || 'Failed to update trigger status');
         return;
       }
-      showToast.success(`Risk marked as ${newStatus.toLowerCase()}`);
+      showToast.success(`Risk ${newStatus.toLowerCase()} successfully`);
       refreshRisks();
     } catch (error) {
       console.error('Error toggling trigger status:', error);
