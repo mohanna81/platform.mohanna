@@ -306,7 +306,11 @@ const ActionItemCard: React.FC<ActionItemCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto transition-shadow ${status === 'At Risk' ? 'border-orange-400' : status === 'Complete' ? 'border-green-400' : status === 'In Progress' ? 'border-blue-400' : ''} ${isTarget ? 'ring-2 ring-[#2a9d8f]/40' : ''}`}
+      className={`bg-white border border-[#e5eaf1] rounded-xl p-4 sm:p-6 md:p-8 mt-4 relative shadow-sm overflow-x-auto transition-shadow ${
+        isTarget
+          ? 'border-green-400 ring-2 ring-green-300'
+          : status === 'At Risk' ? 'border-orange-400' : status === 'Complete' ? 'border-green-400' : status === 'In Progress' ? 'border-blue-400' : ''
+      }`}
     >
       <div className="flex items-center gap-3 flex-wrap mb-2 justify-between">
         <div className="text-xl sm:text-2xl font-bold text-[#0b1320] flex items-center gap-2">
