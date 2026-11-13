@@ -124,6 +124,7 @@ export interface GetRiskResponse {
 
 export type RiskAuditAction =
   | 'Edited'
+  | 'MitigationAssigned'
   | 'MitigationUpdated'
   | 'Approved'
   | 'Rejected'

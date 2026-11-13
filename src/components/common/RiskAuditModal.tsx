@@ -27,6 +27,14 @@ const ACTION_STYLE: Record<RiskAuditAction, { label: string; bg: string; iconBg:
     text: 'text-amber-700',
     icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />,
   },
+  MitigationAssigned: {
+    label: 'Mitigation Assigned',
+    bg: 'bg-indigo-50 border-indigo-100',
+    iconBg: 'bg-indigo-100',
+    iconColor: 'text-indigo-600',
+    text: 'text-indigo-700',
+    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />,
+  },
   MitigationUpdated: {
     label: 'Mitigation Updated',
     bg: 'bg-teal-50 border-teal-100',
@@ -92,6 +100,9 @@ const AuditEntryCard: React.FC<{ entry: RiskAuditLogEntry }> = ({ entry }) => {
           <p className="text-sm text-gray-800 font-medium">
             {entry.fromValue || 'Not Started'} → {entry.toValue}
           </p>
+        )}
+        {entry.action === 'MitigationAssigned' && entry.toValue && (
+          <p className="text-sm text-gray-800 font-medium">{entry.toValue}</p>
         )}
         {entry.organization?.name && (
           <p className="text-xs text-gray-500">{entry.organization.name}</p>
