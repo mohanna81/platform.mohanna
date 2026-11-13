@@ -180,6 +180,11 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
       if (!item.title.trim()) return setErrors({ actionItems: 'All action items must have a title.' });
       if (!item.description.trim() || item.assignedTo.length === 0) return setErrors({ actionItems: 'All action items must have a description and at least one assignee.' });
       if (!item.deadline) return setErrors({ actionItems: 'All action items must have a deadline.' });
+      // Any date after the meeting is valid -- enforced here (not just via
+      // the input's native min=) so re-saving unrelated edits never gets
+      // blocked by the browser's own date-validation popup forcing the
+      // deadline field to be touched first.
+      if (item.deadline < minDeadline) return setErrors({ actionItems: 'Action item deadlines must be on or after the meeting date.' });
     }
     setErrors(null);
     return true;
@@ -200,7 +205,13 @@ const CompleteMeetingModal: React.FC<CompleteMeetingModalProps> = ({
 
   return (
     <Modal isOpen={open} onClose={onClose} title="Complete Meeting" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6 text-[#0b1320] max-h-[70vh] overflow-y-auto pr-2">
+      {/* noValidate: the deadline <input type="date" min={minDeadline}> below
+          still restricts which dates are pickable, but without this the
+          browser's own validation popup could block saving an otherwise
+          unrelated edit (e.g. just the minutes text) whenever it decided an
+          already-set deadline needed to be re-touched first -- our own
+          validate() above is now the single source of truth for this. */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-6 text-[#0b1320] max-h-[70vh] overflow-y-auto pr-2">
         <div>
           <label className="block font-semibold mb-1" htmlFor="minutes">Minutes <span className="text-red-500">*</span></label>
           <FormattedTextArea
