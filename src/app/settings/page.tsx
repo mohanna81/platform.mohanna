@@ -16,16 +16,18 @@ interface EmailPreferences {
   newActionItem: boolean;
   actionItemComplete: boolean;
   weeklyUpdate: boolean;
+  dailyDigest: boolean;
 }
 
 const DEFAULT_PREFS: EmailPreferences = {
-  riskApproved: true,
-  riskRejected: true,
-  riskClosed: true,
-  newMeeting: true,
-  newActionItem: true,
-  actionItemComplete: true,
+  riskApproved: false,
+  riskRejected: false,
+  riskClosed: false,
+  newMeeting: false,
+  newActionItem: false,
+  actionItemComplete: false,
   weeklyUpdate: true,
+  dailyDigest: true,
 };
 
 // The backend stores these as flat boolean columns, not a nested object --
@@ -39,6 +41,7 @@ const EMAIL_PREF_FLAT_FIELD_MAP: Record<keyof EmailPreferences, string> = {
   newActionItem: "emailPrefNewActionItem",
   actionItemComplete: "emailPrefActionItemComplete",
   weeklyUpdate: "emailPrefWeeklyUpdate",
+  dailyDigest: "emailPrefDailyDigest",
 };
 
 const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: string; icon: React.ReactNode }[] = [
@@ -110,6 +113,18 @@ const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: st
       <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-50">
         <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    ),
+  },
+  {
+    key: "dailyDigest",
+    label: "Daily digest",
+    description: "A daily summary of overdue action items, triggered risks, and platform activity",
+    icon: (
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50">
+        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </span>
     ),
