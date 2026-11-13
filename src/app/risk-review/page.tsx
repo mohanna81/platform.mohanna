@@ -527,7 +527,8 @@ export default function RiskReviewPage() {
       .filter((name): name is string => !!name);
     if (orgRoleNames.length > 0) return orgRoleNames.join(', ');
 
-    if (risk.ownerOrganization?.name) return risk.ownerOrganization.name;
+    const ownerNames = (risk.ownerOrganizations || []).map((o) => o.name).filter(Boolean);
+    if (ownerNames.length > 0) return ownerNames.join(', ');
 
     return 'No Organization';
   };

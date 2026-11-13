@@ -103,9 +103,9 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   const [consortiumOrganizations, setConsortiumOrganizations] = useState<Organization[]>([]);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
   const [riskStatus, setRiskStatus] = useState<string>('');
-  // Facilitator-only: which organization (from this risk's consortium) owns
-  // it. Independent of orgRoles/consortium selection above.
-  const [ownerOrganizationId, setOwnerOrganizationId] = useState<string>('');
+  // Facilitator-only: which organization(s) (from this risk's consortium)
+  // own it. Independent of orgRoles/consortium selection above.
+  const [ownerOrganizationIds, setOwnerOrganizationIds] = useState<string[]>([]);
   const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
   const [savingTracking, setSavingTracking] = useState(false);
   const hasFetchedData = useRef(false);
@@ -322,7 +322,7 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
 
         isInitialConsortiumSet.current = true;
         setRiskStatus(risk.status || '');
-        setOwnerOrganizationId(risk.ownerOrganization?._id || risk.ownerOrganization?.id || '');
+        setOwnerOrganizationIds((risk.ownerOrganizations || []).map((o) => o._id || o.id || '').filter(Boolean));
         setForm({
           title: risk.title || '',
           category: risk.category || '',
@@ -556,7 +556,8 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
         ...(newStatus ? { status: newStatus } : {}),
         // Backend rejects this field outright for any non-Facilitator/Admin
         // role, so it's only ever included for the roles allowed to set it.
-        ...(isFacilitator ? { ownerOrganization: ownerOrganizationId } : {}),
+        // Accepts an array now that a risk can have multiple owners.
+        ...(isFacilitator ? { ownerOrganization: ownerOrganizationIds } : {}),
       } as unknown as Partial<ExtendedRisk>);
 
       if (!response.success) {
@@ -750,18 +751,43 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
           <div className="space-y-4">
             {isFacilitator && (
               <div className="pb-2">
+                <label className="block text-sm font-semibold text-gray-800 mb-1">Owner Organization(s)</label>
                 <Dropdown
-                  label="Owner Organization"
-                  options={[
-                    { value: '', label: 'No owner assigned' },
-                    ...consortiumOrganizations.map((org) => ({ value: org._id || org.id || '', label: org.name })),
-                  ]}
-                  value={ownerOrganizationId}
-                  onChange={setOwnerOrganizationId}
+                  placeholder={
+                    consortiumOrganizations.length === 0
+                      ? 'No organizations available'
+                      : 'Select an organization to add as owner'
+                  }
+                  options={consortiumOrganizations
+                    .filter((org) => !ownerOrganizationIds.includes(org._id || org.id || ''))
+                    .map((org) => ({ value: org._id || org.id || '', label: org.name }))}
+                  value=""
+                  onChange={(v) => {
+                    if (!v) return;
+                    setOwnerOrganizationIds((prev) => [...prev, v]);
+                  }}
                   fullWidth
+                  disabled={consortiumOrganizations.length === 0}
                 />
+                {ownerOrganizationIds.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {ownerOrganizationIds.map((orgId) => {
+                      const org = consortiumOrganizations.find((o) => (o._id || o.id) === orgId);
+                      return (
+                        <div key={orgId} className="flex items-center justify-between bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm">
+                          <span className="text-gray-800 font-medium">{org?.name || orgId}</span>
+                          <button
+                            type="button"
+                            onClick={() => setOwnerOrganizationIds((prev) => prev.filter((id) => id !== orgId))}
+                            className="text-red-500 hover:text-red-700 font-bold ml-2 text-base leading-none"
+                          >×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
-                  The owning organization&apos;s users can see this risk under &quot;Owned&quot; and trigger it once it&apos;s Approved.
+                  Owning organizations&apos; users can see this risk under &quot;Owned&quot; and trigger it once it&apos;s Approved.
                 </p>
               </div>
             )}

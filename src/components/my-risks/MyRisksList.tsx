@@ -94,9 +94,9 @@ const RiskCard: React.FC<{
                   {getConsortiumNames(risk.consortium)}
                 </span>
               )}
-              {risk.ownerOrganization?.name && (
+              {risk.ownerOrganizations && risk.ownerOrganizations.length > 0 && (
                 <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full">
-                  Owner: {risk.ownerOrganization.name}
+                  Owner: {risk.ownerOrganizations.map((o) => o.name).filter(Boolean).join(', ')}
                 </span>
               )}
               {isTriggered && (
@@ -249,8 +249,8 @@ const MyRisksList = ({ statusFilter, refreshKey, targetRiskId, initialOwnedFilte
   }, [initialOwnedFilter]);
 
   const isOwnedByUser = useCallback((risk: Risk) => {
-    const ownerId = getOrgId(risk.ownerOrganization);
-    return !!ownerId && ownerId === user?.organizationId;
+    if (!user?.organizationId) return false;
+    return (risk.ownerOrganizations || []).some((o) => getOrgId(o) === user.organizationId);
   }, [user?.organizationId]);
 
   const filterRisks = useCallback((risks: Risk[]) => {
