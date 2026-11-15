@@ -24,7 +24,10 @@ interface EditActionModalProps {
   orgOptions: { value: string; label: string }[];
   userOptions: { value: string; label: string }[]; // Add user options
   statusOptions: { value: string; label: string }[];
-  onConsortiumChange?: (consortiumId: string) => void;
+  // Called whenever the consortium or the assigned organization changes,
+  // with both current values, so the parent can refetch the user list
+  // scoped to whichever of them narrows it furthest.
+  onFilterChange?: (consortiumId: string, organizationId: string) => void;
 }
 
 const EditActionModal: React.FC<EditActionModalProps> = ({
@@ -36,7 +39,7 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
   orgOptions,
   userOptions,
   statusOptions,
-  onConsortiumChange,
+  onFilterChange,
 }) => {
   const [form, setForm] = React.useState<EditActionFormData>(initialData);
 
@@ -68,9 +71,13 @@ const EditActionModal: React.FC<EditActionModalProps> = ({
       return updated;
     });
 
-    // If consortium changes, notify parent to fetch related users
-    if (field === 'consortium' && onConsortiumChange) {
-      onConsortiumChange(value);
+    // If consortium or the assigned organization changes, notify parent to
+    // refetch the user list scoped to whichever narrows it furthest.
+    if (field === 'consortium') {
+      onFilterChange?.(value, form.assignTo);
+    }
+    if (field === 'assignTo') {
+      onFilterChange?.(form.consortium, value);
     }
   };
 

@@ -62,7 +62,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
   const [allUsers, setAllUsers] = useState<User[]>([]); // Store all users for filtering
   const [availableRisks, setAvailableRisks] = useState<Risk[]>([]);
 
-  // Fetch approved risks when consortium changes
+  // Fetch approved risks when consortium or selected organizations change
   useEffect(() => {
     if (!form.consortium) { setAvailableRisks([]); return; }
     risksService.getRisks().then(res => {
@@ -78,12 +78,30 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
                 return false;
               })
             : false;
-          return isApproved && inConsortium;
+          // Once an organization is selected, narrow risks down further to
+          // the ones that organization is actually related to.
+          const inOrg = form.organization.length === 0 || (Array.isArray(r.organization) && r.organization.some((o: unknown) => {
+            const id = typeof o === 'string' ? o : (o as { _id?: string; id?: string })?._id || (o as { _id?: string; id?: string })?.id;
+            return !!id && form.organization.includes(id);
+          }));
+          return isApproved && inConsortium && inOrg;
         });
         setAvailableRisks(approved);
+
+        // Drop any previously selected risks that no longer qualify now that
+        // the list has actually loaded (tied to the fetch resolving, not to
+        // a reactive effect, so this never fires against a transient empty
+        // list while the fetch is still in flight -- which would otherwise
+        // wipe out an edit-mode meeting's existing risks before they load).
+        const validIds = new Set(approved.map((r: Risk) => r._id));
+        setForm(prev => {
+          const pruned = (prev.risks || []).filter(id => validIds.has(id));
+          if (pruned.length === (prev.risks || []).length) return prev;
+          return { ...prev, risks: pruned };
+        });
       }
     }).catch(() => setAvailableRisks([]));
-  }, [form.consortium]);
+  }, [form.consortium, form.organization]);
 
   // Filter organizations to only those belonging to the selected consortium
   const filteredOrganizations = useMemo(() => {
@@ -164,24 +182,43 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
     }
   }, [open, currentUser?.id, initialValues, editMode]);
 
-  // Separate useEffect to handle user filtering when consortium changes or users are loaded
+  // Separate useEffect to handle user filtering when consortium/organization changes or users are loaded
   useEffect(() => {
-    if (allUsers.length > 0) {
-      if (form.consortium) {
-        const filteredUsers = allUsers.filter(user => 
-          user.consortia.includes(form.consortium)
-        );
-        setUsers(filteredUsers);
-      } else {
-        // When no consortium is selected, show users from all available consortia in dropdown
-        const availableConsortiumIds = consortia.map(c => c.id);
-        const filteredUsers = allUsers.filter(user => 
-          user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
-        );
-        setUsers(filteredUsers);
-      }
+    if (allUsers.length === 0) return;
+    let filteredUsers: User[];
+    if (form.consortium) {
+      filteredUsers = allUsers.filter(user => {
+        if (!user.consortia.includes(form.consortium)) return false;
+        // Facilitators (and other non-org-scoped roles) always show once
+        // in the consortium; only Organization User accounts are narrowed
+        // down to the selected organization(s).
+        if (form.organization.length > 0 && user.role === 'Organization User') {
+          return user.organizations.some(orgId => form.organization.includes(orgId));
+        }
+        return true;
+      });
+    } else {
+      // When no consortium is selected, show users from all available consortia in dropdown
+      const availableConsortiumIds = consortia.map(c => c.id);
+      filteredUsers = allUsers.filter(user =>
+        user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
+      );
     }
-  }, [form.consortium, allUsers, consortia]);
+    setUsers(filteredUsers);
+
+    // Drop any previously selected attendees who no longer qualify now that
+    // the filtered list has actually been computed (current user is
+    // exempt). Tied to this same effect rather than a separate one keyed on
+    // `users`, so it never runs against the transient empty `users` state
+    // before `allUsers` has loaded -- which would otherwise wipe out an
+    // edit-mode meeting's existing attendees before they load.
+    const validIds = new Set(filteredUsers.map(u => u.id));
+    setForm(prev => {
+      const pruned = prev.attendees.filter(id => id === currentUser?.id || validIds.has(id));
+      if (pruned.length === prev.attendees.length) return prev;
+      return { ...prev, attendees: pruned };
+    });
+  }, [form.consortium, form.organization, allUsers, consortia, currentUser?.id]);
 
   const handleChange = (name: string, value: string) => {
     setForm((prev) => {
@@ -224,39 +261,14 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ open, onClose, onSubm
         }
       }
       
-      // Clear organizations and risks when consortium changes
+      // Clear organizations and risks when consortium changes -- the
+      // reactive effects above re-derive the users/risks lists and prune
+      // stale selections once form.consortium/form.organization settle.
       if (name === "consortium") {
         updatedForm.organization = [];
         updatedForm.risks = [];
       }
 
-      // Filter users when consortium changes
-      if (name === "consortium") {
-        if (value) {
-          const filteredUsers = allUsers.filter(user =>
-            user.consortia.includes(value)
-          );
-          setUsers(filteredUsers);
-
-          // Remove any selected attendees who don't belong to the new consortium,
-          // but always keep the current logged-in user
-          const validIds = new Set(filteredUsers.map(u => u.id));
-          updatedForm.attendees = prev.attendees.filter(
-            id => id === currentUser?.id || validIds.has(id)
-          );
-        } else {
-          // If no consortium selected, show users from all available consortia in dropdown
-          const availableConsortiumIds = consortia.map(c => c.id);
-          const filteredUsers = allUsers.filter(user =>
-            user.consortia.some(consortiumId => availableConsortiumIds.includes(consortiumId))
-          );
-          setUsers(filteredUsers);
-
-          // Keep only current user when consortium is cleared
-          updatedForm.attendees = prev.attendees.filter(id => id === currentUser?.id);
-        }
-      }
-      
       return updatedForm;
     });
   };

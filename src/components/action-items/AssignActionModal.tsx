@@ -26,7 +26,10 @@ interface AssignActionModalProps {
   orgOptions: { value: string; label: string }[];
   rawConsortia?: Consortium[];
   userOptions: { value: string; label: string }[];
-  onConsortiumChange?: (consortiumId: string) => void;
+  // Called whenever the consortium or the assigned organization changes,
+  // with both current values, so the parent can refetch the user list
+  // scoped to whichever of them narrows it furthest.
+  onFilterChange?: (consortiumId: string, organizationId: string) => void;
 }
 
 const AssignActionModal: React.FC<AssignActionModalProps> = ({
@@ -37,7 +40,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
   orgOptions,
   rawConsortia = [],
   userOptions,
-  onConsortiumChange,
+  onFilterChange,
 }) => {
   const [form, setForm] = React.useState<AssignActionFormData>({
     title: '',
@@ -63,7 +66,7 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
     return orgOptions.filter(o => orgIds.has(o.value));
   }, [form.consortium, rawConsortia, orgOptions]);
 
-  // Fetch approved risks when consortium changes
+  // Fetch approved risks when consortium or the assigned organization changes
   React.useEffect(() => {
     if (!form.consortium) { setAvailableRisks([]); return; }
     risksService.getRisks().then(res => {
@@ -77,12 +80,28 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
                 return false;
               })
             : false;
-          return isApproved && inConsortium;
+          // Once an organization is selected, narrow risks down further to
+          // the ones that organization is actually related to.
+          const inOrg = !form.assignTo || (Array.isArray(r.organization) && r.organization.some((o: unknown) => {
+            const id = typeof o === 'string' ? o : (o as { _id?: string; id?: string })?._id || (o as { _id?: string; id?: string })?.id;
+            return id === form.assignTo;
+          }));
+          return isApproved && inConsortium && inOrg;
         });
         setAvailableRisks(approved);
+
+        // Drop any previously selected risks that no longer qualify, tied
+        // to the fetch resolving so it never fires against the transient
+        // empty list while the fetch is still in flight.
+        const validIds = new Set(approved.map((r: Risk) => r._id));
+        setForm(prev => {
+          const pruned = prev.relatedRisks.filter(id => validIds.has(id));
+          if (pruned.length === prev.relatedRisks.length) return prev;
+          return { ...prev, relatedRisks: pruned };
+        });
       }
     }).catch(() => setAvailableRisks([]));
-  }, [form.consortium]);
+  }, [form.consortium, form.assignTo]);
 
   // Reset form to initial state
   const resetForm = () => {
@@ -113,7 +132,15 @@ const AssignActionModal: React.FC<AssignActionModalProps> = ({
     // If consortium changes, clear org, users, risks and notify parent
     if (field === 'consortium') {
       setForm(prev => ({ ...prev, assignTo: '', assignToUsers: [], relatedRisks: [] }));
-      if (onConsortiumChange) onConsortiumChange(value);
+      onFilterChange?.(value, '');
+    }
+
+    // If the assigned organization changes, the previously selected
+    // assignees may no longer belong to it -- clear them and notify the
+    // parent to refetch the user list scoped to the new organization.
+    if (field === 'assignTo') {
+      setForm(prev => ({ ...prev, assignToUsers: [] }));
+      onFilterChange?.(form.consortium, value);
     }
   };
 

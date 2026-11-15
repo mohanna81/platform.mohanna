@@ -316,8 +316,11 @@ export default function ActionItemsPage() {
     { value: 'Complete', label: 'Complete' },
   ];
 
-  // Function to fetch users by consortium
-  const fetchUsersByConsortium = useCallback(async (consortiumId: string) => {
+  // Function to fetch users by consortium, optionally narrowed further by
+  // organization. Facilitators (and other non-org-scoped roles) always show
+  // once in the consortium; only Organization User accounts are narrowed
+  // down to the selected organization.
+  const fetchUsersByConsortium = useCallback(async (consortiumId: string, organizationId: string = '') => {
     if (!consortiumId) {
       setUserOptions([]);
       return;
@@ -326,13 +329,16 @@ export default function ActionItemsPage() {
     try {
       const usersRes = await userService.getUsers();
       if (usersRes.success && Array.isArray(usersRes.data)) {
-        // Filter users who belong to the selected consortium
-        const consortiumUsers = usersRes.data.filter((user: User) => {
-          // Check if user's consortia array includes the selected consortium
-          return user.consortia && Array.isArray(user.consortia) && user.consortia.includes(consortiumId);
+        const filteredUsers = usersRes.data.filter((user: User) => {
+          const inConsortium = user.consortia && Array.isArray(user.consortia) && user.consortia.includes(consortiumId);
+          if (!inConsortium) return false;
+          if (organizationId && user.role === 'Organization User') {
+            return Array.isArray(user.organizations) && user.organizations.includes(organizationId);
+          }
+          return true;
         });
 
-        const filteredUserOptions = consortiumUsers.map((u: User) => ({
+        const filteredUserOptions = filteredUsers.map((u: User) => ({
           value: u.id || u._id,
           label: u.name,
         }));
@@ -425,19 +431,19 @@ export default function ActionItemsPage() {
   }, [user, loadingState.userConsortia]);
 
 
-  // Function to handle consortium change in modals
-  const handleConsortiumChange = (consortiumId: string) => {
+  // Function to handle consortium/organization changes in the assign modal
+  const handleAssignFilterChange = (consortiumId: string, organizationId: string) => {
     if (consortiumId) {
-      fetchUsersByConsortium(consortiumId);
+      fetchUsersByConsortium(consortiumId, organizationId);
     } else {
       clearUserOptions();
     }
   };
 
-  // Function to handle consortium change for edit modal
-  const handleEditConsortiumChange = (consortiumId: string) => {
+  // Function to handle consortium/organization changes in the edit modal
+  const handleEditFilterChange = (consortiumId: string, organizationId: string) => {
     if (consortiumId) {
-      fetchUsersByConsortium(consortiumId);
+      fetchUsersByConsortium(consortiumId, organizationId);
     } else {
       clearUserOptions();
     }
@@ -550,7 +556,7 @@ export default function ActionItemsPage() {
       : getId(item.consortium);
     
     if (itemConsortiumId) {
-      fetchUsersByConsortium(itemConsortiumId);
+      fetchUsersByConsortium(itemConsortiumId, assignToValue);
     }
   };
 
@@ -817,7 +823,7 @@ export default function ActionItemsPage() {
           orgOptions={orgOptions}
           rawConsortia={rawConsortia}
           userOptions={userOptions}
-          onConsortiumChange={handleConsortiumChange}
+          onFilterChange={handleAssignFilterChange}
         />
         <EditActionModal
           isOpen={editModalOpen}
@@ -849,7 +855,7 @@ export default function ActionItemsPage() {
           orgOptions={orgOptions}
           userOptions={userOptions}
           statusOptions={statusOptions}
-          onConsortiumChange={handleEditConsortiumChange}
+          onFilterChange={handleEditFilterChange}
         />
         <Modal isOpen={confirmDeleteOpen} onClose={() => { setConfirmDeleteOpen(false); setItemToDelete(null); }} title="Confirm Delete">
           <div className="py-4 text-black">Are you sure you want to delete this action item?</div>
