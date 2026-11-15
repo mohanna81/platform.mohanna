@@ -65,6 +65,11 @@ export default function RiskReviewPage() {
   const [activeTab, setActiveTab] = useState('Pending Review');
   // Deep-link target from a notification (e.g. "Mitigation Status Updated")
   const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
+  // The specific organization/measure a "Mitigation Status Updated"
+  // notification deep-linked to, so the Edit Risk modal can scroll to and
+  // highlight it directly instead of leaving the Facilitator to find it.
+  const [targetOrgId, setTargetOrgId] = useState<string | null>(null);
+  const [targetMeasureIndex, setTargetMeasureIndex] = useState<number | null>(null);
   const [consortium, setConsortium] = useState(CONSORTIUMS[0].value);
   const [status, setStatus] = useState(STATUSES[0].value);
   const [category, setCategory] = useState(CATEGORIES[0].value);
@@ -271,6 +276,20 @@ export default function RiskReviewPage() {
     if (tab && tabMap[tab]) setActiveTab(tabMap[tab]);
     const riskId = params.get('riskId');
     if (riskId) setTargetRiskId(riskId);
+
+    // A mitigation-status-change notification also carries which
+    // organization/measure changed -- open the risk directly in the Edit
+    // Risk modal and scroll to that measure, matching what an Organization
+    // User sees when they land on their own Mitigations tab, instead of
+    // just highlighting the risk card and leaving it to be found manually.
+    const measure = params.get('measure');
+    const orgId = params.get('org');
+    if (riskId && measure !== null) {
+      setTargetMeasureIndex(Number(measure));
+      setTargetOrgId(orgId);
+      setSelectedRiskId(riskId);
+      setEditModalOpen(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -818,11 +837,15 @@ export default function RiskReviewPage() {
           onClose={() => {
             setEditModalOpen(false);
             setSelectedRiskId('');
+            setTargetOrgId(null);
+            setTargetMeasureIndex(null);
           }}
           onSubmit={() => setEditModalOpen(false)}
           riskId={selectedRiskId}
           onUpdated={() => refetchAllRisks(true)}
           onTrackingUpdated={() => setTrackingRefreshKey(k => k + 1)}
+          focusOrgId={targetOrgId}
+          focusMeasureIndex={targetMeasureIndex}
         />
         <ChangeRiskStatusModal
           isOpen={statusModalOpen}

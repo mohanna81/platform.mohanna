@@ -67,7 +67,7 @@ const SEVERITY_OPTIONS = [
   { value: '5', label: 'Critical: Severe impact; threatens project success' },
 ];
 
-const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackingUpdated }: {
+const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackingUpdated, focusOrgId, focusMeasureIndex }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -78,6 +78,12 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   // modal — whose own MitigationTracker fetched tracking once on mount and
   // has no other way to learn it changed — can refetch to match.
   onTrackingUpdated?: () => void;
+  // Set from a "Mitigation Status Updated" notification's deep-link so this
+  // modal can scroll to and highlight the specific organization/measure
+  // that changed, matching what an Organization User sees on their own
+  // Mitigations tab.
+  focusOrgId?: string | null;
+  focusMeasureIndex?: number | null;
 }) => {
   const { user } = useAuth();
   const [form, setForm] = useState<EditRiskFormData>({
@@ -111,6 +117,17 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   const hasFetchedData = useRef(false);
   const rawConsortiaCache = useRef<Consortium[]>([]);
   const isInitialConsortiumSet = useRef(false);
+  const focusedMeasureRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to and highlight the organization/measure a "Mitigation Status
+  // Updated" notification deep-linked to, once the org roles have loaded.
+  useEffect(() => {
+    if (!isOpen || !focusOrgId || focusMeasureIndex == null) return;
+    const timeout = setTimeout(() => {
+      focusedMeasureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => clearTimeout(timeout);
+  }, [isOpen, focusOrgId, focusMeasureIndex, form.orgRoles]);
 
   // Check if user can delete risks (Admin or Super User)
   const canDelete = user?.role === 'Admin' || user?.role === 'Super_user';
@@ -835,8 +852,13 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
                     </div>
                     {(role.measures.length > 0 ? role.measures : ['']).map((measure, measureIndex) => {
                       const currentStatus = getTrackingStatus(role.orgId, measureIndex);
+                      const isFocused = role.orgId === focusOrgId && measureIndex === focusMeasureIndex;
                       return (
-                        <div key={measureIndex} className="rounded-lg border border-gray-100 bg-white p-3 space-y-2">
+                        <div
+                          key={measureIndex}
+                          ref={isFocused ? focusedMeasureRef : undefined}
+                          className={`rounded-lg border p-3 space-y-2 transition-colors ${isFocused ? 'border-[#2a9d8f] ring-2 ring-[#2a9d8f]/40 bg-[#2a9d8f]/5' : 'border-gray-100 bg-white'}`}
+                        >
                           <div className="flex gap-2 items-start">
                             <span className="inline-flex items-center justify-center w-5 h-5 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0 mt-2">{measureIndex + 1}</span>
                             <textarea
