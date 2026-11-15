@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import ActionItemsTabs from "@/components/action-items/ActionItemsTabs";
 import ActionItemCard from "@/components/action-items/ActionItemCard";
 import ActionItemsHeader from "@/components/action-items/ActionItemsHeader";
@@ -23,7 +24,8 @@ import { fetchOrganizationsByRole, Organization, organizationsService } from '@/
 import type { UpdateActionItemRequest } from '@/lib/api/services/actionitems';
 
 
-export default function ActionItemsPage() {
+function ActionItemsContent() {
+  const searchParams = useSearchParams();
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [loadingState, setLoadingState] = useState({
     actionItems: true,
@@ -39,12 +41,16 @@ export default function ActionItemsPage() {
   // Deep link from a notification (e.g. /action-items?actionItemId=...&openComments=1)
   const [targetActionItemId, setTargetActionItemId] = useState<string | null>(null);
   const [targetOpenComments, setTargetOpenComments] = useState(false);
+  // Reactive to the URL's search params (unlike reading
+  // window.location.search in a mount-only effect), so a notification
+  // clicked from the global header bell while already on this page -- a
+  // same-route router.push with no remount -- still re-applies the
+  // deep-link target instead of being silently ignored.
   React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const actionItemId = params.get('actionItemId');
+    const actionItemId = searchParams.get('actionItemId');
     if (actionItemId) setTargetActionItemId(actionItemId);
-    setTargetOpenComments(params.get('openComments') === '1');
-  }, []);
+    setTargetOpenComments(searchParams.get('openComments') === '1');
+  }, [searchParams]);
 
   // Helper function to check if an item should be marked as "At Risk"
   const shouldBeAtRisk = (item: ActionItem): boolean => {
@@ -866,5 +872,13 @@ export default function ActionItemsPage() {
         </Modal>
       </div>
     </Layout>
+  );
+}
+
+export default function ActionItemsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ActionItemsContent />
+    </Suspense>
   );
 } 

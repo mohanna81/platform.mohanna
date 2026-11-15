@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRef } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/common/Layout';
 import Dropdown from '@/components/common/Dropdown';
 import InputField from '@/components/common/InputField';
@@ -54,9 +54,10 @@ const STATUS_OPTIONS = [
   { value: 'Closed', label: 'Close Risk' },
 ];
 
-export default function RiskReviewPage() {
+function RiskReviewContent() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [allPendingRisks, setAllPendingRisks] = useState<Risk[]>([]);
   const [allApprovedRisks, setAllApprovedRisks] = useState<Risk[]>([]);
@@ -292,9 +293,14 @@ export default function RiskReviewPage() {
     }
   }, []);
 
+  // Reactive to the URL's search params (unlike reading window.location.search
+  // in a mount-only effect), so a notification clicked from the global
+  // header bell while already on this page -- a same-route router.push with
+  // no remount -- still re-applies the deep-link target instead of being
+  // silently ignored.
   useEffect(() => {
-    applyDeepLinkFromSearch(window.location.search);
-  }, [applyDeepLinkFromSearch]);
+    applyDeepLinkFromSearch(`?${searchParams.toString()}`);
+  }, [searchParams, applyDeepLinkFromSearch]);
 
   // Scroll to and highlight the risk a notification deep-linked to.
   const scrollToRiskRef = (riskId: string) => (el: HTMLDivElement | null) => {
@@ -857,5 +863,13 @@ export default function RiskReviewPage() {
         />
       </div>
     </Layout>
+  );
+}
+
+export default function RiskReviewPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RiskReviewContent />
+    </Suspense>
   );
 } 

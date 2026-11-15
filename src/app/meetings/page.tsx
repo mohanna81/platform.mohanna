@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import MeetingsTabs from "@/components/meetings/MeetingsTabs";
 import MeetingCard from "@/components/meetings/MeetingCard";
 import PastMeetingCard from "@/components/meetings/PastMeetingCard";
@@ -19,8 +20,9 @@ import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organ
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
 import { actionItemsService } from '@/lib/api/services/actionitems';
 
-export default function MeetingsPage() {
+function MeetingsContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,15 +40,19 @@ export default function MeetingsPage() {
   const [targetMeetingId, setTargetMeetingId] = useState<string | null>(null);
   const [autoOpenMinutes, setAutoOpenMinutes] = useState(false);
 
+  // Reactive to the URL's search params (unlike reading
+  // window.location.search in a mount-only effect), so a notification
+  // clicked from the global header bell while already on this page -- a
+  // same-route router.push with no remount -- still re-applies the
+  // deep-link target instead of being silently ignored.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab');
+    const tab = searchParams.get('tab');
     if (tab === 'upcoming') setActiveTab('Upcoming');
     else if (tab === 'past') setActiveTab('Past Meetings');
-    const meetingId = params.get('meetingId');
+    const meetingId = searchParams.get('meetingId');
     if (meetingId) setTargetMeetingId(meetingId);
-    if (params.get('view') === 'minutes') setAutoOpenMinutes(true);
-  }, []);
+    if (searchParams.get('view') === 'minutes') setAutoOpenMinutes(true);
+  }, [searchParams]);
 
   // Scroll to and highlight the meeting a notification deep-linked to.
   const scrollToTargetRef = (meetingId: string) => (el: HTMLDivElement | null) => {
@@ -583,5 +589,13 @@ export default function MeetingsPage() {
         )}
       </div>
     </Layout>
+  );
+}
+
+export default function MeetingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MeetingsContent />
+    </Suspense>
   );
 } 

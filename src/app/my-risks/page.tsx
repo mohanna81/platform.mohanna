@@ -5,13 +5,15 @@ import MyRisksTabs, { MITIGATION_TAB } from '@/components/my-risks/MyRisksTabs';
 import MyRisksList from '@/components/my-risks/MyRisksList';
 import MyMitigationsTab from '@/components/my-risks/MyMitigationsTab';
 import NewRiskModal from '@/components/my-risks/NewRiskModal';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/common/Layout';
 import { ProtectedRoute } from '@/components/common';
 import { useAuth } from '@/lib/auth/AuthContext';
 
-export default function MyRisksPage() {
+function MyRisksContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [showNewRiskModal, setShowNewRiskModal] = useState(false);
   const [activeTab, setActiveTab] = useState('All Risks');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -25,18 +27,22 @@ export default function MyRisksPage() {
   const isOrgUser = user?.role === 'Organization User';
   const isFacilitator = user?.role === 'Facilitator';
 
+  // Reactive to the URL's search params (unlike reading
+  // window.location.search in a mount-only effect), so a notification
+  // clicked from the global header bell while already on this page -- a
+  // same-route router.push with no remount -- still re-applies the
+  // deep-link target instead of being silently ignored.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('tab') === 'mitigations') {
+    if (searchParams.get('tab') === 'mitigations') {
       setActiveTab(MITIGATION_TAB);
-    } else if (params.get('tab') === 'owned') {
+    } else if (searchParams.get('tab') === 'owned') {
       setInitialOwnedFilter(true);
     }
-    const riskId = params.get('riskId');
+    const riskId = searchParams.get('riskId');
     if (riskId) setTargetRiskId(riskId);
-    const measure = params.get('measure');
+    const measure = searchParams.get('measure');
     if (measure !== null) setTargetMeasure(Number(measure));
-  }, []);
+  }, [searchParams]);
 
   const handleOpenNewRisk = () => setShowNewRiskModal(true);
   const handleCloseNewRisk = (shouldRefresh = false) => {
@@ -68,5 +74,13 @@ export default function MyRisksPage() {
         </div>
       </Layout>
     </ProtectedRoute>
+  );
+}
+
+export default function MyRisksPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MyRisksContent />
+    </Suspense>
   );
 }
