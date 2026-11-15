@@ -17,6 +17,7 @@ interface EmailPreferences {
   actionItemComplete: boolean;
   weeklyUpdate: boolean;
   dailyDigest: boolean;
+  riskTriggered: boolean;
 }
 
 const DEFAULT_PREFS: EmailPreferences = {
@@ -28,6 +29,7 @@ const DEFAULT_PREFS: EmailPreferences = {
   actionItemComplete: false,
   weeklyUpdate: true,
   dailyDigest: true,
+  riskTriggered: true,
 };
 
 // The backend stores these as flat boolean columns, not a nested object --
@@ -42,6 +44,7 @@ const EMAIL_PREF_FLAT_FIELD_MAP: Record<keyof EmailPreferences, string> = {
   actionItemComplete: "emailPrefActionItemComplete",
   weeklyUpdate: "emailPrefWeeklyUpdate",
   dailyDigest: "emailPrefDailyDigest",
+  riskTriggered: "emailPrefRiskTriggered",
 };
 
 const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: string; icon: React.ReactNode }[] = [
@@ -77,6 +80,18 @@ const EMAIL_PREFS: { key: keyof EmailPreferences; label: string; description: st
       <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </span>
+    ),
+  },
+  {
+    key: "riskTriggered",
+    label: "Risk triggered",
+    description: "As soon as a risk is marked Triggered",
+    icon: (
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-orange-50">
+        <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </span>
     ),
