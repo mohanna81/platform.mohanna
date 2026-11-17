@@ -21,6 +21,10 @@ interface MitigationTrackerProps {
   canUpdate?: boolean;
   isFacilitator?: boolean;
   highlightMeasureIndex?: number | null;
+  // Which organization highlightMeasureIndex belongs to -- the Facilitator
+  // view below renders every organization's measures at once, each indexed
+  // from 0, so the measure index alone is ambiguous without this.
+  highlightOrgId?: string | null;
   // Bump this (e.g. a counter) whenever tracking for this risk may have
   // changed elsewhere — the Edit Risk modal updates statuses directly via
   // the API and has no other way to tell this already-mounted tracker to
@@ -43,6 +47,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
   canUpdate = false,
   isFacilitator = false,
   highlightMeasureIndex = null,
+  highlightOrgId = null,
   refreshSignal,
 }) => {
   const { user } = useAuth();
@@ -222,6 +227,7 @@ const MitigationTracker: React.FC<MitigationTrackerProps> = ({
                       canUpdate={true}
                       saving={saving}
                       onStatusChange={(s) => handleStatusChangeForOrg(s, orgId, i, resolvedCId)}
+                      highlighted={highlightOrgId === orgId && highlightMeasureIndex === i}
                     />
                   ))}
                 </div>

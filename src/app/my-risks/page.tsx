@@ -19,6 +19,10 @@ function MyRisksContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
   const [targetMeasure, setTargetMeasure] = useState<number | null>(null);
+  // Which organization's measure to highlight -- only meaningful for a
+  // Facilitator, whose Mitigations tab shows every organization's measures
+  // at once, unlike an Organization User who only ever sees their own.
+  const [targetOrgId, setTargetOrgId] = useState<string | null>(null);
   // A risk_owner_assigned/risk_triggered notification deep-links here with
   // ?tab=owned -- there's no separate "Owned" tab, so that just pre-selects
   // the ownership dropdown inside MyRisksList instead.
@@ -42,6 +46,8 @@ function MyRisksContent() {
     if (riskId) setTargetRiskId(riskId);
     const measure = searchParams.get('measure');
     if (measure !== null) setTargetMeasure(Number(measure));
+    const orgId = searchParams.get('org');
+    if (orgId) setTargetOrgId(orgId);
   }, [searchParams]);
 
   const handleOpenNewRisk = () => setShowNewRiskModal(true);
@@ -61,7 +67,7 @@ function MyRisksContent() {
             showMitigationsTab={isOrgUser || isFacilitator}
           />
           {activeTab === MITIGATION_TAB ? (
-            <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} />
+            <MyMitigationsTab targetRiskId={targetRiskId} targetMeasure={targetMeasure} targetOrgId={targetOrgId} />
           ) : (
             <MyRisksList
               statusFilter={activeTab}

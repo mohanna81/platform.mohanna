@@ -21,9 +21,14 @@ const ORG_FILTER_OPTIONS = [
 export default function MyMitigationsTab({
   targetRiskId,
   targetMeasure,
+  targetOrgId,
 }: {
   targetRiskId?: string | null;
   targetMeasure?: number | null;
+  // Which organization's measure to highlight -- only meaningful for a
+  // Facilitator, whose view below shows every organization's measures at
+  // once, unlike an Organization User who only ever sees their own.
+  targetOrgId?: string | null;
 } = {}) {
   const { user } = useAuth();
   const isFacilitator = user?.role === 'Facilitator';
@@ -377,6 +382,7 @@ export default function MyMitigationsTab({
                   canUpdate={true}
                   isFacilitator={isFacilitator}
                   highlightMeasureIndex={isTarget ? targetMeasure ?? null : null}
+                  highlightOrgId={isTarget ? targetOrgId ?? null : null}
                 />
               </div>
             )}
