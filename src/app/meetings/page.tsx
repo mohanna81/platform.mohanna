@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import type { CreateMeetingRequest, Meeting } from "@/lib/api/services/meetings";
 import CompleteMeetingModal from '@/components/meetings/CompleteMeetingModal';
 import { getUserTimezone } from "@/lib/utils/timezone";
-import { fetchConsortiaByRole } from '@/lib/api/services/consortia';
+import { fetchConsortiaByRole, Consortium } from '@/lib/api/services/consortia';
 import { fetchOrganizationsByRole, Organization } from '@/lib/api/services/organizations';
 import { normalizeRole } from '@/lib/utils/roleHierarchy';
 import { actionItemsService } from '@/lib/api/services/actionitems';
@@ -29,6 +29,11 @@ function MeetingsContent() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [consortia, setConsortia] = useState<{ id: string; name: string }[]>([]);
+  // Full consortium records (with each one's member organizations), kept
+  // separate from the flattened `consortia` dropdown options above -- the
+  // modal needs this to narrow the Organizations dropdown down to the
+  // selected consortium's own members.
+  const [rawConsortia, setRawConsortia] = useState<Consortium[]>([]);
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -139,6 +144,7 @@ function MeetingsContent() {
     async function fetchConsortiaOptions() {
       if (!user) return;
       const consortia = await fetchConsortiaByRole(user);
+      setRawConsortia(consortia);
       setConsortia(consortia.map((c) => ({ id: c.id || c._id, name: c.name })));
     }
     fetchConsortiaOptions();
@@ -524,6 +530,7 @@ function MeetingsContent() {
           onClose={() => setModalOpen(false)}
           onSubmit={handleScheduleMeeting}
           consortia={consortia}
+          rawConsortia={rawConsortia}
           organizations={organizations}
           isSubmitting={isSubmitting}
         />
@@ -534,6 +541,7 @@ function MeetingsContent() {
             onClose={() => { setEditModalOpen(false); setEditingMeeting(null); }}
             onSubmit={handleUpdateMeeting}
             consortia={consortia}
+            rawConsortia={rawConsortia}
             organizations={organizations}
             isSubmitting={isSubmitting}
             initialValues={{
