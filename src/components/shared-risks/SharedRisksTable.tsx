@@ -7,6 +7,15 @@ import TextArea from '@/components/common/TextArea';
 import { showToast } from '@/lib/utils/toast';
 import { exportSingleRiskToExcel } from '@/lib/utils/exportExcel';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { mitigationTrackingService, MitigationTracking, TrackingStatus } from '@/lib/api/services/mitigationTracking';
+
+// Read-only — matches the color/label scheme used everywhere else tracking
+// status is shown (MitigationTracker, Edit Risk modal).
+const STATUS_STYLES: Record<TrackingStatus, { label: string; color: string; dot: string }> = {
+  'Not Started': { label: 'Not Started', color: 'bg-gray-100 text-gray-600 border-gray-200', dot: 'bg-gray-400' },
+  'In Progress': { label: 'In Progress', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+  'Applied': { label: 'Applied', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+};
 
 interface SharedRisksTableProps {
   risks: Risk[];
@@ -28,6 +37,8 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [trackingData, setTrackingData] = useState<MitigationTracking[]>([]);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   // Table no longer scrolls vertically inside its own box (the page scrolls
   // instead), so its horizontal scrollbar can end up well below the fold.
@@ -150,11 +161,34 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
   const handleViewRisk = (risk: Risk) => {
     setSelectedRisk(risk);
     setViewModalOpen(true);
+    setTrackingData([]);
+    setTrackingLoading(true);
+    mitigationTrackingService.getTrackingByRisk(risk._id)
+      .then(res => setTrackingData(res.data?.data ?? []))
+      .catch(() => setTrackingData([]))
+      .finally(() => setTrackingLoading(false));
   };
 
   const handleCloseViewModal = () => {
     setViewModalOpen(false);
     setSelectedRisk(null);
+    setTrackingData([]);
+  };
+
+  // Read-only — the latest tracking entry for this organization/measure.
+  const getStatusForOrgMeasure = (orgId: string, measureIndex: number): TrackingStatus => {
+    const entry = trackingData
+      .filter(t => t.measureIndex === measureIndex && t.measureType === 'Mitigation' && t.organization?._id === orgId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    return entry?.status ?? 'Not Started';
+  };
+
+  // Measures for an org role — supports both the newer measures[] array and
+  // the legacy single `role` string.
+  const getOrgMeasures = (orgRole: { role?: string; measures?: string[] }): string[] => {
+    const ms = (orgRole.measures || []).filter(m => m?.trim());
+    if (ms.length > 0) return ms;
+    return orgRole.role?.trim() ? [orgRole.role] : [];
   };
 
   // Helper function to render consortium names
@@ -163,47 +197,6 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
     return consortium.map((c: { name?: string } | string) => 
       typeof c === 'object' && c !== null && 'name' in c ? c.name : String(c)
     ).join(', ');
-  };
-
-  // Helper function to render organization roles
-  const renderOrganizationRoles = (orgRoles: unknown) => {
-    if (!Array.isArray(orgRoles) || orgRoles.length === 0) {
-      return <span className="text-gray-500">No roles assigned</span>;
-    }
-
-    // Filter out organizations that don't have a defined role
-    const organizationsWithRoles = orgRoles.filter((roleObj: { role?: string; organization?: { name?: string; _id?: string } }) => {
-      return roleObj && 
-             typeof roleObj === 'object' && 
-             'role' in roleObj && 
-             roleObj.role && 
-             roleObj.role.trim() !== '' &&
-             'organization' in roleObj && 
-             roleObj.organization;
-    });
-
-    if (organizationsWithRoles.length === 0) {
-      return <span className="text-gray-500">No organizations with defined roles</span>;
-    }
-
-    return organizationsWithRoles.map((roleObj: { role: string; organization: { name?: string; _id?: string } }, idx: number) => {
-      const roleString = roleObj.role;
-      const orgName = roleObj.organization?.name;
-      
-      if (orgName && roleString) {
-        return (
-          <div key={roleObj.organization?._id || idx} className="text-sm">
-            <span className="font-semibold text-black">
-              {orgName}:
-            </span>
-            <span className="text-black ml-1">
-              {roleString}
-            </span>
-          </div>
-        );
-      }
-      return null;
-    }).filter(Boolean);
   };
 
   // Helper function to render mitigation measures with truncation
@@ -643,10 +636,66 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
               ) : <p className="text-sm text-gray-400 italic">No consortium assigned</p>}
             </div>
 
-            {/* Organization Roles — full width */}
+            {/* Owner Organization(s) — full width */}
             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Organization Roles</p>
-              <div className="space-y-2">{renderOrganizationRoles(selectedRisk.orgRoles)}</div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Owner Organization</p>
+              {Array.isArray(selectedRisk.ownerOrganizations) && selectedRisk.ownerOrganizations.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedRisk.ownerOrganizations.map((o, i) => (
+                    <span key={o._id || o.id || i} className="px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-sm text-indigo-700 font-medium">
+                      {o.name || '—'}
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">No owner organization assigned</p>}
+            </div>
+
+            {/* Organization Roles & Mitigation Status — full width, read-only.
+                Shows every organization's measures and current tracking
+                status so anyone viewing the shared register gets the full
+                picture, without being able to change it from here. */}
+            <div className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Organization Roles &amp; Mitigation Status</p>
+              {trackingLoading ? (
+                <p className="text-sm text-gray-400">Loading mitigation status…</p>
+              ) : (() => {
+                const orgRoles = (selectedRisk.orgRoles || []).filter(r => getOrgMeasures(r).length > 0);
+                if (orgRoles.length === 0) {
+                  return <p className="text-sm text-gray-400 italic">No organization roles or mitigation measures defined.</p>;
+                }
+                return (
+                  <div className="space-y-3">
+                    {orgRoles.map((role, idx) => {
+                      const orgId = role.organization?._id || '';
+                      const measures = getOrgMeasures(role);
+                      return (
+                        <div key={orgId || idx} className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                          <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+                            <span className="text-xs font-semibold text-gray-700">{role.organization?.name || `Organization ${idx + 1}`}</span>
+                          </div>
+                          <div className="p-3 space-y-2">
+                            {measures.map((measure, i) => {
+                              const style = STATUS_STYLES[getStatusForOrgMeasure(orgId, i)];
+                              return (
+                                <div key={i} className="flex items-start justify-between gap-3 text-sm">
+                                  <div className="flex items-start gap-2 min-w-0">
+                                    <span className="inline-flex items-center justify-center w-5 h-5 bg-[#2a9d8f] text-white rounded-full text-[10px] font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
+                                    <span className="text-gray-700">{measure}</span>
+                                  </div>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${style.color}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                                    {style.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Timestamps */}
