@@ -30,7 +30,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [role, setRole] = React.useState('');
-  const [organization, setOrganization] = React.useState('');
+  const [organizations, setOrganizations] = React.useState<string[]>([]);
   const [consortia, setConsortia] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [filteredOrganizationOptions, setFilteredOrganizationOptions] = React.useState<{ value: string; label: string }[]>([]);
@@ -71,18 +71,21 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           });
         }
       });
-      if (organization) {
-        const currentOrgOption = organizationOptions.find(opt => opt.value === organization);
-        if (currentOrgOption && !organizationsFromConsortia.find(e => e.value === organization)) {
-          organizationsFromConsortia.push(currentOrgOption);
-        }
-      }
+      // Keep every already-selected organization available even if its
+      // consortium isn't (or is no longer) part of the selection above --
+      // otherwise narrowing the consortia list would silently drop a
+      // previously-saved organization from the options entirely.
+      organizations.forEach(orgId => {
+        if (organizationsFromConsortia.find(e => e.value === orgId)) return;
+        const existingOrgOption = organizationOptions.find(opt => opt.value === orgId);
+        if (existingOrgOption) organizationsFromConsortia.push(existingOrgOption);
+      });
       setFilteredOrganizationOptions(organizationsFromConsortia);
     } catch (error) {
       console.error('Error filtering organizations:', error);
       setFilteredOrganizationOptions(organizationOptions);
     }
-  }, [consortia, organizationOptions, allConsortia, organization]);
+  }, [consortia, organizationOptions, allConsortia, organizations]);
 
   // Initialize form with user data when user changes
   React.useEffect(() => {
@@ -90,7 +93,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       setName(user.name || '');
       setEmail(user.email || '');
       setRole(user.role || '');
-      setOrganization(user.organizations?.[0] || '');
+      setOrganizations(user.organizations || []);
       setConsortia(user.consortia || []);
     }
   }, [user]);
@@ -99,7 +102,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      onSubmit({ name, email, role, organizations: organization ? [organization] : [], consortia });
+      onSubmit({ name, email, role, organizations, consortia });
     } catch {
       // Error handling is done in the parent component
     } finally {
@@ -174,15 +177,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         </div>
         <div>
           <Dropdown
-            label="Organization"
-            placeholder="Select organization"
-            options={filteredOrganizationOptions}
-            value={organization}
-            onChange={setOrganization}
-            required
+            label="Organizations"
+            placeholder={filteredOrganizationOptions.filter(opt => !organizations.includes(opt.value)).length === 0 ? 'No more organizations to add' : 'Select an organization to add'}
+            options={filteredOrganizationOptions.filter(opt => !organizations.includes(opt.value))}
+            value=""
+            onChange={v => { if (v && !organizations.includes(v)) setOrganizations([...organizations, v]); }}
             fullWidth
             disabled={isSubmitting}
           />
+          {organizations.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {organizations.map((orgId, index) => {
+                const org = filteredOrganizationOptions.find(opt => opt.value === orgId) || organizationOptions.find(opt => opt.value === orgId);
+                return (
+                  <div key={orgId} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
+                    <span className="text-black font-medium">{org?.label || orgId}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setOrganizations(organizations.filter((_, i) => i !== index))} disabled={isSubmitting} className="text-red-500 hover:text-red-700 !p-0 text-xs font-bold">×</Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-2">
           <Button variant="outline" size="md" type="button" onClick={onClose} disabled={isSubmitting} className="border-gray-300 text-gray-900 w-full sm:w-auto text-sm md:text-base">Cancel</Button>

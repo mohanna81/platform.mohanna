@@ -24,6 +24,8 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -228,11 +230,22 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
     }
   };
 
+  // Search (name/email) + role filter, applied on top of the role-hierarchy
+  // visibility filter above -- matches the search box every other
+  // Consortium Management tab (Organizations, Active/Closed Consortia)
+  // already has, which this one was missing entirely.
+  const searchedUsers = filteredUsers.filter(u => {
+    if (roleFilter && normalizeRole(u.role) !== roleFilter) return false;
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+    return u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term);
+  });
+
   // Calculate pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.ceil(searchedUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+  const currentUsers = searchedUsers.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -295,6 +308,39 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
   return (
     <>
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-gray-200">
+          <input
+            type="text"
+            placeholder="Search users by name or email..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+          />
+          {!isOrgUser && (
+            <select
+              value={roleFilter}
+              onChange={e => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full sm:w-56 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2a9d8f]/40"
+            >
+              <option value="">All Roles</option>
+              {roleOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        {searchedUsers.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">No users match your search or filter.</p>
+            <button
+              onClick={() => { setSearch(''); setRoleFilter(''); }}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Summary section */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -394,7 +440,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
         </div>
         
         {/* Pagination */}
-        {filteredUsers.length > 0 && (
+        {searchedUsers.length > 0 && (
           <div className="px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <PageSizeSelector
@@ -404,12 +450,14 @@ const UsersTable: React.FC<UsersTableProps> = ({ refreshKey }) => {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                totalItems={filteredUsers.length}
+                totalItems={searchedUsers.length}
                 itemsPerPage={itemsPerPage}
                 onPageChange={handlePageChange}
               />
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
 
