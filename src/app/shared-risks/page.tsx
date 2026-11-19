@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import SharedRisksHeader, { SharedRisksFilters } from "@/components/shared-risks/SharedRisksHeader";
 import SharedRisksTable from "@/components/shared-risks/SharedRisksTable";
 import Layout from '@/components/common/Layout';
@@ -30,7 +31,7 @@ interface LoadingState {
   organizations: boolean;
 }
 
-export default function SharedRisksPage() {
+function SharedRisksContent() {
   const [filters, setFilters] = useState<SharedRisksFilters>(initialFilters);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>({
@@ -44,6 +45,17 @@ export default function SharedRisksPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const isInitialLoad = useRef(true);
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  // A "Risk Approved" (or similar) notification deep-links here with
+  // ?riskId=... -- the table is paginated/filtered, so rather than hunting
+  // for which page the risk lands on, resolve it from the full unpaginated
+  // list and hand the table the risk directly to open.
+  const [targetRiskId, setTargetRiskId] = useState<string | null>(null);
+  useEffect(() => {
+    const riskId = searchParams.get('riskId');
+    if (riskId) setTargetRiskId(riskId);
+  }, [searchParams]);
+  const targetRisk = targetRiskId ? risks.find(r => r._id === targetRiskId) ?? null : null;
 
   const isFullyLoaded = !loadingState.risks && !loadingState.consortia && !loadingState.organizations;
 
@@ -270,9 +282,10 @@ export default function SharedRisksPage() {
             />
           ) : (
             <>
-              <SharedRisksTable 
-                risks={paginatedRisks} 
+              <SharedRisksTable
+                risks={paginatedRisks}
                 onRiskDeleted={fetchApprovedRisks}
+                initialSelectedRisk={targetRisk}
               />
               
               {/* Pagination Controls */}
@@ -300,4 +313,12 @@ export default function SharedRisksPage() {
       </div>
     </Layout>
   );
-} 
+}
+
+export default function SharedRisksPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SharedRisksContent />
+    </Suspense>
+  );
+}

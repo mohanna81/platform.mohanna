@@ -20,9 +20,15 @@ const STATUS_STYLES: Record<TrackingStatus, { label: string; color: string; dot:
 interface SharedRisksTableProps {
   risks: Risk[];
   onRiskDeleted?: () => void;
+  // A risk resolved from a notification deep-link (e.g. "Risk Approved")
+  // that should open directly in the View Risk modal -- resolved by the
+  // parent from its full, unpaginated risk list, since this table only
+  // ever receives the current page's slice and the target risk may not be
+  // on it.
+  initialSelectedRisk?: Risk | null;
 }
 
-const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDeleted }) => {
+const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDeleted, initialSelectedRisk }) => {
   const { user } = useAuth();
   const canCloseRisk = user?.role === 'Facilitator' || user?.role === 'Admin' || user?.role === 'Super_user';
 
@@ -190,6 +196,17 @@ const SharedRisksTable: React.FC<SharedRisksTableProps> = ({ risks, onRiskDelete
     if (ms.length > 0) return ms;
     return orgRole.role?.trim() ? [orgRole.role] : [];
   };
+
+  // Auto-open a notification deep-linked risk once it resolves, but only
+  // once -- otherwise closing the modal would immediately reopen it, since
+  // the parent keeps resolving the same riskId from the URL.
+  const autoOpenedRiskId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialSelectedRisk || autoOpenedRiskId.current === initialSelectedRisk._id) return;
+    autoOpenedRiskId.current = initialSelectedRisk._id;
+    handleViewRisk(initialSelectedRisk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelectedRisk]);
 
   // Helper function to render consortium names
   const renderConsortiumNames = (consortium: unknown) => {
