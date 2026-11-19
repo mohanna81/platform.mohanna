@@ -141,6 +141,12 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
   // become read-only for them. Facilitators/Admins are unaffected.
   const orgUserLocked = user?.role === 'Organization User' && riskStatus !== 'Draft';
 
+  // Who can update a given organization's mitigation tracking status
+  // (enforced server-side too) — Facilitators/Admins oversee every org, but
+  // an Organization User may only update their own. Everyone can still see
+  // every organization's status; this only gates the update controls.
+  const canUpdateOrgRole = (orgId: string) => isFacilitator || orgId === user?.organizationId;
+
   // Helper function to fetch organization details by ID
   const fetchOrganizationDetails = useCallback(async (orgId: string): Promise<{ _id: string; name: string } | null> => {
     try {
@@ -885,25 +891,43 @@ const EditRiskModal = ({ isOpen, onClose, onSubmit, riskId, onUpdated, onTrackin
                               a fixed next step, since any status can be
                               picked directly. */}
                           {riskStatus === 'Approved' && (
-                            <div className="flex items-center gap-2 flex-wrap pl-7">
-                              <span className="text-xs text-gray-400">Update:</span>
-                              {STATUS_OPTIONS.map(opt => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  disabled={savingTracking || currentStatus === opt.value}
-                                  onClick={() => handleUpdateTracking(role.orgId, measureIndex, opt.value)}
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-                                    currentStatus === opt.value
-                                      ? `${opt.color} cursor-default`
-                                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-                                  }`}
-                                >
-                                  <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
+                            canUpdateOrgRole(role.orgId) ? (
+                              <div className="flex items-center gap-2 flex-wrap pl-7">
+                                <span className="text-xs text-gray-400">Update:</span>
+                                {STATUS_OPTIONS.map(opt => (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    disabled={savingTracking || currentStatus === opt.value}
+                                    onClick={() => handleUpdateTracking(role.orgId, measureIndex, opt.value)}
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                                      currentStatus === opt.value
+                                        ? `${opt.color} cursor-default`
+                                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                    }`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              // Other organizations' status is visible but not
+                              // editable -- only this org's own users (and
+                              // Facilitators/Admins) can update it.
+                              <div className="flex items-center gap-2 flex-wrap pl-7">
+                                <span className="text-xs text-gray-400">Status:</span>
+                                {(() => {
+                                  const opt = STATUS_OPTIONS.find(o => o.value === currentStatus) ?? STATUS_OPTIONS[0];
+                                  return (
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${opt.color}`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${opt.dot}`} />
+                                      {opt.label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            )
                           )}
                         </div>
                       );
